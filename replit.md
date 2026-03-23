@@ -42,6 +42,9 @@ server/
 
 shared/
   schema.ts         — Drizzle tables + Zod schemas + types
+
+seed.ts             — Database seeder (admin + default prices/features)
+migrations/         — Drizzle migration files
 ```
 
 ## Database Tables
@@ -70,8 +73,19 @@ shared/
 - Static words: `Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E`
 - Password hash: md5(plain) -> sha256(md5)
 
+## Security Hardening (Production)
+- Session cookie: `secure: true` in production, `httpOnly: true`, `sameSite: lax`
+- Rate limiting: forgot-password (5/min), device-reset (5/min), reset-password (10/min), verify-otp (10/min)
+- OTP brute-force: max 5 failed attempts invalidates session OTP
+- Bulk-delete RBAC: non-owners can only delete their own keys
+- GET /api/users/:id RBAC: non-owners can only view self or their referred users
+- Password validation: 6-45 char enforcement on all change endpoints
+- Dead code removed: unused imports (passport, memorystore, sql, boolean, ne, ilike, getDurationLabel, formatDuration, storage in auth.ts)
+
 ## Default Credentials
 - Owner: `admin` / `admin123` (level 1)
 
 ## Running
 - Workflow "Start application" runs `npm run dev` on port 5000
+- Seed: `npx tsx seed.ts`
+- Push schema: `npm run db:push`

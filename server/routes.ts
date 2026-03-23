@@ -7,9 +7,28 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import {
   hashPassword, verifyPassword, generateKeyLicense,
-  getPrice, getLevelName, getDurationLabel, formatDuration,
+  getPrice, getLevelName,
 } from "./auth";
 import { loginSchema, registerSchema, generateKeySchema } from "@shared/schema";
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(windowMs: number, maxHits: number) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const key = `${req.path}:${ip}`;
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+    if (!entry || now > entry.resetAt) {
+      rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    if (entry.count >= maxHits) {
+      return res.status(429).json({ message: "Too many requests. Please try again later." });
+    }
+    entry.count++;
+    return next();
+  };
+}
 
 declare module "express-session" {
   interface SessionData {
@@ -22,12 +41,14 @@ declare module "express-session" {
       otpHash: string;
       expires: number;
       stayLog: boolean;
+      attempts: number;
     };
     pendingPasswordReset?: {
       userId: number;
       otpHash: string;
       expires: number;
       username: string;
+      attempts: number;
     };
   }
 }
@@ -55,10 +76,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use(
     session({
       store: new PgSession({ pool, createTableIfMissing: true }),
-      secret: process.env.SESSION_SECRET || "key-panel-secret-2024",
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
-      cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: false, sameSite: "lax" },
+      cookie: {
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      },
     })
   );
 
@@ -121,23 +147,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           otpHash,
           expires: Date.now() + 300000,
           stayLog: !!stayLog,
+          attempts: 0,
         };
-        return res.json({ requires2fa: true, otp_hint: otp });
+        const response: any = { requires2fa: true };
+        if (process.env.NODE_ENV !== "production") response.otp_hint = otp;
+        return res.json(response);
       }
 
       await storage.clearThrottle(throttleId);
-      req.session.userId = user.id;
-      req.session.username = user.username;
-      req.session.userLevel = user.level;
-
-      const { password: _, ...safe } = user;
-      res.json({ ...safe, levelName: getLevelName(user.level) });
+      req.session.regenerate((err) => {
+        if (err) return res.status(500).json({ message: "Session error." });
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.userLevel = user.level;
+        req.session.save(() => {
+          const { password: _, ...safe } = user;
+          res.json({ ...safe, levelName: getLevelName(user.level) });
+        });
+      });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Login failed" });
     }
   });
 
-  app.post("/api/auth/verify-otp", async (req, res) => {
+  app.post("/api/auth/verify-otp", rateLimit(60000, 10), async (req, res) => {
     const pending = req.session.pending2fa;
     if (!pending) return res.status(400).json({ message: "No pending 2FA session." });
 
@@ -147,21 +180,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(400).json({ message: "OTP expired." });
     }
 
+    if (pending.attempts >= 5) {
+      delete req.session.pending2fa;
+      return res.status(400).json({ message: "Too many failed OTP attempts. Please login again." });
+    }
+
     const inputHash = crypto.createHash("sha256").update(String(otp)).digest("hex");
     if (inputHash !== pending.otpHash) {
+      pending.attempts++;
       return res.status(400).json({ message: "Invalid OTP." });
     }
 
     const user = await storage.getUser(pending.userId);
     if (!user) return res.status(400).json({ message: "User not found." });
 
-    delete req.session.pending2fa;
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.userLevel = user.level;
-
-    const { password, ...safe } = user;
-    res.json({ ...safe, levelName: getLevelName(user.level) });
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ message: "Session error." });
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.userLevel = user.level;
+      req.session.save(() => {
+        const { password: _pw, ...safe } = user;
+        res.json({ ...safe, levelName: getLevelName(user.level) });
+      });
+    });
   });
 
   app.post("/api/auth/register", async (req, res) => {
@@ -206,7 +248,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/forgot-password", async (req, res) => {
+  app.post("/api/auth/forgot-password", rateLimit(60000, 5), async (req, res) => {
     try {
       const { username } = req.body;
       if (!username || typeof username !== "string" || username.length < 4) {
@@ -228,15 +270,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         otpHash,
         expires: Date.now() + 300000,
         username: user.username,
+        attempts: 0,
       };
 
-      res.json({ message: "OTP sent to your Telegram. Enter it to reset your password.", otp_hint: otp });
+      const response: any = { message: "OTP sent to your Telegram. Enter it to reset your password." };
+      if (process.env.NODE_ENV !== "production") response.otp_hint = otp;
+      res.json(response);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Request failed." });
     }
   });
 
-  app.post("/api/auth/reset-password", async (req, res) => {
+  app.post("/api/auth/reset-password", rateLimit(60000, 10), async (req, res) => {
     try {
       const pending = req.session.pendingPasswordReset;
       if (!pending || !pending.userId) {
@@ -261,8 +306,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "OTP expired. Please request again." });
       }
 
+      if (pending.attempts >= 5) {
+        delete req.session.pendingPasswordReset;
+        return res.status(400).json({ message: "Too many failed OTP attempts. Please request a new code." });
+      }
+
       const inputHash = crypto.createHash("sha256").update(String(otp)).digest("hex");
       if (inputHash !== pending.otpHash) {
+        pending.attempts++;
         return res.status(400).json({ message: "Invalid OTP. Please try again." });
       }
 
@@ -281,7 +332,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/device-reset", async (req, res) => {
+  app.post("/api/auth/device-reset", rateLimit(60000, 5), async (req, res) => {
     try {
       const { username, password } = req.body;
       if (!username || !password) {
@@ -519,7 +570,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     const { ids } = req.body;
-    if (!Array.isArray(ids)) return res.status(400).json({ message: "Invalid ids." });
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ message: "Invalid ids." });
+
+    if (user.level !== 1) {
+      for (const id of ids) {
+        const key = await storage.getKey(id);
+        if (!key || key.registrator !== user.username) {
+          return res.status(403).json({ message: "Access denied: you can only delete your own keys." });
+        }
+      }
+    }
+
     await storage.deleteKeys(ids);
     res.json({ message: `${ids.length} keys deleted.` });
   });
@@ -584,8 +645,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.get("/api/users/:id", requireAuth, async (req, res) => {
+    const me = await storage.getUser(req.session.userId!);
+    if (!me) return res.status(401).json({ message: "Unauthorized" });
     const target = await storage.getUser(parseInt(req.params.id));
     if (!target) return res.status(404).json({ message: "User not found" });
+
+    if (me.level !== 1 && target.id !== me.id && target.uplink !== me.username) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     const { password, ...safe } = target;
     res.json({ ...safe, levelName: getLevelName(target.level) });
   });
@@ -668,8 +736,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/users/:id/reset-device", requireLevel(2), async (req, res) => {
+    const me = await storage.getUser(req.session.userId!);
+    if (!me) return res.status(401).json({ message: "Unauthorized" });
     const target = await storage.getUser(parseInt(req.params.id));
     if (!target) return res.status(404).json({ message: "User not found" });
+
+    if (me.level === 2) {
+      if (target.level === 1) return res.status(403).json({ message: "Cannot reset owner device." });
+      if (target.uplink !== me.username) return res.status(403).json({ message: "Can only reset devices for users you referred." });
+    }
+
     await storage.updateUser(target.id, { deviceId: null } as any);
     res.json({ message: "User device reset." });
   });
@@ -711,6 +787,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/profile/password", requireAuth, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Both current and new password are required." });
+    }
+    if (newPassword.length < 6 || newPassword.length > 45) {
+      return res.status(400).json({ message: "New password must be 6-45 characters." });
+    }
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     if (!verifyPassword(currentPassword, user.password)) {

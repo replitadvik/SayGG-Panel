@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { storage } from "./storage";
 
 export function hashPassword(password: string): string {
   const salted = crypto.createHash("md5").update(password).digest("hex");

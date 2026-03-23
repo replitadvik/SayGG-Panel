@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, sql, desc, asc, ilike, ne } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle,
