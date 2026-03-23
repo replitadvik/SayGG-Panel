@@ -1,0 +1,244 @@
+[24-Feb-2026 14:13:27 Asia/Calcutta] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:07:39 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:41 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:42 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:49 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:51 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:54 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:56 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:08:57 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:09:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:09:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 14:49:04 Asia/Calcutta] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 14:58:17 Asia/Calcutta] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:31:40 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 09:31:41 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 15:01:49 Asia/Calcutta] PHP Fatal error:  Uncaught Error: Call to undefined method CodeIgniter\Debug\ExceptionHandler::cleanPath() in /home/apitechs/public_html/app/Views/errors/html/error_exception.php:33
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(270): include()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/BaseExceptionHandler.php(273): CodeIgniter\Debug\BaseExceptionHandler->{closure:CodeIgniter\Debug\BaseExceptionHandler::render():264}()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/ExceptionHandler.php(126): CodeIgniter\Debug\BaseExceptionHandler->render()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(151): CodeIgniter\Debug\ExceptionHandler->handle()
+#4 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#5 {main}
+  thrown in /home/apitechs/public_html/app/Views/errors/html/error_exception.php on line 33
+[24-Feb-2026 20:43:11 Asia/Kolkata] PHP Fatal error:  Uncaught ErrorException: Undefined property: Config\App::$allowedHostnames in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php:246
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(246): CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(235): CodeIgniter\HTTP\SiteURIFactory->getValidHost()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(222): CodeIgniter\HTTP\SiteURIFactory->getHost()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(42): CodeIgniter\HTTP\SiteURIFactory->createURIFromRoutePath()
+#4 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(825): CodeIgniter\HTTP\SiteURIFactory->createFromGlobals()
+#5 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#6 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#7 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(818): CodeIgniter\Config\BaseService::getSharedInstance()
+#8 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#9 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#10 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(570): CodeIgniter\Config\BaseService::get()
+#11 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::incomingrequest()
+#12 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(528): CodeIgniter\Config\BaseService::__callStatic()
+#13 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#14 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#15 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(524): CodeIgniter\Config\BaseService::getSharedInstance()
+#16 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#17 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#18 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Common.php(1078): CodeIgniter\Config\BaseService::get()
+#19 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(117): service()
+#20 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#21 {main}
+  thrown in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php on line 246
+[24-Feb-2026 20:43:12 Asia/Kolkata] PHP Fatal error:  Uncaught ErrorException: Undefined property: Config\App::$allowedHostnames in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php:246
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(246): CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(235): CodeIgniter\HTTP\SiteURIFactory->getValidHost()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(222): CodeIgniter\HTTP\SiteURIFactory->getHost()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(42): CodeIgniter\HTTP\SiteURIFactory->createURIFromRoutePath()
+#4 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(825): CodeIgniter\HTTP\SiteURIFactory->createFromGlobals()
+#5 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#6 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#7 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(818): CodeIgniter\Config\BaseService::getSharedInstance()
+#8 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#9 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#10 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(570): CodeIgniter\Config\BaseService::get()
+#11 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::incomingrequest()
+#12 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(528): CodeIgniter\Config\BaseService::__callStatic()
+#13 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#14 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#15 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(524): CodeIgniter\Config\BaseService::getSharedInstance()
+#16 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#17 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#18 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Common.php(1078): CodeIgniter\Config\BaseService::get()
+#19 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(117): service()
+#20 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#21 {main}
+  thrown in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php on line 246
+[24-Feb-2026 20:43:16 Asia/Kolkata] PHP Fatal error:  Uncaught ErrorException: Undefined property: Config\App::$allowedHostnames in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php:246
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(246): CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(235): CodeIgniter\HTTP\SiteURIFactory->getValidHost()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(222): CodeIgniter\HTTP\SiteURIFactory->getHost()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(42): CodeIgniter\HTTP\SiteURIFactory->createURIFromRoutePath()
+#4 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(825): CodeIgniter\HTTP\SiteURIFactory->createFromGlobals()
+#5 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#6 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#7 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(818): CodeIgniter\Config\BaseService::getSharedInstance()
+#8 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#9 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#10 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(570): CodeIgniter\Config\BaseService::get()
+#11 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::incomingrequest()
+#12 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(528): CodeIgniter\Config\BaseService::__callStatic()
+#13 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#14 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#15 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(524): CodeIgniter\Config\BaseService::getSharedInstance()
+#16 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#17 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#18 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Common.php(1078): CodeIgniter\Config\BaseService::get()
+#19 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(117): service()
+#20 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#21 {main}
+  thrown in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php on line 246
+[24-Feb-2026 20:43:18 Asia/Kolkata] PHP Fatal error:  Uncaught ErrorException: Undefined property: Config\App::$allowedHostnames in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php:246
+Stack trace:
+#0 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(246): CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(235): CodeIgniter\HTTP\SiteURIFactory->getValidHost()
+#2 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(222): CodeIgniter\HTTP\SiteURIFactory->getHost()
+#3 /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php(42): CodeIgniter\HTTP\SiteURIFactory->createURIFromRoutePath()
+#4 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(825): CodeIgniter\HTTP\SiteURIFactory->createFromGlobals()
+#5 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#6 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#7 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(818): CodeIgniter\Config\BaseService::getSharedInstance()
+#8 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::uri()
+#9 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#10 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(570): CodeIgniter\Config\BaseService::get()
+#11 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::incomingrequest()
+#12 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(528): CodeIgniter\Config\BaseService::__callStatic()
+#13 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#14 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(264): CodeIgniter\Config\BaseService::__callStatic()
+#15 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/Services.php(524): CodeIgniter\Config\BaseService::getSharedInstance()
+#16 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(325): CodeIgniter\Config\Services::request()
+#17 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Config/BaseService.php(203): CodeIgniter\Config\BaseService::__callStatic()
+#18 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Common.php(1078): CodeIgniter\Config\BaseService::get()
+#19 /home/apitechs/public_html/vendor/codeigniter4/framework/system/Debug/Exceptions.php(117): service()
+#20 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#21 {main}
+  thrown in /home/apitechs/public_html/vendor/codeigniter4/framework/system/HTTP/SiteURIFactory.php on line 246

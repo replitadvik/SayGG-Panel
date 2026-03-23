@@ -1,0 +1,165 @@
+<?php /* PATCH_HIDE_OWNER_FOR_ADMIN_ONLY_RESELLER */ $actingLevel = $_SESSION['level'] ?? (isset($this->auth) ? ($this->auth->user()->level ?? 3) : 3); ?>
+<?php
+include('mail.php');
+?>
+
+<?= $this->extend('Layout/Starter') ?>
+
+<?= $this->section('content') ?>
+
+<style>
+  /* ===== GLASSMORPHISM THEME – compact + wider sides ===== */
+  :root{
+    --glass-bg: rgba(255,255,255,.14);
+    --glass-border: rgba(255,255,255,.30);
+    --primary:#4facfe; --secondary:#00f2fe;
+    --text:#ffffff; --muted:rgba(255,255,255,.75);
+    --success:#32d296; --navbar-h:36px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+  body{
+    font-family:'Poppins',sans-serif; color:var(--text);
+    background: linear-gradient(135deg,#667eea,#764ba2) fixed; min-height:100dvh;
+  }
+
+  .glass-page{ width:98%; max-width:1200px; margin: 10px auto 20px; }
+  .glass-panel{
+    background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.25); overflow:hidden; transition:.25s;
+  }
+  .glass-panel:hover{ transform: translateY(-2px); box-shadow: 0 12px 34px rgba(0,0,0,.35); border-color: rgba(255,255,255,.45); }
+  .glass-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px; background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border-bottom:1px solid var(--glass-border); font-weight:700;
+  }
+  .glass-head .title{ font-size:17px; letter-spacing:.4px; display:flex; align-items:center; gap:8px; }
+  .glass-body{ padding:16px; }
+
+  /* Back button */
+  .btn-ghost{
+    border:1px solid var(--glass-border); color:#fff; background:transparent; padding:8px 12px; border-radius:10px;
+  }
+  .btn-ghost:hover{ border-color:rgba(255,255,255,.45); }
+
+  /* Form controls */
+  .form-label{ color:#eaeaff; font-weight:600; font-size:12.5px; }
+  .form-control, .form-select{
+    border:none !important; border-radius:10px !important;
+    background: rgba(255,255,255,.10) !important; color:#fff !important;
+    padding:12px 14px !important; transition:.25s;
+  }
+  .form-control::placeholder{ color:#e9e9e9 !important; opacity:.9; }
+  .form-control:focus, .form-select:focus{
+    background: rgba(255,255,255,.18) !important; box-shadow: 0 0 0 3px rgba(255,255,255,.25) !important; outline:none !important;
+  }
+  .invalid-feedback{ display:block; color:#ffd1d1; font-size:.85rem; margin-top:6px; }
+
+  /* Submit button */
+  .btn-glass{
+    width:100%; border:none; border-radius:10px; padding:12px 14px;
+    font-weight:700; font-size:14px; letter-spacing:.5px;
+    color:#fff; cursor:pointer; background: linear-gradient(45deg, var(--primary), var(--secondary));
+    transition:.25s;
+  }
+  .btn-glass:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
+
+  /* Small helper */
+  .muted{ color:var(--muted); font-size:.9rem; }
+</style>
+
+<?= $this->include('Layout/msgStatus') ?>
+
+<div class="glass-page">
+  <div class="glass-panel">
+    <div class="glass-head">
+      <div class="title"><i class="bi bi-person-gear"></i> USER CONTROL</div>
+      <a href="<?= site_url('admin/manage-users') ?>" class="btn-ghost"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+
+    <div class="glass-body">
+      <div class="muted mb-3"><i class="bi bi-info-circle"></i> Update user profile details safely.</div>
+
+      <?= form_open() ?>
+        <input type="hidden" name="user_id" value="<?= $target->id_users ?>">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="username" class="form-label">USERNAME</label>
+            <input type="text" name="username" id="username" class="form-control" value="<?= old('username') ?: $target->username ?>">
+            <?php if ($validation->hasError('username')) : ?>
+              <div class="invalid-feedback"><?= $validation->getError('username') ?></div>
+            <?php endif; ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="fullname" class="form-label">FULLNAME</label>
+            <input type="text" name="fullname" id="fullname" class="form-control" value="<?= old('fullname') ?: $target->fullname ?>">
+            <?php if ($validation->hasError('fullname')) : ?>
+              <div class="invalid-feedback"><?= $validation->getError('fullname') ?></div>
+            <?php endif; ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="level" class="form-label">ROLE</label>
+            <?php $sel_level = ['' => '-- SELECT ROLE --', '1' => 'OWNER', '2' => 'ADMIN', '3' => 'RESELLER']; ?>
+            <?= form_dropdown(['class' => 'form-select', 'name' => 'level', 'id' => 'level'], $sel_level, $target->level) ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="status" class="form-label">STATUS</label>
+            <?php $sel_status = ['' => '-- SELECT STATUS --', '2' => 'BANNED/BLOCKED', '1' => 'ACTIVE', '3' => 'EXPIRED']; ?>
+            <?= form_dropdown(['class' => 'form-select', 'name' => 'status', 'id' => 'status'], $sel_status, $target->status) ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="saldo" class="form-label">SALDO</label>
+            <input type="number" name="saldo" id="saldo" class="form-control" value="<?= old('saldo') ?: $target->saldo ?>">
+            <?php if ($validation->hasError('saldo')) : ?>
+              <div class="invalid-feedback"><?= $validation->getError('saldo') ?></div>
+            <?php endif; ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="uplink" class="form-label">UPLINK</label>
+            <input type="text" name="uplink" id="uplink" class="form-control" value="<?= old('uplink') ?: $target->uplink ?>">
+            <?php if ($validation->hasError('uplink')) : ?>
+              <div class="invalid-feedback"><?= $validation->getError('uplink') ?></div>
+            <?php endif; ?>
+          </div>
+
+          <div class="col-md-6">
+            <label for="expiration" class="form-label">EXPIRATION</label>
+            <input type="text" name="expiration" id="expiration" class="form-control" value="<?= old('expiration') ?: $target->expiration_date ?>">
+            <?php if ($validation->hasError('expiration')) : ?>
+              <div class="invalid-feedback"><?= $validation->getError('expiration') ?></div>
+            <?php endif; ?>
+          </div>
+
+          <?php 
+          // Use the user data passed from controller instead of session
+          $userLevel = $user->level ?? 3;
+          if ((int)$userLevel === 1): ?>
+             <div class="col-md-6">
+              <label for="telegram_chat_id" class="form-label">TELEGRAM CHAT ID</label>
+              <input type="text" name="telegram_chat_id" id="telegram_chat_id" class="form-control" value="<?= old('telegram_chat_id') ?: ($target->telegram_chat_id ?? '') ?>">
+              <?php if ($validation->hasError('telegram_chat_id')) : ?>
+                <div class="invalid-feedback"><?= $validation->getError('telegram_chat_id') ?></div>
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
+
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn-glass">
+              <i class="bi bi-save"></i> UPDATE USER PROFILE
+            </button>
+          </div>
+        </div>
+      <?= form_close() ?>
+    </div>
+  </div>
+</div>
+
+<?= $this->endSection() ?>
