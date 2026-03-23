@@ -1,0 +1,69 @@
+# Key-Panel — Admin Panel Migration
+
+## Overview
+Migration of a PHP CodeIgniter 4 admin panel ("Key-Panel") to a modern TypeScript full-stack application. Manages software license keys, users, and game features.
+
+## Tech Stack
+- **Frontend**: React + TypeScript + Vite + TanStack Query + Wouter + Tailwind CSS + shadcn/ui
+- **Backend**: Node.js + Express + TypeScript + Drizzle ORM
+- **Database**: PostgreSQL
+- **Auth**: Session-based (express-session + connect-pg-simple)
+
+## Architecture
+```
+client/src/
+  App.tsx           — Router with auth guards
+  lib/auth.tsx      — Auth context (useAuth hook)
+  lib/queryClient.ts— TanStack Query client + apiRequest helper
+  components/
+    layout.tsx      — Sidebar layout with nav + header
+    ui/             — shadcn components
+  pages/
+    login.tsx       — Login + 2FA OTP verification
+    register.tsx    — Registration with referral code
+    dashboard.tsx   — Stats cards (keys, users, balance)
+    keys.tsx        — Key list with CRUD, bulk delete, search
+    generate.tsx    — Key generation form
+    users.tsx       — User management, approve/decline
+    balance.tsx     — Balance topup for users
+    referrals.tsx   — Referral code CRUD
+    prices.tsx      — Price configuration (owner only)
+    settings.tsx    — Features, mod name, ftext, maintenance
+    profile.tsx     — Username/password/telegram/2FA changes
+
+server/
+  index.ts          — Express app setup
+  db.ts             — PostgreSQL pool + Drizzle instance
+  auth.ts           — hashPassword (md5→sha256), key gen, helpers
+  storage.ts        — IStorage interface + DatabaseStorage impl
+  routes.ts         — All API routes + session config + /connect API
+
+shared/
+  schema.ts         — Drizzle tables + Zod schemas + types
+```
+
+## Database Tables
+- `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding
+- `keys_code` — license keys with game, duration, device tracking
+- `referral_code` — registration codes with level/balance presets
+- `price_config` — duration→price mapping
+- `feature` — game feature toggles (ESP, AIM, etc.)
+- `modname` — mod name setting
+- `_ftext` — floating text/credit config
+- `onoff` — maintenance mode toggle
+- `history` — activity log
+- `login_throttle` — brute-force protection (5 attempts → 15min block)
+
+## Key Business Logic
+- Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
+- Reseller restrictions: max 2 devices, no custom keys
+- Device reset: non-owners limited to 3 resets
+- Connect API at POST `/connect` (game client auth endpoint)
+- Static words: `Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E`
+- Password hash: md5(plain) → sha256(md5)
+
+## Default Credentials
+- Owner: `admin` / `admin123` (level 1)
+
+## Running
+- Workflow "Start application" runs `npm run dev` on port 5000

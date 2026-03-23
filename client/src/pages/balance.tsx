@@ -1,0 +1,126 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Wallet, Plus } from "lucide-react";
+
+export default function BalancePage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [selectedUser, setSelectedUser] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+
+  const { data: userList = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const topupMutation = useMutation({
+    mutationFn: async (data: { userId: number; amount: number; note: string }) => {
+      const res = await apiRequest("POST", "/api/users/balance", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      setAmount("");
+      setNote("");
+      setSelectedUser("");
+      toast({ title: "Success", description: data.message });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !amount || parseInt(amount) <= 0) {
+      toast({ title: "Error", description: "Select a user and enter a valid amount.", variant: "destructive" });
+      return;
+    }
+    topupMutation.mutate({
+      userId: parseInt(selectedUser),
+      amount: parseInt(amount),
+      note,
+    });
+  };
+
+  const activeUsers = userList.filter(u => u.status === 1);
+
+  return (
+    <div className="max-w-xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold" data-testid="text-balance-title">Balance Topup</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Wallet className="h-5 w-5" />
+            Your Balance: ${user?.saldo ?? 0}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select User</Label>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger data-testid="select-topup-user"><SelectValue placeholder="Choose a user" /></SelectTrigger>
+                  <SelectContent>
+                    {activeUsers.map(u => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.username} ({u.levelName}) — Balance: ${u.saldo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Enter amount to add"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  data-testid="input-topup-amount"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Note (optional)</Label>
+                <Input
+                  placeholder="Reason for topup"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  data-testid="input-topup-note"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={topupMutation.isPending}
+                data-testid="button-topup"
+              >
+                {topupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Add Balance
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
