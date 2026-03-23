@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { getDeviceId } from "@/lib/device";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await login({ username, password, rememberMe });
+      const result = await login({ username, password, rememberMe, deviceId: getDeviceId() });
       if (result.requires2fa) {
         setShow2FA(true);
         setOtpHint(result.otp_hint || "");
