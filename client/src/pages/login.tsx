@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, User, Eye, EyeOff } from "lucide-react";
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
   const [otp, setOtp] = useState("");
@@ -24,7 +26,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await login({ username, password, stayLog: false });
+      const result = await login({ username, password, rememberMe });
       if (result.requires2fa) {
         setShow2FA(true);
         setOtpHint(result.otp_hint || "");
@@ -110,6 +112,17 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(!!checked)}
+                  data-testid="checkbox-remember-me"
+                />
+                <Label htmlFor="rememberMe" className="text-sm cursor-pointer" data-testid="label-remember-me">
+                  Remember Me
+                </Label>
               </div>
               <Button type="submit" className="w-full" disabled={loading} data-testid="button-login">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

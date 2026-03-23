@@ -59,6 +59,44 @@ export function getPrice(prices: Record<number, number>, duration: number, maxDe
   return base * maxDevices;
 }
 
+const TTL_REGEX = /^(\d+)(m|h|d)$/;
+
+export function parseTtl(value: string): number | null {
+  const match = value.trim().match(TTL_REGEX);
+  if (!match) return null;
+  const num = parseInt(match[1]);
+  if (num <= 0) return null;
+  switch (match[2]) {
+    case "m": return num * 60 * 1000;
+    case "h": return num * 60 * 60 * 1000;
+    case "d": return num * 24 * 60 * 60 * 1000;
+    default: return null;
+  }
+}
+
+export function isValidTtlFormat(value: string): boolean {
+  return TTL_REGEX.test(value.trim());
+}
+
+const ENV_NORMAL_TTL = process.env.AUTH_NORMAL_TOKEN_TTL || "30m";
+const ENV_REMEMBER_TTL = process.env.AUTH_REMEMBER_ME_TOKEN_TTL || "24h";
+
+export function getDefaultNormalTtlMs(): number {
+  return parseTtl(ENV_NORMAL_TTL) || 30 * 60 * 1000;
+}
+
+export function getDefaultRememberMeTtlMs(): number {
+  return parseTtl(ENV_REMEMBER_TTL) || 24 * 60 * 60 * 1000;
+}
+
+export function getEnvNormalTtl(): string {
+  return ENV_NORMAL_TTL;
+}
+
+export function getEnvRememberMeTtl(): string {
+  return ENV_REMEMBER_TTL;
+}
+
 export function getLevelName(level: number): string {
   switch (level) {
     case 1: return "Owner";

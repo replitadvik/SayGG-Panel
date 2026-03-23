@@ -2,9 +2,9 @@ import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
-  feature, modname, ftext, onoff, history, loginThrottle, connectConfig,
+  feature, modname, ftext, onoff, history, loginThrottle, connectConfig, sessionSettings,
   type User, type Key, type ReferralCode, type PriceConfig,
-  type Feature, type History, type ConnectConfig,
+  type Feature, type History, type ConnectConfig, type SessionSettings,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -55,6 +55,10 @@ export interface IStorage {
   getConnectConfig(): Promise<ConnectConfig | undefined>;
   upsertConnectConfig(data: Partial<ConnectConfig>): Promise<ConnectConfig>;
   rotateConnectSecret(newSecret: string, changedBy: string, gracePeriodMinutes?: number): Promise<ConnectConfig>;
+
+  getSessionSettings(): Promise<SessionSettings | undefined>;
+  upsertSessionSettings(data: Partial<SessionSettings>): Promise<SessionSettings>;
+  deleteSessionSettings(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -290,6 +294,25 @@ export class DatabaseStorage implements IStorage {
       } as any).returning();
       return created;
     }
+  }
+  async getSessionSettings(): Promise<SessionSettings | undefined> {
+    const [s] = await db.select().from(sessionSettings);
+    return s;
+  }
+
+  async upsertSessionSettings(data: Partial<SessionSettings>): Promise<SessionSettings> {
+    const existing = await this.getSessionSettings();
+    if (existing) {
+      const [updated] = await db.update(sessionSettings).set({ ...data, changedAt: new Date() } as any).where(eq(sessionSettings.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(sessionSettings).values(data as any).returning();
+      return created;
+    }
+  }
+
+  async deleteSessionSettings(): Promise<void> {
+    await db.delete(sessionSettings);
   }
 }
 

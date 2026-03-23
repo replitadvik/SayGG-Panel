@@ -8,6 +8,8 @@ import { pool } from "./db";
 import {
   hashPassword, verifyPassword, generateKeyLicense,
   getPrice, getLevelName,
+  parseTtl, isValidTtlFormat, getDefaultNormalTtlMs, getDefaultRememberMeTtlMs,
+  getEnvNormalTtl, getEnvRememberMeTtl,
 } from "./auth";
 import { loginSchema, registerSchema, generateKeySchema } from "@shared/schema";
 
@@ -72,6 +74,23 @@ function requireLevel(maxLevel: number) {
 const BOOTSTRAP_SECRET = process.env.CONNECT_BOOTSTRAP_SECRET || "Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E";
 const DEFAULT_GAME_NAME = process.env.CONNECT_GAME_NAME || "PUBG";
 
+async function resolveSessionTtlMs(rememberMe: boolean): Promise<number> {
+  const settings = await storage.getSessionSettings();
+  if (rememberMe) {
+    if (settings?.rememberMeTtl) {
+      const ms = parseTtl(settings.rememberMeTtl);
+      if (ms) return ms;
+    }
+    return getDefaultRememberMeTtlMs();
+  } else {
+    if (settings?.normalTtl) {
+      const ms = parseTtl(settings.normalTtl);
+      if (ms) return ms;
+    }
+    return getDefaultNormalTtlMs();
+  }
+}
+
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   const PgSession = connectPgSimple(session);
@@ -82,7 +101,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -113,7 +132,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { username, password, stayLog, deviceId } = loginSchema.parse(req.body);
+      const { username, password, stayLog, rememberMe, deviceId } = loginSchema.parse(req.body);
+      const useRememberMe = !!(rememberMe || stayLog);
       const ip = req.ip || req.socket.remoteAddress || "unknown";
       const throttleId = `${ip}-${deviceId || "no-device"}`;
 
@@ -158,7 +178,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           userId: user.id,
           otpHash,
           expires: Date.now() + 300000,
-          stayLog: !!stayLog,
+          stayLog: useRememberMe,
           attempts: 0,
         };
         const response: any = { requires2fa: true };
@@ -167,11 +187,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       await storage.clearThrottle(throttleId);
+      const ttlMs = await resolveSessionTtlMs(useRememberMe);
       req.session.regenerate((err) => {
         if (err) return res.status(500).json({ message: "Session error." });
         req.session.userId = user.id;
         req.session.username = user.username;
         req.session.userLevel = user.level;
+        req.session.cookie.maxAge = ttlMs;
         req.session.save(() => {
           const { password: _, ...safe } = user;
           res.json({ ...safe, levelName: getLevelName(user.level) });
@@ -206,11 +228,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const user = await storage.getUser(pending.userId);
     if (!user) return res.status(400).json({ message: "User not found." });
 
+    const ttlMs = await resolveSessionTtlMs(!!pending.stayLog);
     req.session.regenerate((err) => {
       if (err) return res.status(500).json({ message: "Session error." });
       req.session.userId = user.id;
       req.session.username = user.username;
       req.session.userLevel = user.level;
+      req.session.cookie.maxAge = ttlMs;
       req.session.save(() => {
         const { password: _pw, ...safe } = user;
         res.json({ ...safe, levelName: getLevelName(user.level) });
@@ -1027,6 +1051,67 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e: any) {
       res.json({ status: false, reason: "INTERNAL ERROR" });
     }
+  });
+
+  app.get("/api/settings/session", requireAuth, requireLevel(1), async (req, res) => {
+    const settings = await storage.getSessionSettings();
+    const envNormal = getEnvNormalTtl();
+    const envRemember = getEnvRememberMeTtl();
+    res.json({
+      normalTtl: settings?.normalTtl || envNormal,
+      rememberMeTtl: settings?.rememberMeTtl || envRemember,
+      envNormalTtl: envNormal,
+      envRememberMeTtl: envRemember,
+      isCustom: !!settings,
+      changedBy: settings?.changedBy || null,
+      changedAt: settings?.changedAt || null,
+    });
+  });
+
+  app.patch("/api/settings/session", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const { normalTtl, rememberMeTtl } = req.body;
+    if (!normalTtl || !rememberMeTtl) {
+      return res.status(400).json({ message: "Both normalTtl and rememberMeTtl are required." });
+    }
+    if (!isValidTtlFormat(normalTtl)) {
+      return res.status(400).json({ message: "Invalid normal TTL format. Use format like: 30m, 1h, 24h, 7d" });
+    }
+    if (!isValidTtlFormat(rememberMeTtl)) {
+      return res.status(400).json({ message: "Invalid remember-me TTL format. Use format like: 30m, 1h, 24h, 7d" });
+    }
+    const oldSettings = await storage.getSessionSettings();
+    const oldNormal = oldSettings?.normalTtl || getEnvNormalTtl();
+    const oldRemember = oldSettings?.rememberMeTtl || getEnvRememberMeTtl();
+    await storage.upsertSessionSettings({
+      normalTtl: normalTtl.trim(),
+      rememberMeTtl: rememberMeTtl.trim(),
+      changedBy: user.username,
+    });
+    await storage.createHistory({
+      userId: user.id,
+      userDo: user.username,
+      activity: "session_settings",
+      description: `Session TTL changed: normal ${oldNormal}->${normalTtl.trim()}, rememberMe ${oldRemember}->${rememberMeTtl.trim()}`,
+    });
+    res.json({ message: "Session settings updated" });
+  });
+
+  app.post("/api/settings/session/reset", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const oldSettings = await storage.getSessionSettings();
+    if (oldSettings) {
+      await storage.deleteSessionSettings();
+      await storage.createHistory({
+        userId: user.id,
+        userDo: user.username,
+        activity: "session_settings",
+        description: `Session TTL reset to env defaults: normal=${getEnvNormalTtl()}, rememberMe=${getEnvRememberMeTtl()}`,
+      });
+    }
+    res.json({ message: "Session settings reset to defaults" });
   });
 
   app.get("/api/settings/connect", requireAuth, requireLevel(1), async (req, res) => {

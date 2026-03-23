@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Type, Wrench, Key, RotateCcw } from "lucide-react";
+import { Loader2, Settings, Shield, Type, Wrench, Key, RotateCcw, Clock } from "lucide-react";
 
 const featureList = ["ESP", "Item", "AIM", "SilentAim", "BulletTrack", "Floating", "Memory", "Setting"] as const;
 
@@ -35,6 +35,10 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/connect"],
   });
 
+  const { data: sessionData, isLoading: sessionLoading } = useQuery<any>({
+    queryKey: ["/api/settings/session"],
+  });
+
   const [featureState, setFeatureState] = useState<Record<string, string>>({});
   const [modname, setModname] = useState("");
   const [ftextStatus, setFtextStatus] = useState("");
@@ -44,6 +48,8 @@ export default function SettingsPage() {
   const [connectGameName, setConnectGameName] = useState("");
   const [newSecret, setNewSecret] = useState("");
   const [gracePeriod, setGracePeriod] = useState("60");
+  const [sessionNormalTtl, setSessionNormalTtl] = useState("");
+  const [sessionRememberTtl, setSessionRememberTtl] = useState("");
 
   useEffect(() => {
     if (features) {
@@ -78,6 +84,13 @@ export default function SettingsPage() {
       setConnectGameName(connectData.gameName || "");
     }
   }, [connectData]);
+
+  useEffect(() => {
+    if (sessionData) {
+      setSessionNormalTtl(sessionData.normalTtl || "30m");
+      setSessionRememberTtl(sessionData.rememberMeTtl || "24h");
+    }
+  }, [sessionData]);
 
   const featuresMutation = useMutation({
     mutationFn: async (data: Record<string, string>) => {
@@ -145,6 +158,32 @@ export default function SettingsPage() {
     },
   });
 
+  const sessionMutation = useMutation({
+    mutationFn: async (data: { normalTtl: string; rememberMeTtl: string }) => {
+      await apiRequest("PATCH", "/api/settings/session", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] });
+      toast({ title: "Session settings updated" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const sessionResetMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/settings/session/reset");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] });
+      toast({ title: "Session settings reset to defaults" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
   const rotateSecretMutation = useMutation({
     mutationFn: async (data: { newSecret: string; gracePeriodMinutes: number }) => {
       await apiRequest("POST", "/api/settings/connect/rotate-secret", data);
@@ -159,7 +198,7 @@ export default function SettingsPage() {
     },
   });
 
-  const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || connectLoading;
+  const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || connectLoading || sessionLoading;
 
   if (isLoading) {
     return (
@@ -303,6 +342,71 @@ export default function SettingsPage() {
             {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Save Maintenance
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5" />
+            Session Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>Normal Session Duration</Label>
+              <Input
+                value={sessionNormalTtl}
+                onChange={e => setSessionNormalTtl(e.target.value)}
+                placeholder="e.g. 30m, 1h, 7d"
+                data-testid="input-session-normal-ttl"
+              />
+              <p className="text-xs text-muted-foreground">
+                Default: {sessionData?.envNormalTtl || "30m"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <Label>Remember Me Duration</Label>
+              <Input
+                value={sessionRememberTtl}
+                onChange={e => setSessionRememberTtl(e.target.value)}
+                placeholder="e.g. 24h, 7d, 30d"
+                data-testid="input-session-remember-ttl"
+              />
+              <p className="text-xs text-muted-foreground">
+                Default: {sessionData?.envRememberMeTtl || "24h"}
+              </p>
+            </div>
+          </div>
+          {sessionData?.isCustom && sessionData?.changedBy && (
+            <p className="text-xs text-muted-foreground" data-testid="text-session-changed-by">
+              Last changed by {sessionData.changedBy}
+              {sessionData.changedAt && ` on ${new Date(sessionData.changedAt).toLocaleString()}`}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sessionMutation.mutate({
+                normalTtl: sessionNormalTtl,
+                rememberMeTtl: sessionRememberTtl,
+              })}
+              disabled={sessionMutation.isPending}
+              data-testid="button-save-session"
+            >
+              {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Session Settings
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => sessionResetMutation.mutate()}
+              disabled={sessionResetMutation.isPending}
+              data-testid="button-reset-session"
+            >
+              {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Reset to Defaults
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

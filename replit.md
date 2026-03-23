@@ -59,6 +59,7 @@ migrations/         — Drizzle migration files
 - `history` — activity log
 - `login_throttle` — brute-force protection (5 attempts -> 15min block)
 - `connect_config` — game name + license secret rotation (active/previous secret, version, grace period)
+- `session_settings` — configurable session TTL durations (normalTtl, rememberMeTtl, changedBy, changedAt)
 
 ## Key Business Logic
 - Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
@@ -77,6 +78,15 @@ migrations/         — Drizzle migration files
 - Currency: configurable via `VITE_DEFAULT_CURRENCY_SYMBOL` env var (default ₹/INR), all frontend uses `formatCurrency()`
 - C++ Loader: `loader/Login.h` + `loader/Login.cpp` — configurable via ENDPOINT_URL, GAME_NAME, LICENSE_SECRET macros
 - Password hash: md5(plain) -> sha256(md5)
+
+## Session Management
+- Configurable session TTL: normal (default 30m) and Remember Me (default 24h)
+- TTL format: `Nm` (minutes), `Nh` (hours), `Nd` (days) — e.g. "30m", "24h", "7d"
+- Priority: DB `session_settings` > env vars (`AUTH_NORMAL_TOKEN_TTL`, `AUTH_REMEMBER_ME_TOKEN_TTL`) > hardcoded defaults
+- Owner-only Settings page to configure session durations + reset to defaults
+- Login page includes "Remember Me" checkbox; sets cookie maxAge per resolved TTL
+- Session expiry detection: auth context polls `/api/auth/me` every 2 minutes; shows toast on session expiry
+- API: `GET/PATCH /api/settings/session`, `POST /api/settings/session/reset` (Owner only)
 
 ## Security Hardening (Production)
 - Session cookie: `secure: true` in production, `httpOnly: true`, `sameSite: lax`

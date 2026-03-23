@@ -106,6 +106,14 @@ export const history = pgTable("history", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const sessionSettings = pgTable("session_settings", {
+  id: serial("id").primaryKey(),
+  normalTtl: varchar("normal_ttl", { length: 20 }).default("30m").notNull(),
+  rememberMeTtl: varchar("remember_me_ttl", { length: 20 }).default("24h").notNull(),
+  changedBy: varchar("changed_by", { length: 50 }),
+  changedAt: timestamp("changed_at").defaultNow(),
+});
+
 export const connectConfig = pgTable("connect_config", {
   id: serial("id").primaryKey(),
   gameName: varchar("game_name", { length: 100 }).default("PUBG").notNull(),
@@ -148,6 +156,7 @@ export const loginSchema = z.object({
   username: z.string().min(4).max(25),
   password: z.string().min(6).max(45),
   stayLog: z.boolean().optional(),
+  rememberMe: z.boolean().optional(),
   deviceId: z.string().optional(),
 });
 
@@ -178,3 +187,4 @@ export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
+export type SessionSettings = typeof sessionSettings.$inferSelect;
