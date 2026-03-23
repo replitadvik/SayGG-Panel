@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import DeviceResetPage from "@/pages/device-reset";
 import DashboardPage from "@/pages/dashboard";
 import KeysPage from "@/pages/keys";
 import GeneratePage from "@/pages/generate";
@@ -71,6 +73,8 @@ function Router() {
     <Switch>
       <Route path="/login">{() => <AuthRoute component={LoginPage} />}</Route>
       <Route path="/register">{() => <AuthRoute component={RegisterPage} />}</Route>
+      <Route path="/forgot-password">{() => <AuthRoute component={ForgotPasswordPage} />}</Route>
+      <Route path="/device-reset">{() => <AuthRoute component={DeviceResetPage} />}</Route>
       <Route path="/">{() => <ProtectedRoute component={DashboardPage} />}</Route>
       <Route path="/keys">{() => <ProtectedRoute component={KeysPage} />}</Route>
       <Route path="/keys/generate">{() => <ProtectedRoute component={GeneratePage} />}</Route>

@@ -21,8 +21,10 @@ client/src/
   pages/
     login.tsx       — Login + 2FA OTP verification
     register.tsx    — Registration with referral code
+    forgot-password.tsx — Forgot/reset password via OTP
+    device-reset.tsx — Device binding reset (username+password)
     dashboard.tsx   — Stats cards (keys, users, balance)
-    keys.tsx        — Key list with CRUD, bulk delete, search
+    keys.tsx        — Key list with CRUD, bulk delete, search, extend duration
     generate.tsx    — Key generation form
     users.tsx       — User management, approve/decline
     balance.tsx     — Balance topup for users
@@ -34,7 +36,7 @@ client/src/
 server/
   index.ts          — Express app setup
   db.ts             — PostgreSQL pool + Drizzle instance
-  auth.ts           — hashPassword (md5→sha256), key gen, helpers
+  auth.ts           — hashPassword (md5->sha256), key gen, helpers
   storage.ts        — IStorage interface + DatabaseStorage impl
   routes.ts         — All API routes + session config + /connect API
 
@@ -44,23 +46,29 @@ shared/
 
 ## Database Tables
 - `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding
-- `keys_code` — license keys with game, duration, device tracking
+- `keys_code` — license keys with game, duration, device tracking, key_reset_time (integer counter as text)
 - `referral_code` — registration codes with level/balance presets
-- `price_config` — duration→price mapping
+- `price_config` — duration->price mapping
 - `feature` — game feature toggles (ESP, AIM, etc.)
 - `modname` — mod name setting
 - `_ftext` — floating text/credit config
 - `onoff` — maintenance mode toggle
 - `history` — activity log
-- `login_throttle` — brute-force protection (5 attempts → 15min block)
+- `login_throttle` — brute-force protection (5 attempts -> 15min block)
 
 ## Key Business Logic
 - Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
 - Reseller restrictions: max 2 devices, no custom keys
-- Device reset: non-owners limited to 3 resets
+- Key device reset: non-owners limited to 3 resets (tracked via key_reset_time counter)
+- User device reset: limit 2 per 24 hours (PHP parity with deviceResetLimit=2)
+- Extend duration: POST /api/keys/:id/extend with format "30D" or "12H"
+- Ban user (status=2): blocks all their keys (keys_code.status=0 where registrator=username)
+- Admin delete: can only delete referred Resellers (uplink=admin.username AND level=3)
+- Admin referral: restricted to Reseller-only (level=3)
+- Forgot password: OTP via Telegram, session-based reset flow
 - Connect API at POST `/connect` (game client auth endpoint)
 - Static words: `Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E`
-- Password hash: md5(plain) → sha256(md5)
+- Password hash: md5(plain) -> sha256(md5)
 
 ## Default Credentials
 - Owner: `admin` / `admin123` (level 1)

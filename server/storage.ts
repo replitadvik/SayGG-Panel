@@ -46,6 +46,8 @@ export interface IStorage {
 
   createHistory(data: Partial<History>): Promise<void>;
 
+  blockKeysByRegistrator(registrator: string): Promise<void>;
+
   getThrottle(identifier: string): Promise<{ attempts: number; blockedUntil: Date | null } | undefined>;
   recordLoginFailure(identifier: string): Promise<void>;
   clearThrottle(identifier: string): Promise<void>;
@@ -219,6 +221,10 @@ export class DatabaseStorage implements IStorage {
 
   async createHistory(data: Partial<History>): Promise<void> {
     await db.insert(history).values(data as any);
+  }
+
+  async blockKeysByRegistrator(registrator: string): Promise<void> {
+    await db.update(keysCode).set({ status: 0 }).where(eq(keysCode.registrator, registrator));
   }
 
   async getThrottle(identifier: string): Promise<{ attempts: number; blockedUntil: Date | null } | undefined> {

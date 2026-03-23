@@ -16,7 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Search, Trash2, RotateCcw, Edit, Copy } from "lucide-react";
+import { Loader2, Search, Trash2, RotateCcw, Edit, Copy, Clock } from "lucide-react";
 
 function formatDuration(hours: number) {
   if (hours === 1) return "1 Hour";
@@ -45,6 +45,8 @@ export default function KeysPage() {
   const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
   const [editKey, setEditKey] = useState<any>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [extendKey, setExtendKey] = useState<any>(null);
+  const [extendDuration, setExtendDuration] = useState("");
 
   const { data: keys = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/keys"],
@@ -89,6 +91,24 @@ export default function KeysPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
       setEditKey(null);
       toast({ title: "Key updated" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const extendMutation = useMutation({
+    mutationFn: async ({ id, duration }: { id: number; duration: string }) => {
+      await apiRequest("POST", `/api/keys/${id}/extend`, { duration });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
+      setExtendKey(null);
+      setExtendDuration("");
+      toast({ title: "Duration extended" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 
@@ -225,6 +245,11 @@ export default function KeysPage() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(key)} data-testid={`button-edit-key-${key.id}`}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {(user?.level === 1 || user?.level === 2) && (
+                              <Button variant="ghost" size="icon" onClick={() => { setExtendKey(key); setExtendDuration(""); }} data-testid={`button-extend-key-${key.id}`}>
+                                <Clock className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" onClick={() => resetDeviceMutation.mutate(key.id)} data-testid={`button-reset-key-${key.id}`}>
                               <RotateCcw className="h-4 w-4" />
                             </Button>
@@ -291,6 +316,42 @@ export default function KeysPage() {
             >
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!extendKey} onOpenChange={() => setExtendKey(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Extend Duration</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-3 bg-muted rounded-md text-sm space-y-1">
+              <div><span className="text-muted-foreground">Key: </span><code>{extendKey?.userKey}</code></div>
+              <div><span className="text-muted-foreground">Current Duration: </span>{extendKey ? formatDuration(extendKey.duration) : ""}</div>
+              <div><span className="text-muted-foreground">Expiry: </span>{extendKey ? formatDate(extendKey.expiredDate) : ""}</div>
+            </div>
+            <div className="space-y-1">
+              <Label>Extension Duration</Label>
+              <Input
+                value={extendDuration}
+                onChange={e => setExtendDuration(e.target.value.toUpperCase())}
+                placeholder="e.g. 30D, 12H, 7D"
+                data-testid="input-extend-duration"
+              />
+              <p className="text-xs text-muted-foreground">Format: number + D (days) or H (hours). Example: 30D = 30 days, 12H = 12 hours</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExtendKey(null)}>Cancel</Button>
+            <Button
+              onClick={() => extendMutation.mutate({ id: extendKey.id, duration: extendDuration })}
+              disabled={extendMutation.isPending || !extendDuration}
+              data-testid="button-extend-save"
+            >
+              {extendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Extend
             </Button>
           </DialogFooter>
         </DialogContent>

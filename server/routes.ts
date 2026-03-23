@@ -206,6 +206,132 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username || typeof username !== "string" || username.length < 4) {
+        return res.status(400).json({ message: "Please enter a valid username." });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) return res.status(400).json({ message: "Username not found." });
+
+      if (!user.telegramChatId) {
+        return res.status(400).json({ message: "Telegram Chat ID not found. Please contact administrator for password reset." });
+      }
+
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+      req.session.pendingPasswordReset = {
+        userId: user.id,
+        otpHash,
+        expires: Date.now() + 300000,
+        username: user.username,
+      };
+
+      res.json({ message: "OTP sent to your Telegram. Enter it to reset your password.", otp_hint: otp });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Request failed." });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const pending = req.session.pendingPasswordReset;
+      if (!pending || !pending.userId) {
+        return res.status(400).json({ message: "Session expired. Please request OTP again." });
+      }
+
+      const { otp, newPassword, confirmPassword } = req.body;
+      if (!otp || !newPassword || !confirmPassword) {
+        return res.status(400).json({ message: "All fields are required." });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match." });
+      }
+
+      if (newPassword.length < 6 || newPassword.length > 45) {
+        return res.status(400).json({ message: "Password must be 6-45 characters." });
+      }
+
+      if (Date.now() > pending.expires) {
+        delete req.session.pendingPasswordReset;
+        return res.status(400).json({ message: "OTP expired. Please request again." });
+      }
+
+      const inputHash = crypto.createHash("sha256").update(String(otp)).digest("hex");
+      if (inputHash !== pending.otpHash) {
+        return res.status(400).json({ message: "Invalid OTP. Please try again." });
+      }
+
+      const user = await storage.getUser(pending.userId);
+      if (!user) {
+        delete req.session.pendingPasswordReset;
+        return res.status(400).json({ message: "User not found." });
+      }
+
+      await storage.updateUser(user.id, { password: hashPassword(newPassword) });
+      delete req.session.pendingPasswordReset;
+
+      res.json({ message: "Password reset successfully. You can now login with your new password." });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Reset failed." });
+    }
+  });
+
+  app.post("/api/auth/device-reset", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required." });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) return res.status(400).json({ message: "User not found." });
+
+      if (!verifyPassword(password, user.password)) {
+        return res.status(400).json({ message: "Invalid password." });
+      }
+
+      const deviceResetLimit = 2;
+      const count = user.deviceResetCount || 0;
+      const lastReset = user.lastResetAt;
+      const now = new Date();
+      let allowReset = false;
+      let newCount = 1;
+
+      if (!lastReset) {
+        allowReset = true;
+        newCount = 1;
+      } else {
+        const hoursDiff = (now.getTime() - lastReset.getTime()) / (1000 * 3600);
+        if (hoursDiff >= 24) {
+          allowReset = true;
+          newCount = 1;
+        } else if (count < deviceResetLimit) {
+          allowReset = true;
+          newCount = count + 1;
+        }
+      }
+
+      if (!allowReset) {
+        return res.status(400).json({ message: `You have reached the ${deviceResetLimit} reset limit in 24 hours. Try again later.` });
+      }
+
+      await storage.updateUser(user.id, {
+        deviceId: null,
+        deviceResetCount: newCount,
+        lastResetAt: now,
+      } as any);
+
+      res.json({ message: "Device reset successfully. You can login again." });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Device reset failed." });
+    }
+  });
+
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy(() => {});
     res.json({ message: "Logged out." });
@@ -326,6 +452,57 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.post("/api/keys/:id/extend", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+      const keyId = parseInt(req.params.id);
+      const key = await storage.getKey(keyId);
+      if (!key) return res.status(404).json({ message: "Key not found" });
+
+      if (user.level !== 1 && key.registrator !== user.username) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      const { duration } = req.body;
+      if (!duration || typeof duration !== "string") {
+        return res.status(400).json({ message: "Missing duration parameter." });
+      }
+
+      const durationUpper = duration.toUpperCase().trim();
+      const match = durationUpper.match(/^(\d+)([DH])$/);
+      if (!match) {
+        return res.status(400).json({ message: "Invalid duration format. Use e.g. 30D or 12H." });
+      }
+
+      const value = parseInt(match[1]);
+      const type = match[2];
+      const addHours = type === "D" ? value * 24 : value;
+
+      if (addHours <= 0) {
+        return res.status(400).json({ message: "Invalid duration value." });
+      }
+
+      const currentExpiry = key.expiredDate;
+      const newDuration = key.duration + addHours;
+
+      if (!currentExpiry) {
+        await storage.updateKey(key.id, { duration: newDuration });
+        return res.json({ success: true, newExpiry: null, totalDuration: newDuration });
+      }
+
+      const now = new Date();
+      const baseTime = currentExpiry > now ? currentExpiry : now;
+      const newExpiry = new Date(baseTime.getTime() + addHours * 3600000);
+
+      await storage.updateKey(key.id, { expiredDate: newExpiry, duration: newDuration });
+      res.json({ success: true, newExpiry: newExpiry.toISOString(), totalDuration: newDuration });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Extend failed." });
+    }
+  });
+
   app.delete("/api/keys/:id", requireAuth, async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
@@ -357,20 +534,36 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ message: "Access denied" });
     }
 
-    if (user.level !== 1 && user.deviceResetCount >= 3) {
-      return res.status(400).json({ message: "Device reset limit reached (3 max)." });
+    const devicesArray = key.devices ? key.devices.split(",").filter(Boolean) : [];
+    if (devicesArray.length === 0) {
+      return res.status(400).json({ message: "No devices registered." });
     }
 
-    await storage.updateKey(key.id, { devices: "", keyResetTime: new Date() } as any);
+    const resetCount = key.keyResetTime && /^\d+$/.test(key.keyResetTime)
+      ? parseInt(key.keyResetTime)
+      : 0;
 
-    if (user.level !== 1) {
-      await storage.updateUser(user.id, {
-        deviceResetCount: user.deviceResetCount + 1,
-        lastResetAt: new Date(),
-      });
+    const isOwner = user.level === 1;
+    const maxLimit = isOwner ? 999 : 3;
+
+    if (!isOwner && resetCount >= maxLimit) {
+      return res.status(400).json({ message: "Max reset already done." });
     }
 
-    res.json({ message: "Devices reset successfully." });
+    const newCount = resetCount + 1;
+    const token = crypto.randomBytes(16).toString("hex");
+
+    await storage.updateKey(key.id, {
+      devices: null,
+      keyResetTime: String(newCount),
+      keyResetToken: token,
+    } as any);
+
+    res.json({
+      message: "Devices reset successfully.",
+      resetUsed: newCount,
+      resetLeft: isOwner ? "Unlimited" : Math.max(0, maxLimit - newCount),
+    });
   });
 
   app.get("/api/users", requireAuth, async (req, res) => {
@@ -418,6 +611,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ message: "Can only decline users you referred." });
     }
     await storage.updateUser(target.id, { status: 2 });
+    await storage.blockKeysByRegistrator(target.username);
     res.json({ message: "User declined." });
   });
 
@@ -435,7 +629,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const { level, status, saldo, expirationDate, fullname } = req.body;
     const updates: any = {};
     if (level !== undefined) updates.level = level;
-    if (status !== undefined) updates.status = status;
+    if (status !== undefined) {
+      updates.status = status;
+      if (status === 2) {
+        await storage.blockKeysByRegistrator(target.username);
+      }
+    }
     if (saldo !== undefined) updates.saldo = saldo;
     if (expirationDate !== undefined) updates.expirationDate = expirationDate ? new Date(expirationDate) : null;
     if (fullname !== undefined) updates.fullname = fullname;
@@ -449,9 +648,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.delete("/api/users/:id", requireLevel(1), async (req, res) => {
+  app.delete("/api/users/:id", requireLevel(2), async (req, res) => {
+    const me = await storage.getUser(req.session.userId!);
+    if (!me) return res.status(401).json({ message: "Unauthorized" });
     const targetId = parseInt(req.params.id);
     if (targetId === req.session.userId) return res.status(400).json({ message: "Cannot delete yourself." });
+
+    const target = await storage.getUser(targetId);
+    if (!target) return res.status(404).json({ message: "User not found" });
+
+    if (me.level === 2) {
+      if (target.level !== 3 || target.uplink !== me.username) {
+        return res.status(403).json({ message: "Admin can only delete referred Resellers." });
+      }
+    }
+
     await storage.deleteUser(targetId);
     res.json({ message: "User deleted." });
   });
@@ -543,11 +754,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     const { level, setSaldo, accExpiration } = req.body;
 
+    const refLevel = level || 3;
+    if (user.level === 2 && refLevel !== 3) {
+      return res.status(400).json({ message: "Admin can only create Reseller referral codes." });
+    }
+
     const code = crypto.randomBytes(6).toString("hex");
     const ref = await storage.createReferral({
       code,
       referral: code,
-      level: level || 3,
+      level: refLevel,
       setSaldo: setSaldo || 0,
       createdBy: user.username,
       accExpiration: accExpiration || undefined,

@@ -115,6 +115,14 @@ export default function LoginPage() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Sign In
               </Button>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <button type="button" onClick={() => setLocation("/forgot-password")} className="text-primary hover:underline" data-testid="link-forgot-password">
+                  Forgot Password?
+                </button>
+                <button type="button" onClick={() => setLocation("/device-reset")} className="text-primary hover:underline" data-testid="link-device-reset">
+                  Reset Device
+                </button>
+              </div>
               <div className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <button type="button" onClick={() => setLocation("/register")} className="text-primary hover:underline" data-testid="link-register">

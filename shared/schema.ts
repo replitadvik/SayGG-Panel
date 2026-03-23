@@ -43,7 +43,7 @@ export const keysCode = pgTable("keys_code", {
   status: integer("status").default(1).notNull(),
   registrator: varchar("registrator", { length: 50 }),
   adminId: integer("admin_id"),
-  keyResetTime: timestamp("key_reset_time"),
+  keyResetTime: text("key_reset_time"),
   keyResetToken: varchar("key_reset_token", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
