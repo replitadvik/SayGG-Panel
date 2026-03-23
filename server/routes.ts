@@ -69,7 +69,9 @@ function requireLevel(maxLevel: number) {
   };
 }
 
-const STATIC_WORDS = "Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E";
+const BOOTSTRAP_SECRET = process.env.CONNECT_BOOTSTRAP_SECRET || "Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E";
+const DEFAULT_GAME_NAME = process.env.CONNECT_GAME_NAME || "PUBG";
+
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   const PgSession = connectPgSimple(session);
@@ -87,6 +89,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       },
     })
   );
+
+  const cfg = await storage.getConnectConfig();
+  if (!cfg) {
+    await storage.upsertConnectConfig({
+      activeSecret: BOOTSTRAP_SECRET,
+      gameName: DEFAULT_GAME_NAME,
+      secretVersion: 1,
+      changedBy: "system",
+    });
+  }
 
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Not authenticated" });
@@ -986,13 +998,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const modData = await storage.getModname();
       const textData = await storage.getFtext();
 
-      const real = `${game}-${user_key}-${serial}-${STATIC_WORDS}`;
+      const connectCfg = await storage.getConnectConfig();
+      const activeSecret = connectCfg?.activeSecret || BOOTSTRAP_SECRET;
+      const real = `${game}-${user_key}-${serial}-${activeSecret}`;
       const token = crypto.createHash("md5").update(real).digest("hex");
 
       res.json({
         status: true,
         data: {
           real, token,
+          secret_version: connectCfg?.secretVersion || 1,
           modname: modData || "",
           mod_status: textData?._status || "",
           credit: textData?._ftext || "",
@@ -1014,13 +1029,70 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.get("/api/settings/connect", requireAuth, requireLevel(1), async (req, res) => {
+    const cfg = await storage.getConnectConfig();
+    if (!cfg) return res.json(null);
+    const masked = cfg.activeSecret.length > 8
+      ? cfg.activeSecret.slice(0, 4) + "****" + cfg.activeSecret.slice(-4)
+      : "****";
+    const prevMasked = cfg.previousSecret
+      ? (cfg.previousSecret.length > 8
+        ? cfg.previousSecret.slice(0, 4) + "****" + cfg.previousSecret.slice(-4)
+        : "****")
+      : null;
+    res.json({
+      gameName: cfg.gameName,
+      secretMasked: masked,
+      previousSecretMasked: prevMasked,
+      secretVersion: cfg.secretVersion,
+      gracePeriodUntil: cfg.gracePeriodUntil,
+      changedBy: cfg.changedBy,
+      changedAt: cfg.changedAt,
+    });
+  });
+
+  app.patch("/api/settings/connect/game", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const { gameName } = req.body;
+    if (!gameName || typeof gameName !== "string" || gameName.trim().length === 0) {
+      return res.status(400).json({ message: "Game name is required" });
+    }
+    await storage.upsertConnectConfig({ gameName: gameName.trim() });
+    await storage.createHistory({
+      userId: user.id,
+      userDo: user.username,
+      activity: "connect_config",
+      description: `Changed game name to "${gameName.trim()}"`,
+    });
+    res.json({ message: "Game name updated" });
+  });
+
+  app.post("/api/settings/connect/rotate-secret", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const { newSecret, gracePeriodMinutes } = req.body;
+    if (!newSecret || typeof newSecret !== "string" || newSecret.trim().length < 16) {
+      return res.status(400).json({ message: "Secret must be at least 16 characters" });
+    }
+    const grace = Math.max(0, Math.min(1440, parseInt(gracePeriodMinutes) || 60));
+    const updated = await storage.rotateConnectSecret(newSecret.trim(), user.username, grace);
+    await storage.createHistory({
+      userId: user.id,
+      userDo: user.username,
+      activity: "connect_secret_rotate",
+      description: `Rotated connect secret to v${updated.secretVersion}, grace period ${grace}min`,
+    });
+    res.json({ message: "Secret rotated", version: updated.secretVersion });
+  });
+
   app.get("/api/games", requireAuth, async (req, res) => {
     const features = await storage.getFeatures();
     const games: Record<string, string> = {};
     if (features) {
-      games["FreeFire"] = "FreeFire";
-      games["PUBG"] = "PUBG";
-      games["CODM"] = "CODM";
+      const cfg = await storage.getConnectConfig();
+      const gameName = cfg?.gameName || DEFAULT_GAME_NAME;
+      games[gameName] = gameName;
     }
     res.json(games);
   });

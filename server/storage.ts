@@ -2,9 +2,9 @@ import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
-  feature, modname, ftext, onoff, history, loginThrottle,
+  feature, modname, ftext, onoff, history, loginThrottle, connectConfig,
   type User, type Key, type ReferralCode, type PriceConfig,
-  type Feature, type History,
+  type Feature, type History, type ConnectConfig,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -51,6 +51,10 @@ export interface IStorage {
   getThrottle(identifier: string): Promise<{ attempts: number; blockedUntil: Date | null } | undefined>;
   recordLoginFailure(identifier: string): Promise<void>;
   clearThrottle(identifier: string): Promise<void>;
+
+  getConnectConfig(): Promise<ConnectConfig | undefined>;
+  upsertConnectConfig(data: Partial<ConnectConfig>): Promise<ConnectConfig>;
+  rotateConnectSecret(newSecret: string, changedBy: string, gracePeriodMinutes?: number): Promise<ConnectConfig>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -247,6 +251,45 @@ export class DatabaseStorage implements IStorage {
 
   async clearThrottle(identifier: string): Promise<void> {
     await db.delete(loginThrottle).where(eq(loginThrottle.identifier, identifier));
+  }
+
+  async getConnectConfig(): Promise<ConnectConfig | undefined> {
+    const [cfg] = await db.select().from(connectConfig);
+    return cfg;
+  }
+
+  async upsertConnectConfig(data: Partial<ConnectConfig>): Promise<ConnectConfig> {
+    const existing = await this.getConnectConfig();
+    if (existing) {
+      const [updated] = await db.update(connectConfig).set({ ...data, changedAt: new Date() } as any).where(eq(connectConfig.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(connectConfig).values(data as any).returning();
+      return created;
+    }
+  }
+
+  async rotateConnectSecret(newSecret: string, changedBy: string, gracePeriodMinutes = 60): Promise<ConnectConfig> {
+    const existing = await this.getConnectConfig();
+    if (existing) {
+      const [updated] = await db.update(connectConfig).set({
+        previousSecret: existing.activeSecret,
+        activeSecret: newSecret,
+        secretVersion: existing.secretVersion + 1,
+        gracePeriodUntil: new Date(Date.now() + gracePeriodMinutes * 60 * 1000),
+        changedBy,
+        changedAt: new Date(),
+      } as any).where(eq(connectConfig.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(connectConfig).values({
+        activeSecret: newSecret,
+        secretVersion: 1,
+        changedBy,
+        changedAt: new Date(),
+      } as any).returning();
+      return created;
+    }
   }
 }
 

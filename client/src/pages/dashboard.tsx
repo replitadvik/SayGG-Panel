@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Key, Users, AlertTriangle, Wallet, Clock, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/currency";
 
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery<any>({
@@ -27,7 +28,7 @@ export default function DashboardPage() {
     { title: "Expired Keys", value: stats?.expiredKeys ?? 0, icon: Clock, color: "text-red-500" },
     { title: "Total Users", value: stats?.totalUsers ?? 0, icon: Users, color: "text-purple-500" },
     { title: "Pending Approval", value: stats?.pendingUsers ?? 0, icon: AlertTriangle, color: "text-yellow-500" },
-    { title: "Your Balance", value: `$${stats?.saldo ?? 0}`, icon: Wallet, color: "text-emerald-500" },
+    { title: "Your Balance", value: formatCurrency(stats?.saldo ?? 0), icon: Wallet, color: "text-emerald-500" },
   ];
 
   return (

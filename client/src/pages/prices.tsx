@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Trash2, DollarSign } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 function getDurationLabel(hours: number) {
   if (hours === 1) return "1 Hour Trial";
@@ -121,7 +122,7 @@ export default function PricesPage() {
                         <TableCell className="font-medium">{p.duration}h</TableCell>
                         <TableCell>{getDurationLabel(p.duration)}</TableCell>
                         <TableCell>
-                          <span className="font-semibold text-primary">${p.price}</span>
+                          <span className="font-semibold text-primary">{formatCurrency(p.price)}</span>
                         </TableCell>
                         <TableCell>
                           <Badge variant={p.isActive === 1 ? "default" : "secondary"}>

@@ -58,6 +58,7 @@ migrations/         — Drizzle migration files
 - `onoff` — maintenance mode toggle
 - `history` — activity log
 - `login_throttle` — brute-force protection (5 attempts -> 15min block)
+- `connect_config` — game name + license secret rotation (active/previous secret, version, grace period)
 
 ## Key Business Logic
 - Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
@@ -70,7 +71,11 @@ migrations/         — Drizzle migration files
 - Admin referral: restricted to Reseller-only (level=3)
 - Forgot password: OTP via Telegram, session-based reset flow
 - Connect API at POST `/connect` (game client auth endpoint)
-- Static words: `Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E`
+- Connect secret: stored in DB (`connect_config` table), bootstrapped from `CONNECT_BOOTSTRAP_SECRET` env var
+- Secret rotation: Owner can rotate via Settings, supports grace period for previous secret
+- Game name: configurable in DB via Settings (Owner only), defaults to `CONNECT_GAME_NAME` env var
+- Currency: configurable via `VITE_DEFAULT_CURRENCY_SYMBOL` env var (default ₹/INR), all frontend uses `formatCurrency()`
+- C++ Loader: `loader/Login.h` + `loader/Login.cpp` — configurable via ENDPOINT_URL, GAME_NAME, LICENSE_SECRET macros
 - Password hash: md5(plain) -> sha256(md5)
 
 ## Security Hardening (Production)

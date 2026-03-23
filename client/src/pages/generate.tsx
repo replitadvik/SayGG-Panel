@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Key, Wallet, Copy, Check } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 export default function GeneratePage() {
   const { user } = useAuth();
@@ -85,7 +86,7 @@ export default function GeneratePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Wallet className="h-5 w-5" />
-            Balance: ${user?.saldo ?? 0}
+            Balance: {formatCurrency(user?.saldo ?? 0)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -109,7 +110,7 @@ export default function GeneratePage() {
                 <SelectContent>
                   {prices.map((p: any) => (
                     <SelectItem key={p.duration} value={String(p.duration)}>
-                      {getDurationLabel(p.duration)} — ₹{p.price}/Device
+                      {getDurationLabel(p.duration)} — {formatCurrency(p.price)}/Device
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -156,8 +157,8 @@ export default function GeneratePage() {
 
             {cost > 0 && (
               <div className="p-3 bg-muted rounded-lg text-sm">
-                Cost: <span className="font-bold text-primary">${cost}</span>
-                <span className="text-muted-foreground"> • Remaining: ${(user?.saldo ?? 0) - cost}</span>
+                Cost: <span className="font-bold text-primary">{formatCurrency(cost)}</span>
+                <span className="text-muted-foreground"> • Remaining: {formatCurrency((user?.saldo ?? 0) - cost)}</span>
               </div>
             )}
 
@@ -188,7 +189,7 @@ export default function GeneratePage() {
                 </Button>
               </div>
               <div className="text-sm text-muted-foreground">
-                Game: {generatedKey.key?.game} • Cost: ${generatedKey.cost}
+                Game: {generatedKey.key?.game} • Cost: {formatCurrency(generatedKey.cost)}
               </div>
             </div>
           </CardContent>

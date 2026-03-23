@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Trash2, Edit, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 function getStatusBadge(status: number) {
   switch (status) {
@@ -179,7 +180,7 @@ export default function UsersPage() {
                         <TableCell>
                           <Badge variant="outline">{u.levelName}</Badge>
                         </TableCell>
-                        <TableCell>${u.saldo}</TableCell>
+                        <TableCell>{formatCurrency(u.saldo)}</TableCell>
                         <TableCell>{getStatusBadge(u.status)}</TableCell>
                         <TableCell className="text-xs">{formatDate(u.expirationDate)}</TableCell>
                         <TableCell>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wallet, Plus } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 export default function BalancePage() {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ export default function BalancePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Wallet className="h-5 w-5" />
-            Your Balance: ${user?.saldo ?? 0}
+            Your Balance: {formatCurrency(user?.saldo ?? 0)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -79,7 +80,7 @@ export default function BalancePage() {
                   <SelectContent>
                     {activeUsers.map(u => (
                       <SelectItem key={u.id} value={String(u.id)}>
-                        {u.username} ({u.levelName}) — Balance: ${u.saldo}
+                        {u.username} ({u.levelName}) — Balance: {formatCurrency(u.saldo)}
                       </SelectItem>
                     ))}
                   </SelectContent>

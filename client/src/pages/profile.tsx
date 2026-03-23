@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, User, Lock, MessageCircle, Shield } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 export default function ProfilePage() {
   const { user, refetch } = useAuth();
@@ -117,7 +118,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <span className="text-muted-foreground">Balance</span>
-              <p className="font-medium">${user?.saldo ?? 0}</p>
+              <p className="font-medium">{formatCurrency(user?.saldo ?? 0)}</p>
             </div>
           </div>
         </CardContent>

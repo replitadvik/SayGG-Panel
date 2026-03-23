@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Key, Users, DollarSign, Settings,
   LogOut, Menu, X, ChevronDown, Wallet, Link2, User,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, minLevel: 1 },
@@ -107,7 +108,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-sm text-muted-foreground" data-testid="text-header-saldo">
-              Balance: <span className="font-semibold text-foreground">${user?.saldo ?? 0}</span>
+              Balance: <span className="font-semibold text-foreground">{formatCurrency(user?.saldo ?? 0)}</span>
             </span>
           </div>
         </header>

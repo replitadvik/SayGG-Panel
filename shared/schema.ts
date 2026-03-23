@@ -106,6 +106,17 @@ export const history = pgTable("history", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const connectConfig = pgTable("connect_config", {
+  id: serial("id").primaryKey(),
+  gameName: varchar("game_name", { length: 100 }).default("PUBG").notNull(),
+  activeSecret: text("active_secret").notNull(),
+  previousSecret: text("previous_secret"),
+  secretVersion: integer("secret_version").default(1).notNull(),
+  gracePeriodUntil: timestamp("grace_period_until"),
+  changedBy: varchar("changed_by", { length: 50 }),
+  changedAt: timestamp("changed_at").defaultNow(),
+});
+
 export const loginThrottle = pgTable("login_throttle", {
   id: serial("id").primaryKey(),
   identifier: varchar("identifier", { length: 255 }).notNull(),
@@ -166,3 +177,4 @@ export type ReferralCode = typeof referralCode.$inferSelect;
 export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type History = typeof history.$inferSelect;
+export type ConnectConfig = typeof connectConfig.$inferSelect;

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Copy, Link2 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 export default function ReferralsPage() {
   const { user } = useAuth();
@@ -114,7 +115,7 @@ export default function ReferralsPage() {
                             {ref.level === 1 ? "Owner" : ref.level === 2 ? "Admin" : "Reseller"}
                           </Badge>
                         </TableCell>
-                        <TableCell>${ref.setSaldo || 0}</TableCell>
+                        <TableCell>{formatCurrency(ref.setSaldo || 0)}</TableCell>
                         <TableCell className="text-xs">{ref.accExpiration || "30 days"}</TableCell>
                         <TableCell className="text-sm">{ref.createdBy || "—"}</TableCell>
                         <TableCell className="text-sm">{ref.usedBy || "—"}</TableCell>
