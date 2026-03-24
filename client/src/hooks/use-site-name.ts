@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-const DEFAULT_SITE_NAME = "Key-Panel";
-
 export function useSiteName() {
   const { data, isLoading } = useQuery<{ siteName: string }>({
     queryKey: ["/api/settings/site-name"],
@@ -10,10 +8,12 @@ export function useSiteName() {
     refetchOnWindowFocus: false,
   });
 
-  const siteName = data?.siteName || DEFAULT_SITE_NAME;
+  const siteName = data?.siteName || "";
 
   useEffect(() => {
-    document.title = siteName;
+    if (siteName) {
+      document.title = siteName;
+    }
   }, [siteName]);
 
   return { siteName, isLoading };

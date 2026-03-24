@@ -234,7 +234,7 @@ export class DatabaseStorage implements IStorage {
 
   async getSiteName(): Promise<string> {
     const [row] = await db.select().from(siteConfig);
-    return row?.siteName || "Key-Panel";
+    return row?.siteName || "";
   }
 
   async updateSiteName(name: string): Promise<void> {

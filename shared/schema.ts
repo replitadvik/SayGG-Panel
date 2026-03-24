@@ -120,7 +120,7 @@ export const modname = pgTable("modname", {
 
 export const siteConfig = pgTable("site_config", {
   id: serial("id").primaryKey(),
-  siteName: varchar("site_name", { length: 255 }).default("Key-Panel"),
+  siteName: varchar("site_name", { length: 255 }),
 });
 
 export const ftext = pgTable("_ftext", {
