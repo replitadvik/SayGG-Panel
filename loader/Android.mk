@@ -1,3 +1,16 @@
+# ============================================================
+#  KeyPanel Android Native Loader — ndk-build
+#
+#  Required variables (set in Application.mk or gradle):
+#    KEYPANEL_ENDPOINT  = https://yourserver.com/connect
+#    KEYPANEL_GAME      = PUBG       (or BGMI, etc.)
+#    KEYPANEL_SECRET    = your-production-secret
+#
+#  Optional:
+#    KEYPANEL_PINNED_KEY = sha256//base64hash=
+#    KEYPANEL_JNI_CLASS  = com/yourpkg/YourClass
+# ============================================================
+
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -17,6 +30,10 @@ LOCAL_CPPFLAGS := -std=c++17 -fexceptions -frtti \
 
 ifdef KEYPANEL_PINNED_KEY
 LOCAL_CPPFLAGS += -DPINNED_PUBLIC_KEY=\"$(KEYPANEL_PINNED_KEY)\"
+endif
+
+ifdef KEYPANEL_JNI_CLASS
+LOCAL_CPPFLAGS += -DJNI_CLASS_PATH=\"$(KEYPANEL_JNI_CLASS)\"
 endif
 
 include $(BUILD_SHARED_LIBRARY)

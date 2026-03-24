@@ -128,29 +128,65 @@ loader/
 
 ### Build Configuration
 
-Pass your secrets as build variables (never hardcode in source):
+All three required macros (`ENDPOINT_URL`, `GAME_NAME`, `LICENSE_SECRET`) are enforced at compile time via `#error` — the build will fail if any is missing.
 
 **CMake (app/build.gradle):**
 ```groovy
-externalNativeBuild {
-    cmake {
-        arguments "-DKEYPANEL_ENDPOINT=https://yourdomain.com/connect",
-                  "-DKEYPANEL_GAME=PUBG",
-                  "-DKEYPANEL_SECRET=your-secret-here"
+android {
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments "-DKEYPANEL_ENDPOINT=https://yourserver.com/connect",
+                          "-DKEYPANEL_GAME=PUBG",
+                          "-DKEYPANEL_SECRET=your-production-secret"
+            }
+        }
+    }
+}
+```
+
+**Per-game builds via product flavors:**
+```groovy
+productFlavors {
+    pubg {
+        dimension "game"
+        externalNativeBuild {
+            cmake { arguments "-DKEYPANEL_GAME=PUBG" }
+        }
+    }
+    bgmi {
+        dimension "game"
+        externalNativeBuild {
+            cmake { arguments "-DKEYPANEL_GAME=BGMI" }
+        }
     }
 }
 ```
 
 **ndk-build:**
 ```makefile
-KEYPANEL_ENDPOINT := https://yourdomain.com/connect
+KEYPANEL_ENDPOINT := https://yourserver.com/connect
 KEYPANEL_GAME     := PUBG
-KEYPANEL_SECRET   := your-secret-here
+KEYPANEL_SECRET   := your-production-secret
 ```
 
-### Optional TLS Pinning
+### Optional Configuration
 
-Add `-DKEYPANEL_PINNED_KEY=sha256//base64hash=` to pin the server's public key.
+| Macro | Purpose | Example |
+|---|---|---|
+| `PINNED_PUBLIC_KEY` | TLS public key pinning | `sha256//AAAA...=` |
+| `JNI_CLASS_PATH` | Java class for RegisterNatives | `com/myapp/auth/Loader` |
+| `RNG_WINDOW_SEC` | RNG validation window (default 30) | `60` |
+
+### JNI Class Binding
+
+The native method is registered at library load via `JNI_OnLoad` + `RegisterNatives`.
+The target class defaults to `com/keypanel/loader/Login`.
+
+To use a different package/class:
+1. Set `-DKEYPANEL_JNI_CLASS=com/myapp/auth/Loader` in your build
+2. Move/copy `Login.java` into the matching package and update its `package` declaration
+3. The Java class must declare: `static native String native_Check(Context ctx, String key);`
 
 ### Java Usage
 
@@ -159,9 +195,11 @@ import com.keypanel.loader.Login;
 
 String result = Login.check(context, "MY-LICENSE-KEY");
 if (Login.isOk(result)) {
-    // Authenticated successfully
+    // Authenticated — proceed to app
 } else {
-    // result contains error reason (e.g., "EXPIRED KEY", "TOKEN_MISMATCH")
+    // result is a specific reason string:
+    //   "EXPIRED KEY", "TOKEN_MISMATCH", "RNG_EXPIRED",
+    //   "TLS_ERROR", "NETWORK_ERROR", "TIMEOUT", "HTTP_403", etc.
 }
 ```
 
@@ -182,17 +220,45 @@ The C++ `Login_NameUUID()` function replicates Java's `UUID.nameUUIDFromBytes()`
 
 **Important:** The serial depends on the user's key, so the same device with different keys produces different serials. This matches the legacy device-binding behavior.
 
+### RNG Validation
+
+The loader auto-detects whether `rng` is in seconds or milliseconds:
+- If `rng > 9999999999` (10+ digits) → treated as milliseconds, divided by 1000
+- Otherwise → treated as seconds directly
+
+After normalising to seconds, applies the legacy check: `rng_sec + RNG_WINDOW_SEC > time(0)`
+
+This is compatible with both the legacy PHP backend (which sent seconds) and the new Node.js backend (which sends `Date.now()` in milliseconds).
+
 ### Client-Side Validation
 
 After a successful `/connect` response, the loader verifies:
 1. **Token** — `md5("{game}-{user_key}-{serial}-{secret}")` must match
-2. **RNG window** — legacy-compatible: `(rng_ms / 1000) + 30 > time(0)` (server sends ms, loader converts to seconds)
+2. **RNG window** — auto-detected seconds/ms, then `rng_sec + 30 > time(0)`
 3. **Required fields** — token, rng, and EXP must be present
+
+### Error Reasons
+
+The loader returns specific error strings for different failure modes:
+
+| Return Value | Cause |
+|---|---|
+| `OK` | Authentication succeeded |
+| `TLS_ERROR` | SSL/TLS handshake or certificate failure |
+| `NETWORK_ERROR` | DNS or connection failure |
+| `TIMEOUT` | Request timed out |
+| `HTTP_4xx` / `HTTP_5xx` | Non-200 HTTP response |
+| `INVALID_RESPONSE` | Response is not valid JSON |
+| `MISSING_DATA` / `MISSING_TOKEN` / `MISSING_RNG` / `MISSING_EXP` | Required field absent |
+| `RNG_EXPIRED` | Server timestamp outside window |
+| `TOKEN_MISMATCH` | Token verification failed |
+| `EXPIRED KEY`, `USER BLOCKED`, etc. | Backend-returned reason |
 
 ### Setup Checklist
 
 1. Download `json.hpp` from [nlohmann/json releases](https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp) and replace the stub
 2. Add `libcurl` and `openssl` to your NDK dependencies
-3. Set your endpoint, game name, and secret via build variables
-4. Add `Login.java` to your app's source tree
-5. Call `Login.check(context, key)` from your activity
+3. Set `KEYPANEL_ENDPOINT`, `KEYPANEL_GAME`, and `KEYPANEL_SECRET` via build variables
+4. Optionally set `KEYPANEL_JNI_CLASS` if your package differs from `com.keypanel.loader`
+5. Add `Login.java` to your app's source tree (matching the JNI class path)
+6. Call `Login.check(context, key)` from your activity

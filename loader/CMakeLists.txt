@@ -1,3 +1,38 @@
+# ============================================================
+#  KeyPanel Android Native Loader — CMake
+#
+#  Required variables (pass via -D flags in build.gradle):
+#    KEYPANEL_ENDPOINT  = https://yourserver.com/connect
+#    KEYPANEL_GAME      = PUBG       (or BGMI, etc.)
+#    KEYPANEL_SECRET    = your-production-secret
+#
+#  Optional:
+#    KEYPANEL_PINNED_KEY = sha256//base64hash=
+#    KEYPANEL_JNI_CLASS  = com/yourpkg/YourClass
+#
+#  Example build.gradle snippet:
+#    android {
+#        defaultConfig {
+#            externalNativeBuild {
+#                cmake {
+#                    arguments "-DKEYPANEL_ENDPOINT=https://yourserver.com/connect",
+#                              "-DKEYPANEL_GAME=PUBG",
+#                              "-DKEYPANEL_SECRET=your-production-secret"
+#                }
+#            }
+#        }
+#        // Per-game builds via product flavors:
+#        productFlavors {
+#            pubg { dimension "game"
+#                externalNativeBuild { cmake { arguments "-DKEYPANEL_GAME=PUBG" } }
+#            }
+#            bgmi { dimension "game"
+#                externalNativeBuild { cmake { arguments "-DKEYPANEL_GAME=BGMI" } }
+#            }
+#        }
+#    }
+# ============================================================
+
 cmake_minimum_required(VERSION 3.18)
 project(keypanel LANGUAGES CXX)
 
@@ -33,4 +68,8 @@ endif()
 
 if(DEFINED KEYPANEL_PINNED_KEY)
     target_compile_definitions(keypanel PRIVATE PINNED_PUBLIC_KEY="${KEYPANEL_PINNED_KEY}")
+endif()
+
+if(DEFINED KEYPANEL_JNI_CLASS)
+    target_compile_definitions(keypanel PRIVATE JNI_CLASS_PATH="${KEYPANEL_JNI_CLASS}")
 endif()

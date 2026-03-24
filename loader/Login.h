@@ -1,54 +1,74 @@
 #pragma once
 
-/*
+/* ============================================================
+ *  KeyPanel Android Native Loader — Configuration
  * ============================================================
- *  PRODUCTION CONFIGURATION — set these via build system
- *  (CMake -D flags, Android.mk variables, or local.properties)
  *
- *  Do NOT commit real secrets into source control.
- * ============================================================
- */
+ *  SET THESE VIA YOUR BUILD SYSTEM before compiling.
+ *  Do NOT commit real values into source control.
+ *
+ *  CMake example (app/build.gradle):
+ *    externalNativeBuild {
+ *        cmake {
+ *            arguments "-DKEYPANEL_ENDPOINT=https://yourserver.com/connect",
+ *                      "-DKEYPANEL_GAME=PUBG",
+ *                      "-DKEYPANEL_SECRET=your-production-secret"
+ *        }
+ *    }
+ *
+ *  ndk-build example (Android.mk):
+ *    LOCAL_CPPFLAGS += -DENDPOINT_URL=\"https://yourserver.com/connect\"
+ *    LOCAL_CPPFLAGS += -DGAME_NAME=\"PUBG\"
+ *    LOCAL_CPPFLAGS += -DLICENSE_SECRET=\"your-production-secret\"
+ *
+ *  For per-game builds, change only GAME_NAME:
+ *    PUBG build:  -DGAME_NAME=\"PUBG\"
+ *    BGMI build:  -DGAME_NAME=\"BGMI\"
+ *    Custom:      -DGAME_NAME=\"YourGame\"
+ *  The game name must match a game.name entry in the backend
+ *  games table. Everything else stays the same.
+ * ============================================================ */
 
 #ifndef ENDPOINT_URL
-#define ENDPOINT_URL "https://yourdomain.com/connect"
+#error "ENDPOINT_URL must be defined at compile time (e.g. -DENDPOINT_URL=\"https://yourserver.com/connect\")"
 #endif
 
 #ifndef GAME_NAME
-#define GAME_NAME "PUBG"
+#error "GAME_NAME must be defined at compile time (e.g. -DGAME_NAME=\"PUBG\")"
 #endif
 
 #ifndef LICENSE_SECRET
-#define LICENSE_SECRET "REPLACE_WITH_YOUR_SECRET"
+#error "LICENSE_SECRET must be defined at compile time (e.g. -DLICENSE_SECRET=\"your-secret\")"
 #endif
 
+/* RNG_WINDOW_SEC: max age (in seconds) of the server timestamp.
+ * Legacy default is 30. Increase only if network latency is extreme. */
 #ifndef RNG_WINDOW_SEC
 #define RNG_WINDOW_SEC 30
 #endif
 
-/* Optional: define PINNED_PUBLIC_KEY as a sha256 hash for TLS pinning.
- * Example: "sha256//YhKJG3Wl3Hxyz...="
- * If not defined, standard CA verification is still enforced. */
+/* Optional TLS public key pinning.
+ * Define as a sha256 base64 hash to enable CURLOPT_PINNEDPUBLICKEY.
+ * Example: -DPINNED_PUBLIC_KEY=\"sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"
+ * If not defined, standard CA chain verification is still enforced. */
 
-/*
- * ============================================================
- *  JNI PACKAGE BINDING
+/* ============================================================
+ *  JNI CLASS BINDING
  *
- *  The default JNI function name below maps to:
- *      package: com.keypanel.loader
- *      class:   Login
- *      method:  native_Check
+ *  JNI_CLASS_PATH controls which Java class the native method
+ *  is registered against at runtime via RegisterNatives.
  *
- *  If your app uses a different package, you MUST either:
- *    1. Rename the extern "C" function in Login.cpp, or
- *    2. Use RegisterNatives in JNI_OnLoad (see bottom of Login.cpp)
+ *  Default: "com/keypanel/loader/Login"
  *
- *  The Java-side class must match. See loader/java/ for the
- *  companion Login.java.
- * ============================================================
- */
-
-#ifndef JNI_PACKAGE_PATH
-#define JNI_PACKAGE_PATH com_keypanel_loader
+ *  To integrate into a different app package, set this macro
+ *  to your actual class path at compile time:
+ *    -DJNI_CLASS_PATH=\"com/myapp/security/NativeAuth\"
+ *
+ *  The Java class must declare:
+ *    static native String native_Check(Context ctx, String key);
+ * ============================================================ */
+#ifndef JNI_CLASS_PATH
+#define JNI_CLASS_PATH "com/keypanel/loader/Login"
 #endif
 
 #include <jni.h>
@@ -104,14 +124,5 @@ bool Login_Connect(const std::string& userKey, const std::string& serial,
 bool Login_VerifyToken(const std::string& game, const std::string& userKey,
                        const std::string& serial, const std::string& token);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-JNIEXPORT jstring JNICALL
-Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
-                                             jobject context, jstring userKey);
-
-#ifdef __cplusplus
-}
-#endif
+jstring KeyPanel_NativeCheck(JNIEnv* env, jclass clazz,
+                             jobject context, jstring userKey);

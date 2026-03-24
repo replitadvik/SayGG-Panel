@@ -21,7 +21,7 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 /* ================================================================
- *  JNI helpers
+ *  JNI string helper
  * ================================================================ */
 
 static std::string jstring_to_string(JNIEnv* env, jstring jstr) {
@@ -96,15 +96,13 @@ std::string Login_MD5(const std::string& input) {
 }
 
 /* ================================================================
- *  UUID.nameUUIDFromBytes compatible (Java UUID version 3)
+ *  UUID.nameUUIDFromBytes — Java-compatible UUID v3
  *
- *  Java's UUID.nameUUIDFromBytes(byte[]) performs:
- *    1. MD5 hash the input
- *    2. Set version nibble to 3:  digest[6] = (digest[6] & 0x0f) | 0x30
- *    3. Set variant bits to IETF: digest[8] = (digest[8] & 0x3f) | 0x80
- *    4. Format as 8-4-4-4-12 lowercase hex with dashes
- *
- *  This produces the same output as Java for identical input bytes.
+ *  Replicates Java's UUID.nameUUIDFromBytes(byte[]) exactly:
+ *    1. MD5 hash the input bytes
+ *    2. digest[6] = (digest[6] & 0x0f) | 0x30  (version 3)
+ *    3. digest[8] = (digest[8] & 0x3f) | 0x80  (IETF variant)
+ *    4. Format as lowercase 8-4-4-4-12 with dashes
  * ================================================================ */
 
 std::string Login_NameUUID(const std::string& input) {
@@ -131,11 +129,11 @@ std::string Login_NameUUID(const std::string& input) {
 /* ================================================================
  *  Serial generation — LEGACY COMPATIBLE
  *
- *  Legacy Java loader logic:
+ *  Legacy Java loader:
  *    String hwid = user_key + androidId + deviceModel + deviceBrand;
  *    String serial = UUID.nameUUIDFromBytes(hwid.getBytes()).toString();
  *
- *  This replicates that exactly.
+ *  Concatenation has NO separators — matches Java string concat.
  * ================================================================ */
 
 std::string Login_BuildSerial(JNIEnv* env, jobject context, const std::string& userKey) {
@@ -148,7 +146,7 @@ std::string Login_BuildSerial(JNIEnv* env, jobject context, const std::string& u
 }
 
 /* ================================================================
- *  HTTP POST via libcurl
+ *  URL encoding
  * ================================================================ */
 
 static std::string url_encode(const std::string& value) {
@@ -164,6 +162,10 @@ static std::string url_encode(const std::string& value) {
     return escaped.str();
 }
 
+/* ================================================================
+ *  HTTP POST via libcurl
+ * ================================================================ */
+
 struct CurlWriteData {
     std::string body;
 };
@@ -178,7 +180,8 @@ bool Login_HttpPost(const std::string& url, const std::string& body,
                     std::string& responseOut) {
     CURL* curl = curl_easy_init();
     if (!curl) {
-        LOGE("curl_easy_init failed");
+        LOGE("init failed");
+        responseOut = "NETWORK_ERROR";
         return false;
     }
 
@@ -216,12 +219,29 @@ bool Login_HttpPost(const std::string& url, const std::string& body,
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK) {
-        LOGE("curl error: %s", curl_easy_strerror(res));
+        if (res == CURLE_SSL_CONNECT_ERROR || res == CURLE_SSL_CERTPROBLEM ||
+            res == CURLE_SSL_CIPHER || res == CURLE_SSL_CACERT ||
+            res == CURLE_SSL_PINNEDPUBKEYNOTMATCH) {
+            LOGE("TLS error: %s", curl_easy_strerror(res));
+            responseOut = "TLS_ERROR";
+        } else if (res == CURLE_COULDNT_CONNECT || res == CURLE_COULDNT_RESOLVE_HOST) {
+            LOGE("network error: %s", curl_easy_strerror(res));
+            responseOut = "NETWORK_ERROR";
+        } else if (res == CURLE_OPERATION_TIMEDOUT) {
+            LOGE("request timeout");
+            responseOut = "TIMEOUT";
+        } else {
+            LOGE("curl error %d: %s", (int)res, curl_easy_strerror(res));
+            responseOut = "NETWORK_ERROR";
+        }
         return false;
     }
 
     if (httpCode < 200 || httpCode >= 300) {
         LOGE("HTTP %ld", httpCode);
+        char codeBuf[32];
+        snprintf(codeBuf, sizeof(codeBuf), "HTTP_%ld", httpCode);
+        responseOut = codeBuf;
         return false;
     }
 
@@ -230,7 +250,28 @@ bool Login_HttpPost(const std::string& url, const std::string& body,
 }
 
 /* ================================================================
- *  /connect — send request, parse JSON, validate
+ *  RNG auto-detection helper
+ *
+ *  The backend may send rng as:
+ *    - seconds  (Unix epoch, ~10 digits, e.g. 1711234567)
+ *    - milliseconds (Date.now(), ~13 digits, e.g. 1711234567890)
+ *
+ *  Auto-detect: if rng > 9999999999 (10^10), it is milliseconds.
+ *  Otherwise treat as seconds.
+ *
+ *  After normalising to seconds, apply the legacy check:
+ *    if (rng_sec + RNG_WINDOW_SEC > now_sec)
+ * ================================================================ */
+
+static long long rng_to_seconds(long long rng) {
+    if (rng > 9999999999LL) {
+        return rng / 1000LL;
+    }
+    return rng;
+}
+
+/* ================================================================
+ *  /connect — POST, parse JSON, validate token + rng
  * ================================================================ */
 
 bool Login_Connect(const std::string& userKey, const std::string& serial,
@@ -242,15 +283,15 @@ bool Login_Connect(const std::string& userKey, const std::string& serial,
     std::string rawResponse;
     if (!Login_HttpPost(ENDPOINT_URL, postBody, rawResponse)) {
         out.status = false;
-        out.reason = "CONNECTION_FAILED";
+        out.reason = rawResponse;
         return false;
     }
 
     nlohmann::json root;
     try {
         root = nlohmann::json::parse(rawResponse);
-    } catch (const std::exception& e) {
-        LOGE("JSON parse error");
+    } catch (const std::exception&) {
+        LOGE("invalid JSON response");
         out.status = false;
         out.reason = "INVALID_RESPONSE";
         return false;
@@ -316,27 +357,18 @@ bool Login_Connect(const std::string& userKey, const std::string& serial,
         return false;
     }
 
-    /* ----------------------------------------------------------------
-     *  RNG validation — LEGACY COMPATIBLE
-     *
-     *  Legacy PHP loader check: if (rng + 30 > time(0))
-     *
-     *  The backend sends rng as milliseconds (Date.now()).
-     *  Convert to seconds before applying the legacy window check.
-     *  This ensures the server timestamp, divided by 1000,
-     *  is still within RNG_WINDOW_SEC of the current device time.
-     * ---------------------------------------------------------------- */
-    long long rng_sec = out.rng / 1000;
+    /* RNG validation — legacy compatible with auto-detection */
+    long long rng_sec = rng_to_seconds(out.rng);
     long long now_sec = (long long)time(nullptr);
 
     if (!(rng_sec + RNG_WINDOW_SEC > now_sec)) {
-        LOGE("rng expired: server=%lld now=%lld window=%d",
-             rng_sec, now_sec, RNG_WINDOW_SEC);
+        LOGE("rng expired: server=%lld device=%lld", rng_sec, now_sec);
         out.status = false;
         out.reason = "RNG_EXPIRED";
         return false;
     }
 
+    /* Token verification */
     if (!Login_VerifyToken(GAME_NAME, userKey, serial, out.token)) {
         out.status = false;
         out.reason = "TOKEN_MISMATCH";
@@ -359,22 +391,14 @@ bool Login_VerifyToken(const std::string& game, const std::string& userKey,
 }
 
 /* ================================================================
- *  JNI entrypoint
+ *  Native check implementation
  *
- *  Maps to:
- *    package com.keypanel.loader;
- *    class Login;
- *    static native String native_Check(Context ctx, String key);
- *
- *  If your app uses a different package path, either:
- *    (a) rename this function to match, or
- *    (b) use JNI_OnLoad + RegisterNatives (template at bottom)
+ *  Called from JNI via RegisterNatives (see JNI_OnLoad below).
+ *  Also usable as a direct JNI export if needed.
  * ================================================================ */
 
-extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
-                                             jobject context, jstring jUserKey) {
+jstring KeyPanel_NativeCheck(JNIEnv* env, jclass /*clazz*/,
+                             jobject context, jstring jUserKey) {
     if (!context) {
         return env->NewStringUTF("ERROR: null context");
     }
@@ -395,9 +419,9 @@ Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
     LOGD("connect: game=%s", GAME_NAME);
 
     ConnectResponse resp = {};
-    bool ok = Login_Connect(userKey, serial, resp);
+    Login_Connect(userKey, serial, resp);
 
-    if (ok && resp.status) {
+    if (resp.status) {
         return env->NewStringUTF("OK");
     }
 
@@ -406,24 +430,48 @@ Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
 }
 
 /* ================================================================
- *  ALTERNATIVE: RegisterNatives approach
+ *  JNI_OnLoad — RegisterNatives approach
  *
- *  Uncomment and adapt this if your app uses a different package.
- *  Replace "com/yourpkg/YourClass" with the actual path.
+ *  Registers KeyPanel_NativeCheck as the implementation of
+ *  native_Check on the Java class specified by JNI_CLASS_PATH.
  *
- *  static JNINativeMethod gMethods[] = {
- *      {"native_Check", "(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;",
- *       (void*)Java_com_keypanel_loader_Login_native_1Check}
- *  };
+ *  Default JNI_CLASS_PATH: "com/keypanel/loader/Login"
  *
- *  extern "C" jint JNI_OnLoad(JavaVM* vm, void*) {
- *      JNIEnv* env = nullptr;
- *      if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK)
- *          return JNI_ERR;
- *      jclass cls = env->FindClass("com/yourpkg/YourClass");
- *      if (!cls) return JNI_ERR;
- *      env->RegisterNatives(cls, gMethods,
- *                           sizeof(gMethods) / sizeof(gMethods[0]));
- *      return JNI_VERSION_1_6;
- *  }
+ *  To use a different package/class, set at compile time:
+ *    -DJNI_CLASS_PATH=\"com/myapp/auth/Loader\"
+ *
+ *  The Java class must declare:
+ *    static native String native_Check(Context ctx, String key);
  * ================================================================ */
+
+static JNINativeMethod gMethods[] = {
+    {
+        (char*)"native_Check",
+        (char*)"(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;",
+        (void*)KeyPanel_NativeCheck
+    }
+};
+
+extern "C"
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+    JNIEnv* env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    jclass cls = env->FindClass(JNI_CLASS_PATH);
+    if (!cls) {
+        LOGE("JNI_OnLoad: class not found: %s", JNI_CLASS_PATH);
+        return JNI_ERR;
+    }
+
+    int rc = env->RegisterNatives(cls, gMethods,
+                                  sizeof(gMethods) / sizeof(gMethods[0]));
+    if (rc != JNI_OK) {
+        LOGE("JNI_OnLoad: RegisterNatives failed for %s", JNI_CLASS_PATH);
+        return JNI_ERR;
+    }
+
+    LOGD("JNI_OnLoad: registered native_Check on %s", JNI_CLASS_PATH);
+    return JNI_VERSION_1_6;
+}
