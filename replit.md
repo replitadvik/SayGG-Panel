@@ -120,8 +120,23 @@ docs/
 - Password validation: 6-45 char enforcement on all change endpoints
 - Dead code removed: unused imports (passport, memorystore, sql, boolean, ne, ilike, getDurationLabel, formatDuration, storage in auth.ts)
 
+## UI/UX Design System
+- Premium iOS-inspired mobile-first redesign
+- Font: system-ui + Inter (SF Pro fallback) via CSS custom property --font-sans
+- Primary color: amber/gold (43 72% 48%)
+- Light theme: off-white bg (0 0% 97.5%), white cards, subtle borders
+- Dark theme: deep dark bg (228 16% 6%), refined surfaces (228 14% 9%)
+- ThemeProvider: localStorage-persisted light/dark toggle, respects prefers-color-scheme
+- Layout: sticky glass header (site name left, theme toggle + hamburger right), right-side Sheet drawer nav
+- Cards: rounded-2xl borders, shadow-sm, border-border/60
+- Inputs: h-11, rounded-xl, bg-muted/50 border-border/60
+- Buttons: rounded-xl, h-10/h-11
+- Navigation: right-side Sheet with user avatar, level badge, balance display
+- All pages use consistent card-based layout (no Table components on mobile)
+- data-testid attributes on all interactive and meaningful display elements
+
 ## Default Credentials
-- Owner: `admin` / `admin123` (level 1)
+- Owner: `SayGG` / `Sk.kiru@96` (level 1)
 
 ## Running
 - Workflow "Start application" runs `npm run dev` on port 5000

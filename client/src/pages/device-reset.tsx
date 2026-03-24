@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Smartphone, User, Lock } from "lucide-react";
+import { Loader2, Smartphone, User, Lock, Sun, Moon } from "lucide-react";
 
 export default function DeviceResetPage() {
   const [, setLocation] = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -36,64 +37,53 @@ export default function DeviceResetPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto w-10 h-10 bg-primary flex items-center justify-center">
-            <Smartphone className="w-5 h-5 text-primary-foreground" />
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-5">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={toggleTheme}
+          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+            <Smartphone className="w-6 h-6 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-xl font-bold tracking-tight" data-testid="text-page-title">
-              Reset Device
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">Reset device binding</p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleReset} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">Reset Device</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Reset your device binding</p>
+        </div>
+
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <form onSubmit={handleReset} className="space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Username</Label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  data-testid="input-username"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="pl-9 h-9 bg-muted border-border"
-                  required
-                />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input id="username" data-testid="input-username" placeholder="Enter your username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10 h-11 rounded-xl bg-muted/50 border-border/60" required />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  data-testid="input-password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 h-9 bg-muted border-border"
-                  required
-                />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input id="password" data-testid="input-password" type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 h-11 rounded-xl bg-muted/50 border-border/60" required />
               </div>
             </div>
-            <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-reset-device">
+            <Button type="submit" className="w-full h-11 rounded-xl text-sm font-semibold" disabled={loading} data-testid="button-reset-device">
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Reset Device
             </Button>
-            <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
+            <div className="text-center text-sm text-muted-foreground border-t border-border/60 pt-4 mt-4">
               <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium" data-testid="link-login">
-                Back to Login
+                Back to Sign In
               </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

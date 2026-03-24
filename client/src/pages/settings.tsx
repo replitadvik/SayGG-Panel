@@ -4,7 +4,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -54,321 +53,246 @@ export default function SettingsPage() {
     }
   }, [features]);
 
-  useEffect(() => {
-    if (modnameData) setModname(modnameData.modname || "");
-  }, [modnameData]);
-
-  useEffect(() => {
-    if (ftextData) {
-      setFtextStatus(ftextData._status || "");
-      setFtextContent(ftextData._ftext || "");
-    }
-  }, [ftextData]);
-
-  useEffect(() => {
-    if (maintenanceData) {
-      setMaintStatus(maintenanceData.status || "off");
-      setMaintInput(maintenanceData.myinput || "");
-    }
-  }, [maintenanceData]);
-
-  useEffect(() => {
-    if (sessionData) {
-      setSessionNormalTtl(sessionData.normalTtl || "30m");
-      setSessionRememberTtl(sessionData.rememberMeTtl || "24h");
-    }
-  }, [sessionData]);
+  useEffect(() => { if (modnameData) setModname(modnameData.modname || ""); }, [modnameData]);
+  useEffect(() => { if (ftextData) { setFtextStatus(ftextData._status || ""); setFtextContent(ftextData._ftext || ""); } }, [ftextData]);
+  useEffect(() => { if (maintenanceData) { setMaintStatus(maintenanceData.status || "off"); setMaintInput(maintenanceData.myinput || ""); } }, [maintenanceData]);
+  useEffect(() => { if (sessionData) { setSessionNormalTtl(sessionData.normalTtl || "30m"); setSessionRememberTtl(sessionData.rememberMeTtl || "24h"); } }, [sessionData]);
 
   const featuresMutation = useMutation({
-    mutationFn: async (data: Record<string, string>) => {
-      await apiRequest("PATCH", "/api/settings/features", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/features"] });
-      toast({ title: "Features updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (data: Record<string, string>) => { await apiRequest("PATCH", "/api/settings/features", data); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/features"] }); toast({ title: "Features updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const modnameMutation = useMutation({
-    mutationFn: async (name: string) => {
-      await apiRequest("PATCH", "/api/settings/modname", { modname: name });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/modname"] });
-      toast({ title: "Mod name updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (name: string) => { await apiRequest("PATCH", "/api/settings/modname", { modname: name }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/modname"] }); toast({ title: "Mod name updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const ftextMutation = useMutation({
-    mutationFn: async (data: { _status: string; _ftext: string }) => {
-      await apiRequest("PATCH", "/api/settings/ftext", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/ftext"] });
-      toast({ title: "Text settings updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (data: { _status: string; _ftext: string }) => { await apiRequest("PATCH", "/api/settings/ftext", data); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/ftext"] }); toast({ title: "Text settings updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const maintenanceMutation = useMutation({
-    mutationFn: async (data: { status: string; myinput: string }) => {
-      await apiRequest("PATCH", "/api/settings/maintenance", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/maintenance"] });
-      toast({ title: "Maintenance status updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (data: { status: string; myinput: string }) => { await apiRequest("PATCH", "/api/settings/maintenance", data); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/maintenance"] }); toast({ title: "Maintenance status updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const sessionMutation = useMutation({
-    mutationFn: async (data: { normalTtl: string; rememberMeTtl: string }) => {
-      await apiRequest("PATCH", "/api/settings/session", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] });
-      toast({ title: "Session settings updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (data: { normalTtl: string; rememberMeTtl: string }) => { await apiRequest("PATCH", "/api/settings/session", data); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] }); toast({ title: "Session settings updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const sessionResetMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/settings/session/reset");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] });
-      toast({ title: "Session settings reset to defaults" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async () => { await apiRequest("POST", "/api/settings/session/reset"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/session"] }); toast({ title: "Session settings reset" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-settings-title">Settings</h1>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight" data-testid="text-settings-title">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">System configuration</p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5" />
-            Feature Toggles
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {featureList.map(f => (
-              <div key={f} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <Label className="text-sm font-medium">{f}</Label>
-                <Switch
-                  checked={featureState[f] === "on"}
-                  onCheckedChange={(checked) =>
-                    setFeatureState(prev => ({ ...prev, [f]: checked ? "on" : "off" }))
-                  }
-                  data-testid={`switch-feature-${f.toLowerCase()}`}
-                />
-              </div>
-            ))}
-          </div>
-          <Button
-            onClick={() => featuresMutation.mutate(featureState)}
-            disabled={featuresMutation.isPending}
-            data-testid="button-save-features"
-          >
-            {featuresMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Features
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Feature Toggles</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {featureList.map(f => (
+            <div key={f} className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+              <Label className="text-sm font-medium">{f}</Label>
+              <Switch
+                checked={featureState[f] === "on"}
+                onCheckedChange={(checked) =>
+                  setFeatureState(prev => ({ ...prev, [f]: checked ? "on" : "off" }))
+                }
+                data-testid={`switch-feature-${f.toLowerCase()}`}
+              />
+            </div>
+          ))}
+        </div>
+        <Button
+          onClick={() => featuresMutation.mutate(featureState)}
+          disabled={featuresMutation.isPending}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-features"
+        >
+          {featuresMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Save Features
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Settings className="h-5 w-5" />
-            Mod Name
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Settings className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Mod Name</h2>
+        </div>
+        <Input
+          value={modname}
+          onChange={e => setModname(e.target.value)}
+          placeholder="Enter mod name"
+          className="h-11 rounded-xl bg-muted/50 border-border/60"
+          data-testid="input-modname"
+        />
+        <Button
+          onClick={() => modnameMutation.mutate(modname)}
+          disabled={modnameMutation.isPending}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-modname"
+        >
+          {modnameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Save Mod Name
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Type className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Floating Text</h2>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Status Text</Label>
           <Input
-            value={modname}
-            onChange={e => setModname(e.target.value)}
-            placeholder="Enter mod name"
-            data-testid="input-modname"
+            value={ftextStatus}
+            onChange={e => setFtextStatus(e.target.value)}
+            placeholder="Status text"
+            className="h-11 rounded-xl bg-muted/50 border-border/60"
+            data-testid="input-ftext-status"
           />
-          <Button
-            onClick={() => modnameMutation.mutate(modname)}
-            disabled={modnameMutation.isPending}
-            data-testid="button-save-modname"
-          >
-            {modnameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Mod Name
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Credit / Footer Text</Label>
+          <Textarea
+            value={ftextContent}
+            onChange={e => setFtextContent(e.target.value)}
+            placeholder="Credit text"
+            rows={3}
+            className="rounded-xl bg-muted/50 border-border/60"
+            data-testid="input-ftext-content"
+          />
+        </div>
+        <Button
+          onClick={() => ftextMutation.mutate({ _status: ftextStatus, _ftext: ftextContent })}
+          disabled={ftextMutation.isPending}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-ftext"
+        >
+          {ftextMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Save Text
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Type className="h-5 w-5" />
-            Floating Text
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label>Status Text</Label>
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Maintenance Mode</h2>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+          <Label className="text-sm font-medium">{maintStatus === "on" ? "Maintenance ON" : "Maintenance OFF"}</Label>
+          <Switch
+            checked={maintStatus === "on"}
+            onCheckedChange={(checked) => setMaintStatus(checked ? "on" : "off")}
+            data-testid="switch-maintenance"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Maintenance Message</Label>
+          <Textarea
+            value={maintInput}
+            onChange={e => setMaintInput(e.target.value)}
+            placeholder="Message shown during maintenance"
+            rows={2}
+            className="rounded-xl bg-muted/50 border-border/60"
+            data-testid="input-maintenance-message"
+          />
+        </div>
+        <Button
+          onClick={() => maintenanceMutation.mutate({ status: maintStatus, myinput: maintInput })}
+          disabled={maintenanceMutation.isPending}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-maintenance"
+        >
+          {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Save Maintenance
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Session Settings</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Normal Session</Label>
             <Input
-              value={ftextStatus}
-              onChange={e => setFtextStatus(e.target.value)}
-              placeholder="Status text"
-              data-testid="input-ftext-status"
+              value={sessionNormalTtl}
+              onChange={e => setSessionNormalTtl(e.target.value)}
+              placeholder="e.g. 30m, 1h, 7d"
+              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              data-testid="input-session-normal-ttl"
             />
+            <p className="text-xs text-muted-foreground">Default: {sessionData?.envNormalTtl || "30m"}</p>
           </div>
-          <div className="space-y-1">
-            <Label>Credit / Footer Text</Label>
-            <Textarea
-              value={ftextContent}
-              onChange={e => setFtextContent(e.target.value)}
-              placeholder="Credit text"
-              rows={3}
-              data-testid="input-ftext-content"
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Remember Me</Label>
+            <Input
+              value={sessionRememberTtl}
+              onChange={e => setSessionRememberTtl(e.target.value)}
+              placeholder="e.g. 24h, 7d, 30d"
+              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              data-testid="input-session-remember-ttl"
             />
+            <p className="text-xs text-muted-foreground">Default: {sessionData?.envRememberMeTtl || "24h"}</p>
           </div>
+        </div>
+        {sessionData?.isCustom && sessionData?.changedBy && (
+          <p className="text-xs text-muted-foreground" data-testid="text-session-changed-by">
+            Last changed by {sessionData.changedBy}
+            {sessionData.changedAt && ` on ${new Date(sessionData.changedAt).toLocaleString()}`}
+          </p>
+        )}
+        <div className="flex gap-2">
           <Button
-            onClick={() => ftextMutation.mutate({ _status: ftextStatus, _ftext: ftextContent })}
-            disabled={ftextMutation.isPending}
-            data-testid="button-save-ftext"
+            onClick={() => sessionMutation.mutate({ normalTtl: sessionNormalTtl, rememberMeTtl: sessionRememberTtl })}
+            disabled={sessionMutation.isPending}
+            className="flex-1 h-10 rounded-xl text-sm"
+            data-testid="button-save-session"
           >
-            {ftextMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Text
+            {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Session
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Wrench className="h-5 w-5" />
-            Maintenance Mode
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={maintStatus === "on"}
-              onCheckedChange={(checked) => setMaintStatus(checked ? "on" : "off")}
-              data-testid="switch-maintenance"
-            />
-            <Label>{maintStatus === "on" ? "Maintenance ON" : "Maintenance OFF"}</Label>
-          </div>
-          <div className="space-y-1">
-            <Label>Maintenance Message</Label>
-            <Textarea
-              value={maintInput}
-              onChange={e => setMaintInput(e.target.value)}
-              placeholder="Message shown during maintenance"
-              rows={2}
-              data-testid="input-maintenance-message"
-            />
-          </div>
           <Button
-            onClick={() => maintenanceMutation.mutate({ status: maintStatus, myinput: maintInput })}
-            disabled={maintenanceMutation.isPending}
-            data-testid="button-save-maintenance"
+            variant="outline"
+            onClick={() => sessionResetMutation.mutate()}
+            disabled={sessionResetMutation.isPending}
+            className="h-10 rounded-xl text-sm"
+            data-testid="button-reset-session"
           >
-            {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Maintenance
+            {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Reset
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Clock className="h-5 w-5" />
-            Session Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label>Normal Session Duration</Label>
-              <Input
-                value={sessionNormalTtl}
-                onChange={e => setSessionNormalTtl(e.target.value)}
-                placeholder="e.g. 30m, 1h, 7d"
-                data-testid="input-session-normal-ttl"
-              />
-              <p className="text-xs text-muted-foreground">
-                Default: {sessionData?.envNormalTtl || "30m"}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label>Remember Me Duration</Label>
-              <Input
-                value={sessionRememberTtl}
-                onChange={e => setSessionRememberTtl(e.target.value)}
-                placeholder="e.g. 24h, 7d, 30d"
-                data-testid="input-session-remember-ttl"
-              />
-              <p className="text-xs text-muted-foreground">
-                Default: {sessionData?.envRememberMeTtl || "24h"}
-              </p>
-            </div>
-          </div>
-          {sessionData?.isCustom && sessionData?.changedBy && (
-            <p className="text-xs text-muted-foreground" data-testid="text-session-changed-by">
-              Last changed by {sessionData.changedBy}
-              {sessionData.changedAt && ` on ${new Date(sessionData.changedAt).toLocaleString()}`}
-            </p>
-          )}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => sessionMutation.mutate({
-                normalTtl: sessionNormalTtl,
-                rememberMeTtl: sessionRememberTtl,
-              })}
-              disabled={sessionMutation.isPending}
-              data-testid="button-save-session"
-            >
-              {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Save Session Settings
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => sessionResetMutation.mutate()}
-              disabled={sessionResetMutation.isPending}
-              data-testid="button-reset-session"
-            >
-              {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Reset to Defaults
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
+        </div>
+      </div>
     </div>
   );
 }

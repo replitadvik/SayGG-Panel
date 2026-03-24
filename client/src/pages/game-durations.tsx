@@ -5,11 +5,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { Loader2, Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { formatCurrency } from "@/lib/currency";
@@ -115,113 +116,102 @@ export default function GameDurationsPage() {
   };
 
   if (user?.level !== 1) {
-    return <div className="text-center text-muted-foreground py-12">Access denied</div>;
+    return <div className="text-center text-muted-foreground py-12 text-sm">Access denied</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link href="/games">
-          <Button variant="ghost" size="icon" data-testid="button-back-games">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <button className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-testid="button-back-games">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-0.5" data-testid="text-breadcrumb">
-            <Link href="/games" className="hover:text-foreground transition-colors">Game Management</Link>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-0.5" data-testid="text-breadcrumb">
+            <Link href="/games" className="hover:text-foreground transition-colors">Games</Link>
             <span>/</span>
-            <span className="text-foreground">{game?.displayName || "..."}</span>
+            <span className="text-foreground truncate">{game?.displayName || "..."}</span>
           </div>
-          <h1 className="text-2xl font-bold" data-testid="text-durations-title">
-            Durations & Pricing
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Managing durations for {game?.displayName || "this game"} — {durations.length} {durations.length === 1 ? "duration" : "durations"} configured
-          </p>
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-durations-title">Durations & Pricing</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{durations.length} durations configured</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }} data-testid="button-add-duration">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Duration
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} className="h-10 rounded-xl text-sm flex-shrink-0" data-testid="button-add-duration">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-          ) : durations.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground mb-1">No durations configured for {game?.displayName || "this game"}</p>
-              <p className="text-xs text-muted-foreground">Add a duration to set pricing for key generation</p>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : durations.length === 0 ? (
+        <div className="text-center py-16">
+          <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-muted-foreground text-sm">No durations configured</p>
+          <p className="text-xs text-muted-foreground mt-1">Add a duration to set pricing for key generation</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {durations.map((d) => (
+            <div key={d.id} className="rounded-xl border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-duration-${d.id}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-medium text-sm">{d.label}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">{d.durationHours}h</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-primary font-mono">{formatCurrency(d.price)}</span>
+                  <Switch
+                    checked={d.isActive === 1}
+                    onCheckedChange={(checked) => toggleMutation.mutate({ id: d.id, isActive: checked ? 1 : 0 })}
+                    data-testid={`switch-duration-active-${d.id}`}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/40">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={() => openEdit(d)} data-testid={`button-edit-duration-${d.id}`}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-destructive" onClick={() => setDeleteConfirm(d)} data-testid={`button-delete-duration-${d.id}`}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Hours</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {durations.map((d) => (
-                  <TableRow key={d.id} data-testid={`row-duration-${d.id}`}>
-                    <TableCell className="font-medium">{d.label}</TableCell>
-                    <TableCell>{d.durationHours}h</TableCell>
-                    <TableCell>
-                      <span className="font-semibold text-primary">{formatCurrency(d.price)}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={d.isActive === 1}
-                        onCheckedChange={(checked) => toggleMutation.mutate({ id: d.id, isActive: checked ? 1 : 0 })}
-                        data-testid={`switch-duration-active-${d.id}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(d)} data-testid={`button-edit-duration-${d.id}`}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(d)} data-testid={`button-delete-duration-${d.id}`}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add Duration for {game?.displayName || "Game"}</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-2xl mx-4">
+          <DialogHeader><DialogTitle className="text-base font-semibold">Add Duration for {game?.displayName || "Game"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Label</Label>
-              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. 1 Day" data-testid="input-duration-label" />
+              <Label className="text-sm font-medium">Label</Label>
+              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. 1 Day" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-label" />
             </div>
             <div className="space-y-2">
-              <Label>Duration (hours)</Label>
-              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} placeholder="e.g. 24" data-testid="input-duration-hours" />
-              <p className="text-xs text-muted-foreground">Common: 1h, 2h, 24h (1 day), 168h (1 week), 720h (1 month)</p>
+              <Label className="text-sm font-medium">Duration (hours)</Label>
+              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} placeholder="e.g. 24" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-hours" />
+              <p className="text-xs text-muted-foreground">Common: 1h, 24h (1 day), 168h (1 week), 720h (1 month)</p>
             </div>
             <div className="space-y-2">
-              <Label>Price per device</Label>
-              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="e.g. 100" data-testid="input-duration-price" />
+              <Label className="text-sm font-medium">Price per device</Label>
+              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="e.g. 100" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-price" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAdd(false)} className="rounded-xl h-10">Cancel</Button>
             <Button
               onClick={() => createMutation.mutate({ durationHours: parseInt(form.durationHours), label: form.label, price: parseInt(form.price), gameId })}
               disabled={createMutation.isPending || !form.label || !form.durationHours || !form.price}
+              className="rounded-xl h-10"
               data-testid="button-save-duration"
             >
               {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -232,27 +222,28 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!editDur} onOpenChange={() => setEditDur(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit Duration</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-2xl mx-4">
+          <DialogHeader><DialogTitle className="text-base font-semibold">Edit Duration</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Label</Label>
-              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} data-testid="input-edit-duration-label" />
+              <Label className="text-sm font-medium">Label</Label>
+              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-label" />
             </div>
             <div className="space-y-2">
-              <Label>Duration (hours)</Label>
-              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} data-testid="input-edit-duration-hours" />
+              <Label className="text-sm font-medium">Duration (hours)</Label>
+              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-hours" />
             </div>
             <div className="space-y-2">
-              <Label>Price per device</Label>
-              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} data-testid="input-edit-duration-price" />
+              <Label className="text-sm font-medium">Price per device</Label>
+              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-price" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDur(null)}>Cancel</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDur(null)} className="rounded-xl h-10">Cancel</Button>
             <Button
               onClick={() => editDur && updateMutation.mutate({ id: editDur.id, data: { durationHours: parseInt(form.durationHours), label: form.label, price: parseInt(form.price) } })}
               disabled={updateMutation.isPending}
+              className="rounded-xl h-10"
               data-testid="button-update-duration"
             >
               {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -263,14 +254,14 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Delete Duration</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-2xl mx-4">
+          <DialogHeader><DialogTitle className="text-base font-semibold">Delete Duration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete <strong>{deleteConfirm?.label}</strong> ({deleteConfirm?.durationHours}h, {formatCurrency(deleteConfirm?.price ?? 0)})? This cannot be undone.
           </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} data-testid="button-confirm-delete-duration">
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="rounded-xl h-10" data-testid="button-confirm-delete-duration">
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Delete
             </Button>

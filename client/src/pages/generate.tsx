@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Key, Wallet, Copy, Check } from "lucide-react";
@@ -38,7 +37,6 @@ export default function GeneratePage() {
     enabled: !!selectedGameId,
   });
 
-  const selectedGame = activeGames.find(g => String(g.id) === selectedGameId);
   const selectedDuration = durations.find((d: GameDuration) => String(d.durationHours) === duration);
   const cost = selectedDuration ? selectedDuration.price * parseInt(maxDevices || "1") : 0;
 
@@ -66,7 +64,7 @@ export default function GeneratePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGame) return;
+    if (!selectedGameId) return;
     generateMutation.mutate({
       gameId: parseInt(selectedGameId),
       duration: parseInt(duration),
@@ -85,128 +83,134 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-lg font-bold tracking-tight uppercase" data-testid="text-generate-title">Generate Key</h1>
+    <div className="max-w-lg mx-auto space-y-5">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight" data-testid="text-generate-title">Generate Key</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Create a new license key</p>
+      </div>
 
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <Wallet className="h-4 w-4 text-primary" />
-            Balance: <span className="text-foreground font-mono">{formatCurrency(user?.saldo ?? 0)}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Game</Label>
-              <Select value={selectedGameId} onValueChange={handleGameChange}>
-                <SelectTrigger data-testid="select-game" className="h-9 bg-muted border-border"><SelectValue placeholder="Select game" /></SelectTrigger>
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+        <Wallet className="h-5 w-5 text-primary flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-xs text-muted-foreground">Your Balance</p>
+          <p className="text-lg font-bold font-mono text-foreground">{formatCurrency(user?.saldo ?? 0)}</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Game</Label>
+            <Select value={selectedGameId} onValueChange={handleGameChange}>
+              <SelectTrigger data-testid="select-game" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue placeholder="Select game" /></SelectTrigger>
+              <SelectContent>
+                {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                {activeGames.map((g) => (
+                  <SelectItem key={g.id} value={String(g.id)}>{g.displayName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Duration</Label>
+            <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
+              <SelectTrigger data-testid="select-duration" className="h-11 rounded-xl bg-muted/50 border-border/60">
+                <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {durationsLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                {durations.map((d: GameDuration) => (
+                  <SelectItem key={d.id} value={String(d.durationHours)}>
+                    {d.label} — {formatCurrency(d.price)}/Device
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Max Devices</Label>
+            <Input
+              type="number"
+              min="1"
+              max={user?.level === 3 ? 2 : 99}
+              value={maxDevices}
+              onChange={(e) => setMaxDevices(e.target.value)}
+              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              data-testid="input-max-devices"
+            />
+            {user?.level === 3 && (
+              <p className="text-xs text-muted-foreground">Reseller: max 2 devices</p>
+            )}
+          </div>
+
+          {user?.level !== 3 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Key Type</Label>
+              <Select value={customInput} onValueChange={setCustomInput}>
+                <SelectTrigger data-testid="select-key-type" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
-                  {activeGames.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.displayName}</SelectItem>
-                  ))}
+                  <SelectItem value="random">Random</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Duration</Label>
-              <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
-                <SelectTrigger data-testid="select-duration" className="h-9 bg-muted border-border">
-                  <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {durationsLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
-                  {durations.map((d: GameDuration) => (
-                    <SelectItem key={d.id} value={String(d.durationHours)}>
-                      {d.label} — {formatCurrency(d.price)}/Device
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Max Devices</Label>
-              <Input
-                type="number"
-                min="1"
-                max={user?.level === 3 ? 2 : 99}
-                value={maxDevices}
-                onChange={(e) => setMaxDevices(e.target.value)}
-                className="h-9 bg-muted border-border"
-                data-testid="input-max-devices"
-              />
-              {user?.level === 3 && (
-                <p className="text-[10px] text-muted-foreground">Reseller: max 2 devices</p>
+              {customInput === "custom" && (
+                <Input
+                  placeholder="Enter custom key (4-19 chars)"
+                  value={customLicense}
+                  onChange={(e) => setCustomLicense(e.target.value)}
+                  minLength={4}
+                  maxLength={19}
+                  className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono"
+                  data-testid="input-custom-key"
+                />
               )}
             </div>
+          )}
 
-            {user?.level !== 3 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Key Type</Label>
-                <Select value={customInput} onValueChange={setCustomInput}>
-                  <SelectTrigger data-testid="select-key-type" className="h-9 bg-muted border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="random">Random</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-                {customInput === "custom" && (
-                  <Input
-                    placeholder="Enter custom key (4-19 chars)"
-                    value={customLicense}
-                    onChange={(e) => setCustomLicense(e.target.value)}
-                    minLength={4}
-                    maxLength={19}
-                    className="h-9 bg-muted border-border font-mono"
-                    data-testid="input-custom-key"
-                  />
-                )}
-              </div>
-            )}
-
-            {cost > 0 && (
-              <div className="p-3 bg-muted border border-border text-xs">
-                <span className="text-muted-foreground uppercase tracking-wider">Cost: </span>
+          {cost > 0 && (
+            <div className="p-4 rounded-xl bg-muted/60 border border-border/60 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cost</span>
                 <span className="font-bold text-primary font-mono">{formatCurrency(cost)}</span>
-                <span className="text-muted-foreground ml-2">Remaining: <span className="font-mono">{formatCurrency((user?.saldo ?? 0) - cost)}</span></span>
               </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full h-9 text-xs font-semibold uppercase tracking-wider"
-              disabled={generateMutation.isPending || !selectedGameId || !duration}
-              data-testid="button-generate"
-            >
-              {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}
-              Generate Key
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {generatedKey && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Generated Key</div>
-              <div className="flex items-center justify-center gap-2">
-                <code className="text-lg font-mono font-bold bg-muted px-4 py-2 border border-border" data-testid="text-generated-key">
-                  {generatedKey.key?.userKey}
-                </code>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleCopy} data-testid="button-copy-key">
-                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Game: {generatedKey.key?.game} | Cost: <span className="font-mono">{formatCurrency(generatedKey.cost)}</span>
+              <div className="flex justify-between mt-1">
+                <span className="text-muted-foreground">Remaining</span>
+                <span className="font-mono text-foreground">{formatCurrency((user?.saldo ?? 0) - cost)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full h-11 rounded-xl text-sm font-semibold"
+            disabled={generateMutation.isPending || !selectedGameId || !duration}
+            data-testid="button-generate"
+          >
+            {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}
+            Generate Key
+          </Button>
+        </form>
+      </div>
+
+      {generatedKey && (
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 shadow-sm">
+          <div className="text-center space-y-3">
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Generated Successfully</div>
+            <div className="flex items-center justify-center gap-2">
+              <code className="text-sm font-mono font-bold bg-card px-4 py-2.5 rounded-xl border border-border/60" data-testid="text-generated-key">
+                {generatedKey.key?.userKey}
+              </code>
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={handleCopy} data-testid="button-copy-key">
+                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {generatedKey.key?.game} — Cost: <span className="font-mono">{formatCurrency(generatedKey.cost)}</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

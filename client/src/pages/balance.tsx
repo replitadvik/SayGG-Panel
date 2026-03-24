@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wallet, Plus } from "lucide-react";
@@ -46,82 +45,83 @@ export default function BalancePage() {
       toast({ title: "Error", description: "Select a user and enter a valid amount.", variant: "destructive" });
       return;
     }
-    topupMutation.mutate({
-      userId: parseInt(selectedUser),
-      amount: parseInt(amount),
-      note,
-    });
+    topupMutation.mutate({ userId: parseInt(selectedUser), amount: parseInt(amount), note });
   };
 
   const activeUsers = userList.filter(u => u.status === 1);
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-balance-title">Balance Topup</h1>
+    <div className="max-w-lg mx-auto space-y-5">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight" data-testid="text-balance-title">Balance Topup</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Add balance to user accounts</p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Wallet className="h-5 w-5" />
-            Your Balance: {formatCurrency(user?.saldo ?? 0)}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+        <Wallet className="h-5 w-5 text-primary flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-xs text-muted-foreground">Your Balance</p>
+          <p className="text-lg font-bold font-mono text-foreground">{formatCurrency(user?.saldo ?? 0)}</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select User</Label>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger data-testid="select-topup-user" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue placeholder="Choose a user" /></SelectTrigger>
+                <SelectContent>
+                  {activeUsers.map(u => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.username} ({u.levelName}) — {formatCurrency(u.saldo)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Select User</Label>
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
-                  <SelectTrigger data-testid="select-topup-user"><SelectValue placeholder="Choose a user" /></SelectTrigger>
-                  <SelectContent>
-                    {activeUsers.map(u => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.username} ({u.levelName}) — Balance: {formatCurrency(u.saldo)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="Enter amount to add"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  data-testid="input-topup-amount"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Amount</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="h-11 rounded-xl bg-muted/50 border-border/60"
+                data-testid="input-topup-amount"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label>Note (optional)</Label>
-                <Input
-                  placeholder="Reason for topup"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  data-testid="input-topup-note"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Note (optional)</Label>
+              <Input
+                placeholder="Reason for topup"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="h-11 rounded-xl bg-muted/50 border-border/60"
+                data-testid="input-topup-note"
+              />
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={topupMutation.isPending}
-                data-testid="button-topup"
-              >
-                {topupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Add Balance
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl text-sm font-semibold"
+              disabled={topupMutation.isPending}
+              data-testid="button-topup"
+            >
+              {topupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+              Add Balance
+            </Button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

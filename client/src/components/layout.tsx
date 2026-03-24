@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   LayoutDashboard, Key, Users, Settings,
-  LogOut, Menu, X, Wallet, Link2, User, Gamepad2, Shield,
+  LogOut, Menu, Wallet, Link2, User, Gamepad2, Shield,
+  Sun, Moon,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
@@ -15,7 +18,7 @@ const navItems = [
   { path: "/users", label: "Users", icon: Users, minLevel: 1 },
   { path: "/balance", label: "Balance", icon: Wallet, minLevel: 1, maxLevel: 2 },
   { path: "/referrals", label: "Referrals", icon: Link2, minLevel: 1, maxLevel: 2 },
-  { path: "/games", label: "Game Management", icon: Gamepad2, minLevel: 1, maxLevel: 1 },
+  { path: "/games", label: "Games", icon: Gamepad2, minLevel: 1, maxLevel: 1 },
   { path: "/connect-config", label: "Connect Config", icon: Shield, minLevel: 1, maxLevel: 1 },
   { path: "/settings", label: "Settings", icon: Settings, minLevel: 1, maxLevel: 1 },
   { path: "/profile", label: "Profile", icon: User, minLevel: 1 },
@@ -24,7 +27,8 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const filteredNav = navItems.filter(item => {
     if (!user) return false;
@@ -33,99 +37,114 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   });
 
   const handleLogout = async () => {
+    setSheetOpen(false);
     await logout();
   };
 
+  const levelLabel = user?.level === 1 ? "Owner" : user?.level === 2 ? "Admin" : "Reseller";
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 border-b border-border flex items-center justify-between px-4 lg:px-6 bg-card">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold tracking-wide text-primary uppercase" data-testid="text-brand-header">
+    <div className="flex flex-col h-[100dvh] bg-background">
+      <header className="sticky top-0 z-40 glass-surface bg-background/80 border-b border-border/60">
+        <div className="flex items-center justify-between h-14 px-4 lg:px-6">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base font-semibold tracking-tight text-foreground" data-testid="text-brand-header">
               Key-Panel
             </span>
-            <span className="hidden sm:inline-block h-4 w-px bg-border" />
-            <span className="hidden sm:inline text-xs text-muted-foreground" data-testid="text-header-level">
-              {user?.levelName}
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
+              {levelLabel}
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-muted-foreground" data-testid="text-header-saldo">
-              <span className="text-foreground font-mono font-medium">{formatCurrency(user?.saldo ?? 0)}</span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-1 hidden sm:block" data-testid="text-header-saldo">
+              <span className="font-medium font-mono text-foreground">{formatCurrency(user?.saldo ?? 0)}</span>
             </span>
-            <button className="lg:hidden text-muted-foreground hover:text-foreground" onClick={() => setSidebarOpen(true)} data-testid="button-open-sidebar">
+
+            <button
+              onClick={toggleTheme}
+              className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              data-testid="button-theme-toggle"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+            </button>
+
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              data-testid="button-open-sidebar"
+              aria-label="Open menu"
+            >
               <Menu className="h-5 w-5" />
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain">
+        <div className="p-4 pb-8 max-w-4xl mx-auto">
           {children}
-        </main>
-      </div>
-
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 right-0 z-50 w-60 transform bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] border-l border-[hsl(var(--sidebar-border))] transition-transform duration-200 lg:relative lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex h-14 items-center justify-between px-4 border-b border-[hsl(var(--sidebar-border))]">
-          <span className="text-xs font-bold tracking-[0.2em] uppercase text-[hsl(var(--sidebar-primary))]" data-testid="text-brand">
-            Navigation
-          </span>
-          <button className="lg:hidden text-[hsl(var(--sidebar-foreground))]" onClick={() => setSidebarOpen(false)} data-testid="button-close-sidebar">
-            <X className="h-4 w-4" />
-          </button>
         </div>
+      </main>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {filteredNav.map(item => {
-            const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-            return (
-              <Link key={item.path} href={item.path}>
-                <div
-                  data-testid={`nav-${item.label.toLowerCase()}`}
-                  className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium tracking-wide transition-colors cursor-pointer border-l-2 ${
-                    isActive
-                      ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))] border-[hsl(var(--sidebar-primary))]"
-                      : "hover:bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-foreground))] border-transparent"
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
+          <SheetHeader className="p-5 pb-4 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                {user?.username?.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="text-sm font-semibold text-left truncate" data-testid="text-sidebar-username">
+                  {user?.username}
+                </SheetTitle>
+                <p className="text-xs text-muted-foreground" data-testid="text-sidebar-level">{levelLabel}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-3 px-3 py-2.5 rounded-lg bg-muted/60">
+              <span className="text-xs text-muted-foreground">Balance</span>
+              <span className="text-sm font-semibold font-mono text-foreground" data-testid="text-header-saldo">
+                {formatCurrency(user?.saldo ?? 0)}
+              </span>
+            </div>
+          </SheetHeader>
 
-        <div className="border-t border-[hsl(var(--sidebar-border))] p-3">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-7 h-7 bg-[hsl(var(--sidebar-primary))] flex items-center justify-center text-[10px] font-bold text-[hsl(var(--sidebar-primary-foreground))]">
-              {user?.username?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium truncate" data-testid="text-sidebar-username">{user?.username}</div>
-              <div className="text-[10px] text-[hsl(var(--sidebar-foreground))] opacity-50" data-testid="text-sidebar-level">{user?.levelName}</div>
-            </div>
+          <nav className="flex-1 overflow-y-auto py-2 px-2">
+            {filteredNav.map(item => {
+              const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+              return (
+                <Link key={item.path} href={item.path}>
+                  <div
+                    data-testid={`nav-${item.label.toLowerCase()}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer mb-0.5 ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-foreground/70 hover:bg-accent hover:text-foreground"
+                    }`}
+                    onClick={() => setSheetOpen(false)}
+                  >
+                    <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                    {item.label}
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-border/60 p-3 mobile-safe-bottom">
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-destructive h-11 rounded-lg"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+              Sign Out
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="w-full justify-start text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] text-xs h-8"
-            data-testid="button-logout"
-          >
-            <LogOut className="h-3.5 w-3.5 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </aside>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

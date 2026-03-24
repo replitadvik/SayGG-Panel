@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, Sun, Moon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -40,61 +41,72 @@ export default function RegisterPage() {
     }
   };
 
+  const fields = [
+    { key: "email", label: "Email", type: "email", placeholder: "your@email.com" },
+    { key: "username", label: "Username", type: "text", placeholder: "Choose a username" },
+    { key: "fullname", label: "Full Name", type: "text", placeholder: "Your full name" },
+    { key: "telegramChatId", label: "Telegram Chat ID", type: "text", placeholder: "Your Telegram Chat ID" },
+    { key: "password", label: "Password", type: "password", placeholder: "Min 6 characters" },
+    { key: "password2", label: "Confirm Password", type: "password", placeholder: "Confirm password" },
+    { key: "referral", label: "Referral Code", type: "text", placeholder: "Enter referral code" },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto w-10 h-10 bg-primary flex items-center justify-center">
-            <UserPlus className="w-5 h-5 text-primary-foreground" />
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-5 py-10">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={toggleTheme}
+          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+            <UserPlus className="w-6 h-6 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-xl font-bold tracking-tight" data-testid="text-register-title">Register</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">Create Account</p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
-              <Input data-testid="input-email" type="email" value={form.email} onChange={handleChange("email")} required className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
-              <Input data-testid="input-reg-username" value={form.username} onChange={handleChange("username")} required minLength={4} maxLength={25} className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name</Label>
-              <Input data-testid="input-fullname" value={form.fullname} onChange={handleChange("fullname")} required minLength={4} className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Telegram Chat ID</Label>
-              <Input data-testid="input-telegram" value={form.telegramChatId} onChange={handleChange("telegramChatId")} required className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
-              <Input data-testid="input-reg-password" type="password" value={form.password} onChange={handleChange("password")} required minLength={6} className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Confirm Password</Label>
-              <Input data-testid="input-reg-password2" type="password" value={form.password2} onChange={handleChange("password2")} required minLength={6} className="h-9 bg-muted border-border" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Referral Code</Label>
-              <Input data-testid="input-referral" value={form.referral} onChange={handleChange("referral")} required minLength={6} className="h-9 bg-muted border-border" />
-            </div>
-            <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-register">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-register-title">Create Account</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Register for Key-Panel access</p>
+        </div>
+
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {fields.map(f => (
+              <div key={f.key} className="space-y-2">
+                <Label className="text-sm font-medium">{f.label}</Label>
+                <Input
+                  data-testid={`input-${f.key === "email" ? "email" : f.key === "username" ? "reg-username" : f.key === "password" ? "reg-password" : f.key === "password2" ? "reg-password2" : f.key === "telegramChatId" ? "telegram" : f.key === "fullname" ? "fullname" : "referral"}`}
+                  type={f.type}
+                  value={(form as any)[f.key]}
+                  onChange={handleChange(f.key)}
+                  required
+                  placeholder={f.placeholder}
+                  className="h-11 rounded-xl bg-muted/50 border-border/60"
+                  minLength={f.key === "password" || f.key === "password2" ? 6 : f.key === "username" ? 4 : undefined}
+                  maxLength={f.key === "username" ? 25 : undefined}
+                />
+              </div>
+            ))}
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl text-sm font-semibold"
+              disabled={loading}
+              data-testid="button-register"
+            >
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Register
+              Create Account
             </Button>
-            <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
+            <div className="text-center text-sm text-muted-foreground border-t border-border/60 pt-4 mt-4">
               Already have an account?{" "}
               <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium" data-testid="link-login">
-                Login
+                Sign In
               </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

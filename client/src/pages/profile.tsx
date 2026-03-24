@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, User, Lock, MessageCircle, Shield } from "lucide-react";
@@ -22,60 +21,27 @@ export default function ProfilePage() {
   const [telegramChatId, setTelegramChatId] = useState(user?.telegramChatId || "");
 
   const usernameMutation = useMutation({
-    mutationFn: async (username: string) => {
-      await apiRequest("PATCH", "/api/profile/username", { newUsername: username });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      refetch();
-      toast({ title: "Username updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (username: string) => { await apiRequest("PATCH", "/api/profile/username", { newUsername: username }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }); refetch(); toast({ title: "Username updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const passwordMutation = useMutation({
-    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      await apiRequest("PATCH", "/api/profile/password", data);
-    },
-    onSuccess: () => {
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      toast({ title: "Password updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => { await apiRequest("PATCH", "/api/profile/password", data); },
+    onSuccess: () => { setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); toast({ title: "Password updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const telegramMutation = useMutation({
-    mutationFn: async (chatId: string) => {
-      await apiRequest("PATCH", "/api/profile/telegram", { telegramChatId: chatId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      refetch();
-      toast({ title: "Telegram Chat ID updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (chatId: string) => { await apiRequest("PATCH", "/api/profile/telegram", { telegramChatId: chatId }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }); refetch(); toast({ title: "Telegram Chat ID updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const twofaMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      await apiRequest("PATCH", "/api/profile/2fa", { enabled });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      refetch();
-      toast({ title: "2FA setting updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
+    mutationFn: async (enabled: boolean) => { await apiRequest("PATCH", "/api/profile/2fa", { enabled }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }); refetch(); toast({ title: "2FA setting updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -91,168 +57,138 @@ export default function ProfilePage() {
     passwordMutation.mutate({ currentPassword, newPassword });
   };
 
+  const levelLabel = user?.level === 1 ? "Owner" : user?.level === 2 ? "Admin" : "Reseller";
+
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-profile-title">Profile</h1>
+    <div className="max-w-lg mx-auto space-y-4">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight" data-testid="text-profile-title">Profile</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Account settings</p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5" />
-            Account Info
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground">Username</span>
-              <p className="font-medium" data-testid="text-profile-username">{user?.username}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Level</span>
-              <p className="font-medium" data-testid="text-profile-level">{user?.level === 1 ? "Owner" : user?.level === 2 ? "Admin" : "Reseller"}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Email</span>
-              <p className="font-medium">{user?.email || "—"}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Balance</span>
-              <p className="font-medium">{formatCurrency(user?.saldo ?? 0)}</p>
-            </div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Account Info</h2>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
+            {user?.username?.charAt(0).toUpperCase()}
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex-1">
+            <p className="font-semibold" data-testid="text-profile-username">{user?.username}</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-profile-level">{levelLabel}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-muted/40">
+            <span className="text-muted-foreground block mb-0.5">Email</span>
+            <span className="font-medium text-foreground">{user?.email || "\u2014"}</span>
+          </div>
+          <div className="p-3 rounded-xl bg-muted/40">
+            <span className="text-muted-foreground block mb-0.5">Balance</span>
+            <span className="font-bold text-foreground font-mono">{formatCurrency(user?.saldo ?? 0)}</span>
+          </div>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5" />
-            Change Username
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label>New Username</Label>
-            <Input
-              value={newUsername}
-              onChange={e => setNewUsername(e.target.value)}
-              placeholder="Enter new username"
-              data-testid="input-new-username"
-            />
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Change Username</h2>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">New Username</Label>
+          <Input
+            value={newUsername}
+            onChange={e => setNewUsername(e.target.value)}
+            placeholder="Enter new username"
+            className="h-11 rounded-xl bg-muted/50 border-border/60"
+            data-testid="input-new-username"
+          />
+        </div>
+        <Button
+          onClick={() => usernameMutation.mutate(newUsername)}
+          disabled={usernameMutation.isPending || newUsername === user?.username}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-username"
+        >
+          {usernameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Update Username
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Change Password</h2>
+        </div>
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Current Password</Label>
+            <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-current-password" />
           </div>
-          <Button
-            onClick={() => usernameMutation.mutate(newUsername)}
-            disabled={usernameMutation.isPending || newUsername === user?.username}
-            data-testid="button-save-username"
-          >
-            {usernameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Update Username
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">New Password</Label>
+            <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-new-password" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Confirm New Password</Label>
+            <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-confirm-password" />
+          </div>
+          <Button type="submit" disabled={passwordMutation.isPending} className="w-full h-10 rounded-xl text-sm" data-testid="button-save-password">
+            {passwordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Update Password
           </Button>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Lock className="h-5 w-5" />
-            Change Password
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordSubmit} className="space-y-3">
-            <div className="space-y-1">
-              <Label>Current Password</Label>
-              <Input
-                type="password"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                required
-                data-testid="input-current-password"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>New Password</Label>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                required
-                minLength={6}
-                data-testid="input-new-password"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Confirm New Password</Label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                data-testid="input-confirm-password"
-              />
-            </div>
-            <Button type="submit" disabled={passwordMutation.isPending} data-testid="button-save-password">
-              {passwordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Update Password
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Telegram</h2>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Telegram Chat ID</Label>
+          <Input
+            value={telegramChatId}
+            onChange={e => setTelegramChatId(e.target.value)}
+            placeholder="Enter Telegram Chat ID"
+            className="h-11 rounded-xl bg-muted/50 border-border/60"
+            data-testid="input-telegram-chatid"
+          />
+        </div>
+        <Button
+          onClick={() => telegramMutation.mutate(telegramChatId)}
+          disabled={telegramMutation.isPending}
+          className="w-full h-10 rounded-xl text-sm"
+          data-testid="button-save-telegram"
+        >
+          {telegramMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Save Telegram
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MessageCircle className="h-5 w-5" />
-            Telegram
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label>Telegram Chat ID</Label>
-            <Input
-              value={telegramChatId}
-              onChange={e => setTelegramChatId(e.target.value)}
-              placeholder="Enter Telegram Chat ID"
-              data-testid="input-telegram-chatid"
-            />
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Two-Factor Authentication</h2>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+          <div>
+            <Label className="text-sm font-medium">{user?.twofaEnabled === 1 ? "2FA Enabled" : "2FA Disabled"}</Label>
+            {!user?.telegramChatId && (
+              <p className="text-xs text-muted-foreground mt-0.5">Add Telegram Chat ID first</p>
+            )}
           </div>
-          <Button
-            onClick={() => telegramMutation.mutate(telegramChatId)}
-            disabled={telegramMutation.isPending}
-            data-testid="button-save-telegram"
-          >
-            {telegramMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Telegram
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5" />
-            Two-Factor Authentication
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={user?.twofaEnabled === 1}
-              onCheckedChange={(checked) => twofaMutation.mutate(checked)}
-              disabled={twofaMutation.isPending || !user?.telegramChatId}
-              data-testid="switch-2fa"
-            />
-            <div>
-              <Label>{user?.twofaEnabled === 1 ? "2FA Enabled" : "2FA Disabled"}</Label>
-              {!user?.telegramChatId && (
-                <p className="text-xs text-muted-foreground">Add Telegram Chat ID first to enable 2FA</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <Switch
+            checked={user?.twofaEnabled === 1}
+            onCheckedChange={(checked) => twofaMutation.mutate(checked)}
+            disabled={twofaMutation.isPending || !user?.telegramChatId}
+            data-testid="switch-2fa"
+          />
+        </div>
+      </div>
     </div>
   );
 }

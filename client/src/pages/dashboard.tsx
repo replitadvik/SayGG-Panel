@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Key, Users, AlertTriangle, Wallet, Clock, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/currency";
@@ -12,10 +11,13 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-lg font-bold tracking-tight uppercase" data-testid="text-dashboard-title">Dashboard</h1>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <Skeleton className="h-7 w-32 rounded-lg" />
+          <Skeleton className="h-4 w-48 rounded-lg mt-2" />
+        </div>
+        <div className="grid gap-3 grid-cols-2">
           {[...Array(6)].map((_, i) => (
-            <Card key={i}><CardContent className="pt-6"><Skeleton className="h-20" /></CardContent></Card>
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -23,36 +25,41 @@ export default function DashboardPage() {
   }
 
   const cards = [
-    { title: "Total Keys", value: stats?.totalKeys ?? 0, icon: Key, accent: "text-primary" },
-    { title: "Active Keys", value: stats?.activeKeys ?? 0, icon: Shield, accent: "text-emerald-400" },
-    { title: "Expired Keys", value: stats?.expiredKeys ?? 0, icon: Clock, accent: "text-red-400" },
-    { title: "Total Users", value: stats?.totalUsers ?? 0, icon: Users, accent: "text-violet-400" },
-    { title: "Pending Approval", value: stats?.pendingUsers ?? 0, icon: AlertTriangle, accent: "text-amber-400" },
-    { title: "Your Balance", value: formatCurrency(stats?.saldo ?? 0), icon: Wallet, accent: "text-emerald-400" },
+    { title: "Total Keys", value: stats?.totalKeys ?? 0, icon: Key, color: "bg-amber-500/10 text-amber-500 dark:text-amber-400" },
+    { title: "Active Keys", value: stats?.activeKeys ?? 0, icon: Shield, color: "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400" },
+    { title: "Expired Keys", value: stats?.expiredKeys ?? 0, icon: Clock, color: "bg-red-500/10 text-red-500 dark:text-red-400" },
+    { title: "Total Users", value: stats?.totalUsers ?? 0, icon: Users, color: "bg-violet-500/10 text-violet-500 dark:text-violet-400" },
+    { title: "Pending", value: stats?.pendingUsers ?? 0, icon: AlertTriangle, color: "bg-orange-500/10 text-orange-500 dark:text-orange-400" },
+    { title: "Balance", value: formatCurrency(stats?.saldo ?? 0), icon: Wallet, color: "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400" },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold tracking-tight uppercase" data-testid="text-dashboard-title">Dashboard</h1>
-        <span className="text-xs text-muted-foreground px-3 py-1 bg-muted border border-border font-medium uppercase tracking-wider" data-testid="text-user-level">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-dashboard-title">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Overview of your panel</p>
+        </div>
+        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary" data-testid="text-user-level">
           {stats?.levelName}
         </span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-2">
         {cards.map((card) => (
-          <Card key={card.title} className="border-border" data-testid={`card-${card.title.toLowerCase().replace(/\s/g, "-")}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                {card.title}
-              </CardTitle>
-              <card.icon className={`h-4 w-4 ${card.accent}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-mono">{card.value}</div>
-            </CardContent>
-          </Card>
+          <div
+            key={card.title}
+            className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
+            data-testid={`card-${card.title.toLowerCase().replace(/\s/g, "-")}`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-muted-foreground">{card.title}</span>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.color}`}>
+                <card.icon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold tracking-tight font-mono">{card.value}</div>
+          </div>
         ))}
       </div>
     </div>

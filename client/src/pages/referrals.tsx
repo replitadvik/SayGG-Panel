@@ -5,12 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -22,11 +18,7 @@ export default function ReferralsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    level: "3",
-    setSaldo: "0",
-    accExpiration: "",
-  });
+  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "" });
 
   const { data: referrals = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/referrals"],
@@ -66,94 +58,66 @@ export default function ReferralsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-referrals-title">Referral Codes</h1>
-          <p className="text-sm text-muted-foreground" data-testid="text-referrals-scope">
-            {user?.level === 1 ? "All Referral History" : "Your Referral History"}
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-referrals-title">Referral Codes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-referrals-scope">
+            {user?.level === 1 ? "All referral history" : "Your referral history"}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} data-testid="button-create-referral">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Code
+        <Button onClick={() => setShowCreate(true)} className="h-10 rounded-xl text-sm" data-testid="button-create-referral">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Create
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : referrals.length === 0 ? (
+        <div className="text-center py-16">
+          <Link2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-muted-foreground text-sm">No referral codes yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {referrals.map(ref => (
+            <div key={ref.id} className="rounded-xl border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-referral-${ref.id}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-muted/60 px-2.5 py-1 rounded-lg font-mono">{ref.code}</code>
+                  <button onClick={() => handleCopy(ref.code)} className="text-muted-foreground hover:text-primary">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {ref.usedBy ? (
+                  <Badge variant="secondary" className="rounded-full text-[10px]">Used</Badge>
+                ) : (
+                  <Badge variant="default" className="rounded-full text-[10px]">Available</Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <div className="text-muted-foreground">Level: <span className="text-foreground">{ref.level === 1 ? "Owner" : ref.level === 2 ? "Admin" : "Reseller"}</span></div>
+                <div className="text-muted-foreground">Balance: <span className="text-foreground font-mono">{formatCurrency(ref.setSaldo || 0)}</span></div>
+                <div className="text-muted-foreground">Created: <span className="text-foreground">{ref.createdBy || "—"}</span></div>
+                <div className="text-muted-foreground">Used by: <span className="text-foreground">{ref.usedBy || "—"}</span></div>
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Start Balance</TableHead>
-                    <TableHead>Expiration</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Used By</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {referrals.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No referral codes
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    referrals.map(ref => (
-                      <TableRow key={ref.id} data-testid={`row-referral-${ref.id}`}>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{ref.code}</code>
-                            <button onClick={() => handleCopy(ref.code)} className="text-muted-foreground hover:text-foreground">
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {ref.level === 1 ? "Owner" : ref.level === 2 ? "Admin" : "Reseller"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatCurrency(ref.setSaldo || 0)}</TableCell>
-                        <TableCell className="text-xs">{ref.accExpiration || "30 days"}</TableCell>
-                        <TableCell className="text-sm">{ref.createdBy || "—"}</TableCell>
-                        <TableCell className="text-sm">{ref.usedBy || "—"}</TableCell>
-                        <TableCell>
-                          {ref.usedBy ? (
-                            <Badge variant="secondary">Used</Badge>
-                          ) : (
-                            <Badge variant="default">Available</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl mx-4">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5" />
-              Create Referral Code
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Link2 className="h-5 w-5" /> Create Referral
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreate} className="space-y-3">
-            <div className="space-y-1">
-              <Label>Account Level</Label>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Account Level</Label>
               <Select value={createForm.level} onValueChange={v => setCreateForm({ ...createForm, level: v })}>
-                <SelectTrigger data-testid="select-ref-level"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-ref-level" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {user?.level === 1 && <SelectItem value="1">Owner</SelectItem>}
                   <SelectItem value="2">Admin</SelectItem>
@@ -161,28 +125,17 @@ export default function ReferralsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label>Starting Balance</Label>
-              <Input
-                type="number"
-                min="0"
-                value={createForm.setSaldo}
-                onChange={e => setCreateForm({ ...createForm, setSaldo: e.target.value })}
-                data-testid="input-ref-saldo"
-              />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Starting Balance</Label>
+              <Input type="number" min="0" value={createForm.setSaldo} onChange={e => setCreateForm({ ...createForm, setSaldo: e.target.value })} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-ref-saldo" />
             </div>
-            <div className="space-y-1">
-              <Label>Account Expiration Date (optional)</Label>
-              <Input
-                type="date"
-                value={createForm.accExpiration}
-                onChange={e => setCreateForm({ ...createForm, accExpiration: e.target.value })}
-                data-testid="input-ref-expiration"
-              />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Expiration Date (optional)</Label>
+              <Input type="date" value={createForm.accExpiration} onChange={e => setCreateForm({ ...createForm, accExpiration: e.target.value })} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-ref-expiration" />
             </div>
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-referral">
+            <DialogFooter className="gap-2">
+              <Button variant="outline" type="button" onClick={() => setShowCreate(false)} className="rounded-xl h-10">Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending} className="rounded-xl h-10" data-testid="button-submit-referral">
                 {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create
               </Button>
