@@ -121,7 +121,7 @@ export default function GameDurationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mb-1">
         <Link href="/games">
           <button className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-testid="button-back-games">
             <ArrowLeft className="h-5 w-5" />
@@ -133,11 +133,17 @@ export default function GameDurationsPage() {
             <span>/</span>
             <span className="text-foreground truncate">{game?.displayName || "..."}</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-durations-title">Durations & Pricing</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{durations.length} durations configured</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }} className="h-10 rounded text-sm flex-shrink-0" data-testid="button-add-duration">
-          <Plus className="h-4 w-4 mr-1.5" />
+      </div>
+
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-panel-header-foreground/70" />
+          <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-durations-title">Durations & Pricing</h1>
+          <span className="text-xs text-panel-header-foreground/50" data-testid="text-durations-count">{durations.length} configured</span>
+        </div>
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm" className="h-8 rounded text-xs bg-panel-header-foreground/10 hover:bg-panel-header-foreground/20 text-panel-header-foreground border-0" data-testid="button-add-duration">
+          <Plus className="h-3.5 w-3.5 mr-1" />
           Add
         </Button>
       </div>

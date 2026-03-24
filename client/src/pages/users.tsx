@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Trash2, Edit, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { Loader2, Search, Trash2, Edit, CheckCircle, XCircle, RotateCcw, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 function getStatusBadge(status: number) {
@@ -24,7 +24,7 @@ function getStatusBadge(status: number) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return "—";
+  if (!d) return "\u2014";
   return new Date(d).toLocaleDateString("en-US", {
     day: "numeric", month: "short", year: "2-digit",
   });
@@ -90,9 +90,10 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight" data-testid="text-users-title">Users</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} users</p>
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center gap-2">
+        <Users className="h-4 w-4 text-panel-header-foreground/70" />
+        <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-users-title">Users</h1>
+        <span className="text-xs text-panel-header-foreground/50" data-testid="text-users-count">{filtered.length} users</span>
       </div>
 
       <div className="relative">
@@ -128,7 +129,7 @@ export default function UsersPage() {
                       <span className="font-medium text-sm truncate">{u.username}</span>
                       <Badge variant="outline" className="rounded text-[10px] flex-shrink-0">{u.levelName}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{u.fullname || u.email || "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.fullname || u.email || "\u2014"}</p>
                   </div>
                 </div>
                 {getStatusBadge(u.status)}

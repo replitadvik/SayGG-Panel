@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Search, Trash2, RotateCcw, Edit, Copy, Clock } from "lucide-react";
+import { Loader2, Search, Trash2, RotateCcw, Edit, Copy, Clock, Key } from "lucide-react";
 
 function formatDuration(hours: number) {
   if (hours === 1) return "1 Hour";
@@ -147,10 +147,11 @@ export default function KeysPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-keys-title">Keys</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} total</p>
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Key className="h-4 w-4 text-panel-header-foreground/70" />
+          <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-keys-title">Keys</h1>
+          <span className="text-xs text-panel-header-foreground/50" data-testid="text-keys-count">{filtered.length} total</span>
         </div>
         {selectedKeys.length > 0 && (
           <Button
@@ -158,7 +159,7 @@ export default function KeysPage() {
             size="sm"
             onClick={() => bulkDeleteMutation.mutate(selectedKeys)}
             disabled={bulkDeleteMutation.isPending}
-            className="h-9 rounded text-xs"
+            className="h-8 rounded text-xs"
             data-testid="button-bulk-delete"
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
@@ -217,7 +218,7 @@ export default function KeysPage() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <code className="text-xs bg-muted/60 px-2 py-1 rounded-md font-mono truncate max-w-[180px]">{key.userKey}</code>
-                      <button onClick={() => handleCopy(key.userKey)} className="text-muted-foreground hover:text-primary flex-shrink-0">
+                      <button onClick={() => handleCopy(key.userKey)} className="text-muted-foreground hover:text-primary flex-shrink-0" data-testid={`button-copy-key-${key.id}`}>
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                     </div>

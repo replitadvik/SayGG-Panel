@@ -114,13 +114,14 @@ export default function GamesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-games-title">Games</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{games.length} games configured</p>
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Gamepad2 className="h-4 w-4 text-panel-header-foreground/70" />
+          <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-games-title">Games</h1>
+          <span className="text-xs text-panel-header-foreground/50" data-testid="text-games-count">{games.length} configured</span>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }} className="h-10 rounded text-sm" data-testid="button-add-game">
-          <Plus className="h-4 w-4 mr-1.5" />
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm" className="h-8 rounded text-xs bg-panel-header-foreground/10 hover:bg-panel-header-foreground/20 text-panel-header-foreground border-0" data-testid="button-add-game">
+          <Plus className="h-3.5 w-3.5 mr-1" />
           Add Game
         </Button>
       </div>

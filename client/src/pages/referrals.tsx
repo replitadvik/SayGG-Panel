@@ -56,15 +56,16 @@ export default function ReferralsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-referrals-title">Referral Codes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-referrals-scope">
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-panel-header-foreground/70" />
+          <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-referrals-title">Referral Codes</h1>
+          <span className="text-xs text-panel-header-foreground/50" data-testid="text-referrals-scope">
             {user?.level === 1 ? "All referral history" : "Your referral history"}
-          </p>
+          </span>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="h-10 rounded text-sm" data-testid="button-create-referral">
-          <Plus className="h-4 w-4 mr-1.5" />
+        <Button onClick={() => setShowCreate(true)} size="sm" className="h-8 rounded text-xs bg-panel-header-foreground/10 hover:bg-panel-header-foreground/20 text-panel-header-foreground border-0" data-testid="button-create-referral">
+          <Plus className="h-3.5 w-3.5 mr-1" />
           Create
         </Button>
       </div>
@@ -85,7 +86,7 @@ export default function ReferralsPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <code className="text-xs bg-muted/60 px-2.5 py-1 rounded font-mono">{ref.code}</code>
-                  <button onClick={() => handleCopy(ref.code)} className="text-muted-foreground hover:text-primary">
+                  <button onClick={() => handleCopy(ref.code)} className="text-muted-foreground hover:text-primary" data-testid={`button-copy-referral-${ref.id}`}>
                     <Copy className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -98,8 +99,8 @@ export default function ReferralsPage() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <div className="text-muted-foreground">Level: <span className="text-foreground">{ref.level === 1 ? "Owner" : ref.level === 2 ? "Admin" : "Reseller"}</span></div>
                 <div className="text-muted-foreground">Balance: <span className="text-foreground font-mono">{formatCurrency(ref.setSaldo || 0)}</span></div>
-                <div className="text-muted-foreground">Created: <span className="text-foreground">{ref.createdBy || "—"}</span></div>
-                <div className="text-muted-foreground">Used by: <span className="text-foreground">{ref.usedBy || "—"}</span></div>
+                <div className="text-muted-foreground">Created: <span className="text-foreground">{ref.createdBy || "\u2014"}</span></div>
+                <div className="text-muted-foreground">Used by: <span className="text-foreground">{ref.usedBy || "\u2014"}</span></div>
               </div>
             </div>
           ))}

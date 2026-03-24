@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Key, Users, AlertTriangle, Wallet, Clock, Shield } from "lucide-react";
+import { Key, Users, AlertTriangle, Wallet, Clock, Shield, LayoutDashboard } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/currency";
 
@@ -10,14 +10,11 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-7 w-32 rounded" />
-          <Skeleton className="h-4 w-48 rounded mt-2" />
-        </div>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
         <div className="grid gap-3 grid-cols-2">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded" />
+            <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
       </div>
@@ -34,13 +31,12 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-dashboard-title">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Overview of your panel</p>
-        </div>
-        <span className="inline-flex items-center px-3 py-1.5 rounded text-xs font-medium bg-primary/10 text-primary" data-testid="text-user-level">
+    <div className="space-y-4">
+      <div className="rounded-lg bg-panel-header px-5 py-3 flex items-center gap-2">
+        <LayoutDashboard className="h-4 w-4 text-panel-header-foreground/70" />
+        <h1 className="text-sm font-semibold text-panel-header-foreground" data-testid="text-dashboard-title">Dashboard</h1>
+        <span className="ml-auto text-xs text-panel-header-foreground/50" data-testid="text-dashboard-count">Overview</span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-panel-header-foreground/10 text-panel-header-foreground/80" data-testid="text-user-level">
           {stats?.levelName}
         </span>
       </div>
