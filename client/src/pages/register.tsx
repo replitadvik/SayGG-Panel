@@ -42,50 +42,53 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <UserPlus className="w-6 h-6 text-primary-foreground" />
+      <Card className="w-full max-w-md border-border">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto w-10 h-10 bg-primary flex items-center justify-center">
+            <UserPlus className="w-5 h-5 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold" data-testid="text-register-title">Register</CardTitle>
+          <div>
+            <CardTitle className="text-xl font-bold tracking-tight" data-testid="text-register-title">Register</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">Create Account</p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <Label>Email</Label>
-              <Input data-testid="input-email" type="email" value={form.email} onChange={handleChange("email")} required />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Input data-testid="input-email" type="email" value={form.email} onChange={handleChange("email")} required className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Username</Label>
-              <Input data-testid="input-reg-username" value={form.username} onChange={handleChange("username")} required minLength={4} maxLength={25} />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
+              <Input data-testid="input-reg-username" value={form.username} onChange={handleChange("username")} required minLength={4} maxLength={25} className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Full Name</Label>
-              <Input data-testid="input-fullname" value={form.fullname} onChange={handleChange("fullname")} required minLength={4} />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name</Label>
+              <Input data-testid="input-fullname" value={form.fullname} onChange={handleChange("fullname")} required minLength={4} className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Telegram Chat ID</Label>
-              <Input data-testid="input-telegram" value={form.telegramChatId} onChange={handleChange("telegramChatId")} required />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Telegram Chat ID</Label>
+              <Input data-testid="input-telegram" value={form.telegramChatId} onChange={handleChange("telegramChatId")} required className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Password</Label>
-              <Input data-testid="input-reg-password" type="password" value={form.password} onChange={handleChange("password")} required minLength={6} />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
+              <Input data-testid="input-reg-password" type="password" value={form.password} onChange={handleChange("password")} required minLength={6} className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Confirm Password</Label>
-              <Input data-testid="input-reg-password2" type="password" value={form.password2} onChange={handleChange("password2")} required minLength={6} />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Confirm Password</Label>
+              <Input data-testid="input-reg-password2" type="password" value={form.password2} onChange={handleChange("password2")} required minLength={6} className="h-9 bg-muted border-border" />
             </div>
             <div className="space-y-1">
-              <Label>Referral Code</Label>
-              <Input data-testid="input-referral" value={form.referral} onChange={handleChange("referral")} required minLength={6} />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Referral Code</Label>
+              <Input data-testid="input-referral" value={form.referral} onChange={handleChange("referral")} required minLength={6} className="h-9 bg-muted border-border" />
             </div>
-            <Button type="submit" className="w-full" disabled={loading} data-testid="button-register">
+            <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-register">
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Register
             </Button>
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
               Already have an account?{" "}
-              <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline" data-testid="link-login">
+              <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium" data-testid="link-login">
                 Login
               </button>
             </div>

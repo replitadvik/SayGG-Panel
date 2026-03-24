@@ -64,37 +64,42 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <Lock className="w-6 h-6 text-primary-foreground" />
+      <Card className="w-full max-w-md border-border">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto w-10 h-10 bg-primary flex items-center justify-center">
+            <Lock className="w-5 h-5 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold" data-testid="text-page-title">
-            {show2FA ? "Verify OTP" : "Key-Panel Login"}
-          </CardTitle>
+          <div>
+            <CardTitle className="text-xl font-bold tracking-tight" data-testid="text-page-title">
+              {show2FA ? "Verify OTP" : "Key-Panel"}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">
+              {show2FA ? "Two-Factor Authentication" : "Admin Access"}
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           {!show2FA ? (
             <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
                     data-testid="input-username"
                     placeholder="Enter username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-9 bg-muted border-border"
                     required
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     data-testid="input-password"
@@ -102,13 +107,13 @@ export default function LoginPage() {
                     placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-9"
+                    className="pl-9 pr-9 h-9 bg-muted border-border"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -121,15 +126,15 @@ export default function LoginPage() {
                   onCheckedChange={(checked) => setRememberMe(!!checked)}
                   data-testid="checkbox-remember-me"
                 />
-                <Label htmlFor="rememberMe" className="text-sm cursor-pointer" data-testid="label-remember-me">
+                <Label htmlFor="rememberMe" className="text-xs cursor-pointer" data-testid="label-remember-me">
                   Remember Me
                 </Label>
               </div>
-              <Button type="submit" className="w-full" disabled={loading} data-testid="button-login">
+              <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-login">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Sign In
               </Button>
-              <div className="flex justify-between text-sm text-muted-foreground">
+              <div className="flex justify-between text-xs text-muted-foreground pt-1">
                 <button type="button" onClick={() => setLocation("/forgot-password")} className="text-primary hover:underline" data-testid="link-forgot-password">
                   Forgot Password?
                 </button>
@@ -137,9 +142,9 @@ export default function LoginPage() {
                   Reset Device
                 </button>
               </div>
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
                 Don't have an account?{" "}
-                <button type="button" onClick={() => setLocation("/register")} className="text-primary hover:underline" data-testid="link-register">
+                <button type="button" onClick={() => setLocation("/register")} className="text-primary hover:underline font-medium" data-testid="link-register">
                   Register
                 </button>
               </div>
@@ -147,13 +152,13 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               {otpHint && (
-                <div className="p-3 bg-muted rounded-md text-sm text-center">
-                  <span className="text-muted-foreground">OTP Code: </span>
+                <div className="p-3 bg-muted border border-border text-sm text-center">
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">OTP Code: </span>
                   <span className="font-mono font-bold text-primary">{otpHint}</span>
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="otp">OTP Code</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">OTP Code</Label>
                 <Input
                   id="otp"
                   data-testid="input-otp"
@@ -161,10 +166,11 @@ export default function LoginPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   maxLength={6}
+                  className="h-9 bg-muted border-border font-mono text-center text-lg tracking-[0.5em]"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading} data-testid="button-verify-otp">
+              <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-verify-otp">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Verify OTP
               </Button>

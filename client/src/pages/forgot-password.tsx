@@ -63,39 +63,44 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <Lock className="w-6 h-6 text-primary-foreground" />
+      <Card className="w-full max-w-md border-border">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto w-10 h-10 bg-primary flex items-center justify-center">
+            <Lock className="w-5 h-5 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold" data-testid="text-page-title">
-            {otpSent ? "Reset Password" : "Forgot Password"}
-          </CardTitle>
+          <div>
+            <CardTitle className="text-xl font-bold tracking-tight" data-testid="text-page-title">
+              {otpSent ? "Reset Password" : "Forgot Password"}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">
+              {otpSent ? "Enter OTP & new password" : "Account recovery"}
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           {!otpSent ? (
             <form onSubmit={handleForgot} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
                     data-testid="input-username"
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-9 bg-muted border-border"
                     required
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={loading} data-testid="button-send-otp">
+              <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-send-otp">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Send OTP
               </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline" data-testid="link-login">
+              <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
+                <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium" data-testid="link-login">
                   Back to Login
                 </button>
               </div>
@@ -103,13 +108,13 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleReset} className="space-y-4">
               {otpHint && (
-                <div className="p-3 bg-muted rounded-md text-sm text-center">
-                  <span className="text-muted-foreground">OTP Code: </span>
+                <div className="p-3 bg-muted border border-border text-sm text-center">
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">OTP Code: </span>
                   <span className="font-mono font-bold text-primary">{otpHint}</span>
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="otp">OTP Code</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">OTP Code</Label>
                 <Input
                   id="otp"
                   data-testid="input-otp"
@@ -117,11 +122,12 @@ export default function ForgotPasswordPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   maxLength={6}
+                  className="h-9 bg-muted border-border"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">New Password</Label>
                 <Input
                   id="newPassword"
                   data-testid="input-new-password"
@@ -129,11 +135,12 @@ export default function ForgotPasswordPage() {
                   placeholder="New password (6-45 chars)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-9 bg-muted border-border"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   data-testid="input-confirm-password"
@@ -141,15 +148,16 @@ export default function ForgotPasswordPage() {
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-9 bg-muted border-border"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading} data-testid="button-reset-password">
+              <Button type="submit" className="w-full h-9 text-xs font-semibold uppercase tracking-wider" disabled={loading} data-testid="button-reset-password">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Reset Password
               </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline" data-testid="link-login">
+              <div className="text-center text-xs text-muted-foreground border-t border-border pt-3">
+                <button type="button" onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium" data-testid="link-login">
                   Back to Login
                 </button>
               </div>
