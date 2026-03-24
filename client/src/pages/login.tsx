@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, User, Eye, EyeOff, Sun, Moon } from "lucide-react";
+import { useSiteName } from "@/hooks/use-site-name";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { login } = useAuth();
+  const { siteName } = useSiteName();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
@@ -81,7 +83,7 @@ export default function LoginPage() {
             <Lock className="w-6 h-6 text-panel-header-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-page-title">
-            {show2FA ? "Verify OTP" : "Key-Panel"}
+            {show2FA ? "Verify OTP" : siteName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
             {show2FA ? "Two-Factor Authentication" : "Sign in to your account"}

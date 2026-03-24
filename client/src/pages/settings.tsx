@@ -7,12 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Type, Wrench, Clock } from "lucide-react";
+import { Loader2, Settings, Shield, Type, Wrench, Clock, Globe } from "lucide-react";
 
 const featureList = ["ESP", "Item", "AIM", "SilentAim", "BulletTrack", "Floating", "Memory", "Setting"] as const;
 
 export default function SettingsPage() {
   const { toast } = useToast();
+
+  const { data: siteNameData, isLoading: siteNameLoading } = useQuery<any>({
+    queryKey: ["/api/settings/site-name"],
+  });
 
   const { data: features, isLoading: featuresLoading } = useQuery<any>({
     queryKey: ["/api/settings/features"],
@@ -34,6 +38,7 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/session"],
   });
 
+  const [siteNameVal, setSiteNameVal] = useState("");
   const [featureState, setFeatureState] = useState<Record<string, string>>({});
   const [modname, setModname] = useState("");
   const [ftextStatus, setFtextStatus] = useState("");
@@ -42,6 +47,8 @@ export default function SettingsPage() {
   const [maintInput, setMaintInput] = useState("");
   const [sessionNormalTtl, setSessionNormalTtl] = useState("");
   const [sessionRememberTtl, setSessionRememberTtl] = useState("");
+
+  useEffect(() => { if (siteNameData) setSiteNameVal(siteNameData.siteName || ""); }, [siteNameData]);
 
   useEffect(() => {
     if (features) {
@@ -57,6 +64,12 @@ export default function SettingsPage() {
   useEffect(() => { if (ftextData) { setFtextStatus(ftextData._status || ""); setFtextContent(ftextData._ftext || ""); } }, [ftextData]);
   useEffect(() => { if (maintenanceData) { setMaintStatus(maintenanceData.status || "off"); setMaintInput(maintenanceData.myinput || ""); } }, [maintenanceData]);
   useEffect(() => { if (sessionData) { setSessionNormalTtl(sessionData.normalTtl || "30m"); setSessionRememberTtl(sessionData.rememberMeTtl || "24h"); } }, [sessionData]);
+
+  const siteNameMutation = useMutation({
+    mutationFn: async (name: string) => { await apiRequest("PATCH", "/api/settings/site-name", { siteName: name }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/site-name"] }); toast({ title: "Site name updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
+  });
 
   const featuresMutation = useMutation({
     mutationFn: async (data: Record<string, string>) => { await apiRequest("PATCH", "/api/settings/features", data); },
@@ -94,7 +107,7 @@ export default function SettingsPage() {
     onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
-  const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
+  const isLoading = siteNameLoading || featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
 
   if (isLoading) {
     return (
@@ -109,6 +122,33 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl font-bold tracking-tight" data-testid="text-settings-title">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">System configuration</p>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Site Name</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <Input
+            value={siteNameVal}
+            onChange={e => setSiteNameVal(e.target.value)}
+            placeholder="Enter site name"
+            maxLength={50}
+            className="h-11 rounded bg-muted/50 border-border/60"
+            data-testid="input-site-name"
+          />
+          <p className="text-xs text-muted-foreground">Displayed in the header, login page, and browser tab title.</p>
+          <Button
+            onClick={() => siteNameMutation.mutate(siteNameVal)}
+            disabled={siteNameMutation.isPending || !siteNameVal.trim()}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-site-name"
+          >
+            {siteNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Site Name
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">

@@ -32,7 +32,7 @@ const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
   "durations:created": [["/api/games"]],
   "durations:updated": [["/api/games"]],
   "durations:deleted": [["/api/games"]],
-  "settings:updated": [["/api/settings/features"], ["/api/settings/modname"], ["/api/settings/ftext"], ["/api/settings/maintenance"], ["/api/settings/session"]],
+  "settings:updated": [["/api/settings/site-name"], ["/api/settings/features"], ["/api/settings/modname"], ["/api/settings/ftext"], ["/api/settings/maintenance"], ["/api/settings/session"]],
   "connect:updated": [["/api/connect-config"], ["/api/connect-config/audit-logs"]],
   "dashboard:refresh": [["/api/dashboard/stats"]],
 };

@@ -3,7 +3,7 @@ import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
-  games, gameDurations,
+  games, gameDurations, siteConfig,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
   type Game, type GameDuration,
@@ -42,6 +42,8 @@ export interface IStorage {
   updateFeatures(data: Partial<Feature>): Promise<void>;
   getModname(): Promise<string>;
   updateModname(name: string): Promise<void>;
+  getSiteName(): Promise<string>;
+  updateSiteName(name: string): Promise<void>;
   getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined>;
   updateFtext(data: { _status?: string; _ftext?: string }): Promise<void>;
   getMaintenanceStatus(): Promise<{ status: string; myinput: string | null } | undefined>;
@@ -227,6 +229,20 @@ export class DatabaseStorage implements IStorage {
       await db.insert(modname).values({ modname: name } as any);
     } else {
       await db.update(modname).set({ modname: name } as any).where(eq(modname.id, existing[0].id));
+    }
+  }
+
+  async getSiteName(): Promise<string> {
+    const [row] = await db.select().from(siteConfig);
+    return row?.siteName || "Key-Panel";
+  }
+
+  async updateSiteName(name: string): Promise<void> {
+    const existing = await db.select().from(siteConfig);
+    if (existing.length === 0) {
+      await db.insert(siteConfig).values({ siteName: name } as any);
+    } else {
+      await db.update(siteConfig).set({ siteName: name } as any).where(eq(siteConfig.id, existing[0].id));
     }
   }
 

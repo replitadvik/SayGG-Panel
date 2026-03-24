@@ -118,6 +118,11 @@ export const modname = pgTable("modname", {
   modname: varchar("modname", { length: 255 }),
 });
 
+export const siteConfig = pgTable("site_config", {
+  id: serial("id").primaryKey(),
+  siteName: varchar("site_name", { length: 255 }).default("Key-Panel"),
+});
+
 export const ftext = pgTable("_ftext", {
   id: serial("id").primaryKey(),
   _status: text("_status"),
@@ -251,6 +256,7 @@ export type Key = typeof keysCode.$inferSelect;
 export type ReferralCode = typeof referralCode.$inferSelect;
 export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
+export type SiteConfig = typeof siteConfig.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
 export type ConnectAuditLog = typeof connectAuditLog.$inferSelect;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/components/theme-provider";
+import { useSiteName } from "@/hooks/use-site-name";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -28,6 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { siteName } = useSiteName();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const filteredNav = navItems.filter(item => {
@@ -49,7 +51,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between h-14 px-4 lg:px-6">
           <div className="flex items-center gap-2.5">
             <span className="text-base font-semibold tracking-tight text-panel-header-foreground" data-testid="text-brand-header">
-              Key-Panel
+              {siteName}
             </span>
             <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-panel-header-foreground/10 text-panel-header-foreground/80 border border-panel-header-foreground/10">
               {levelLabel}

@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Sun, Moon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useSiteName } from "@/hooks/use-site-name";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const { siteName } = useSiteName();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     email: "", username: "", fullname: "", telegramChatId: "",
@@ -68,7 +70,7 @@ export default function RegisterPage() {
             <UserPlus className="w-6 h-6 text-panel-header-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-register-title">Create Account</h1>
-          <p className="text-sm text-muted-foreground mt-1.5">Register for Key-Panel access</p>
+          <p className="text-sm text-muted-foreground mt-1.5">Register for {siteName} access</p>
         </div>
 
         <div className="rounded-lg border border-border/60 bg-card p-6 shadow-sm">

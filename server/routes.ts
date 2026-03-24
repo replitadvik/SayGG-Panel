@@ -997,6 +997,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ message: "Features updated." });
   });
 
+  app.get("/api/settings/site-name", async (req, res) => {
+    const name = await storage.getSiteName();
+    res.json({ siteName: name });
+  });
+
+  app.patch("/api/settings/site-name", requireAuth, requireLevel(1), async (req, res) => {
+    const { siteName } = req.body;
+    if (!siteName || typeof siteName !== "string" || siteName.trim().length === 0) {
+      return res.status(400).json({ message: "Site name is required." });
+    }
+    if (siteName.trim().length > 50) {
+      return res.status(400).json({ message: "Site name must be 50 characters or less." });
+    }
+    await storage.updateSiteName(siteName.trim());
+    emitToAll(wsEvent("settings:updated", { section: "site-name" }));
+    res.json({ message: "Site name updated." });
+  });
+
   app.get("/api/settings/modname", requireLevel(1), async (req, res) => {
     const name = await storage.getModname();
     res.json({ modname: name });

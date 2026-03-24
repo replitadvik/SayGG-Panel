@@ -32,7 +32,7 @@ client/src/
     games.tsx       — Game Management hub with duration counts (owner only)
     game-durations.tsx — Per-game duration/pricing with breadcrumb nav (owner only)
     connect-config.tsx — Dedicated Connect Config page: full secret view, copy, edit, rotate, audit log (owner only)
-    settings.tsx    — Features, mod name, ftext, maintenance, session config
+    settings.tsx    — Site name, features, mod name, ftext, maintenance, session config
     profile.tsx     — Username/password/telegram/2FA changes
 
 server/
@@ -72,6 +72,7 @@ docs/
 - `referral_code` — registration codes with level/balance presets
 - `price_config` — duration->price mapping
 - `feature` — game feature toggles (ESP, AIM, etc.)
+- `site_config` — site name (dynamic branding displayed in header, login, browser title)
 - `modname` — mod name setting
 - `_ftext` — floating text/credit config
 - `onoff` — maintenance mode toggle
