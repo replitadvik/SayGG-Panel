@@ -2,10 +2,10 @@ import { db } from "./db";
 import { eq, and, desc, asc, count } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
-  feature, modname, ftext, onoff, history, loginThrottle, connectConfig, sessionSettings,
+  feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
   games, gameDurations,
   type User, type Key, type ReferralCode, type PriceConfig,
-  type Feature, type History, type ConnectConfig, type SessionSettings,
+  type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
   type Game, type GameDuration,
 } from "@shared/schema";
 
@@ -58,6 +58,8 @@ export interface IStorage {
   getConnectConfig(): Promise<ConnectConfig | undefined>;
   upsertConnectConfig(data: Partial<ConnectConfig>): Promise<ConnectConfig>;
   rotateConnectSecret(newSecret: string, changedBy: string, gracePeriodMinutes?: number): Promise<ConnectConfig>;
+  getConnectAuditLogs(): Promise<ConnectAuditLog[]>;
+  createConnectAuditLog(data: Partial<ConnectAuditLog>): Promise<ConnectAuditLog>;
 
   getSessionSettings(): Promise<SessionSettings | undefined>;
   upsertSessionSettings(data: Partial<SessionSettings>): Promise<SessionSettings>;
@@ -316,12 +318,24 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(connectConfig).values({
         activeSecret: newSecret,
         secretVersion: 1,
+        createdBy: changedBy,
         changedBy,
+        createdAt: new Date(),
         changedAt: new Date(),
       } as any).returning();
       return created;
     }
   }
+
+  async getConnectAuditLogs(): Promise<ConnectAuditLog[]> {
+    return db.select().from(connectAuditLog).orderBy(desc(connectAuditLog.id));
+  }
+
+  async createConnectAuditLog(data: Partial<ConnectAuditLog>): Promise<ConnectAuditLog> {
+    const [log] = await db.insert(connectAuditLog).values(data as any).returning();
+    return log;
+  }
+
   async getSessionSettings(): Promise<SessionSettings | undefined> {
     const [s] = await db.select().from(sessionSettings);
     return s;

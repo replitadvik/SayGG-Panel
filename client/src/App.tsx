@@ -17,6 +17,7 @@ import BalancePage from "@/pages/balance";
 import ReferralsPage from "@/pages/referrals";
 import GamesPage from "@/pages/games";
 import GameDurationsPage from "@/pages/game-durations";
+import ConnectConfigPage from "@/pages/connect-config";
 import SettingsPage from "@/pages/settings";
 import ProfilePage from "@/pages/profile";
 import NotFound from "@/pages/not-found";
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/prices">{() => <Redirect to="/games" />}</Route>
       <Route path="/games/:id/durations">{() => <ProtectedRoute component={GameDurationsPage} maxLevel={1} />}</Route>
       <Route path="/games">{() => <ProtectedRoute component={GamesPage} maxLevel={1} />}</Route>
+      <Route path="/connect-config">{() => <ProtectedRoute component={ConnectConfigPage} maxLevel={1} />}</Route>
       <Route path="/settings">{() => <ProtectedRoute component={SettingsPage} maxLevel={1} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route component={NotFound} />

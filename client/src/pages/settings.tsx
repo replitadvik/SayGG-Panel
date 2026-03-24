@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Type, Wrench, Key, RotateCcw, Clock } from "lucide-react";
+import { Loader2, Settings, Shield, Type, Wrench, Clock } from "lucide-react";
 
 const featureList = ["ESP", "Item", "AIM", "SilentAim", "BulletTrack", "Floating", "Memory", "Setting"] as const;
 
@@ -31,10 +31,6 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/maintenance"],
   });
 
-  const { data: connectData, isLoading: connectLoading } = useQuery<any>({
-    queryKey: ["/api/settings/connect"],
-  });
-
   const { data: sessionData, isLoading: sessionLoading } = useQuery<any>({
     queryKey: ["/api/settings/session"],
   });
@@ -45,9 +41,6 @@ export default function SettingsPage() {
   const [ftextContent, setFtextContent] = useState("");
   const [maintStatus, setMaintStatus] = useState("off");
   const [maintInput, setMaintInput] = useState("");
-  const [connectGameName, setConnectGameName] = useState("");
-  const [newSecret, setNewSecret] = useState("");
-  const [gracePeriod, setGracePeriod] = useState("60");
   const [sessionNormalTtl, setSessionNormalTtl] = useState("");
   const [sessionRememberTtl, setSessionRememberTtl] = useState("");
 
@@ -78,12 +71,6 @@ export default function SettingsPage() {
       setMaintInput(maintenanceData.myinput || "");
     }
   }, [maintenanceData]);
-
-  useEffect(() => {
-    if (connectData) {
-      setConnectGameName(connectData.gameName || "");
-    }
-  }, [connectData]);
 
   useEffect(() => {
     if (sessionData) {
@@ -144,20 +131,6 @@ export default function SettingsPage() {
     },
   });
 
-  const gameNameMutation = useMutation({
-    mutationFn: async (gameName: string) => {
-      await apiRequest("PATCH", "/api/settings/connect/game", { gameName });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/connect"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
-      toast({ title: "Game name updated" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
-  });
-
   const sessionMutation = useMutation({
     mutationFn: async (data: { normalTtl: string; rememberMeTtl: string }) => {
       await apiRequest("PATCH", "/api/settings/session", data);
@@ -184,21 +157,7 @@ export default function SettingsPage() {
     },
   });
 
-  const rotateSecretMutation = useMutation({
-    mutationFn: async (data: { newSecret: string; gracePeriodMinutes: number }) => {
-      await apiRequest("POST", "/api/settings/connect/rotate-secret", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/connect"] });
-      setNewSecret("");
-      toast({ title: "Secret rotated successfully" });
-    },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    },
-  });
-
-  const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || connectLoading || sessionLoading;
+  const isLoading = featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
 
   if (isLoading) {
     return (
@@ -410,103 +369,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Key className="h-5 w-5" />
-            Connect Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Game Name</Label>
-            <div className="flex gap-2">
-              <Input
-                value={connectGameName}
-                onChange={e => setConnectGameName(e.target.value)}
-                placeholder="e.g. PUBG"
-                data-testid="input-connect-game-name"
-              />
-              <Button
-                onClick={() => gameNameMutation.mutate(connectGameName)}
-                disabled={gameNameMutation.isPending}
-                data-testid="button-save-game-name"
-              >
-                {gameNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
-            </div>
-          </div>
-
-          {connectData && (
-            <div className="space-y-2 p-3 bg-muted rounded-lg text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Active Secret</span>
-                <code data-testid="text-connect-secret-masked">{connectData.secretMasked}</code>
-              </div>
-              {connectData.previousSecretMasked && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Previous Secret</span>
-                  <code>{connectData.previousSecretMasked}</code>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Version</span>
-                <span>v{connectData.secretVersion}</span>
-              </div>
-              {connectData.gracePeriodUntil && new Date(connectData.gracePeriodUntil) > new Date() && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Grace Period Until</span>
-                  <span>{new Date(connectData.gracePeriodUntil).toLocaleString()}</span>
-                </div>
-              )}
-              {connectData.changedBy && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Changed By</span>
-                  <span>{connectData.changedBy}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-2 border-t pt-4">
-            <Label className="flex items-center gap-2">
-              <RotateCcw className="h-4 w-4" />
-              Rotate Secret
-            </Label>
-            <Input
-              type="password"
-              value={newSecret}
-              onChange={e => setNewSecret(e.target.value)}
-              placeholder="New secret (min 16 chars)"
-              data-testid="input-new-connect-secret"
-            />
-            <div className="flex gap-2 items-center">
-              <Label className="text-sm whitespace-nowrap">Grace Period (min)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="1440"
-                value={gracePeriod}
-                onChange={e => setGracePeriod(e.target.value)}
-                className="w-24"
-                data-testid="input-grace-period"
-              />
-            </div>
-            <Button
-              onClick={() => rotateSecretMutation.mutate({
-                newSecret,
-                gracePeriodMinutes: parseInt(gracePeriod) || 60,
-              })}
-              disabled={rotateSecretMutation.isPending || newSecret.length < 16}
-              variant="destructive"
-              data-testid="button-rotate-secret"
-            >
-              {rotateSecretMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Rotate Secret
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

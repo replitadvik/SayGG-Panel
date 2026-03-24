@@ -144,8 +144,22 @@ export const connectConfig = pgTable("connect_config", {
   previousSecret: text("previous_secret"),
   secretVersion: integer("secret_version").default(1).notNull(),
   gracePeriodUntil: timestamp("grace_period_until"),
+  createdBy: varchar("created_by", { length: 50 }),
   changedBy: varchar("changed_by", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
   changedAt: timestamp("changed_at").defaultNow(),
+});
+
+export const connectAuditLog = pgTable("connect_audit_log", {
+  id: serial("id").primaryKey(),
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  actorUserId: integer("actor_user_id"),
+  actorUsername: varchar("actor_username", { length: 50 }),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const loginThrottle = pgTable("login_throttle", {
@@ -227,6 +241,7 @@ export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
+export type ConnectAuditLog = typeof connectAuditLog.$inferSelect;
 export type SessionSettings = typeof sessionSettings.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type GameDuration = typeof gameDurations.$inferSelect;

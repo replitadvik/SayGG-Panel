@@ -1319,36 +1319,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ message: "Session settings reset to defaults" });
   });
 
-  app.get("/api/settings/connect", requireAuth, requireLevel(1), async (req, res) => {
+  app.get("/api/connect-config", requireAuth, requireLevel(1), async (req, res) => {
     const cfg = await storage.getConnectConfig();
     if (!cfg) return res.json(null);
-    const masked = cfg.activeSecret.length > 8
-      ? cfg.activeSecret.slice(0, 4) + "****" + cfg.activeSecret.slice(-4)
-      : "****";
-    const prevMasked = cfg.previousSecret
-      ? (cfg.previousSecret.length > 8
-        ? cfg.previousSecret.slice(0, 4) + "****" + cfg.previousSecret.slice(-4)
-        : "****")
-      : null;
     res.json({
+      id: cfg.id,
       gameName: cfg.gameName,
-      secretMasked: masked,
-      previousSecretMasked: prevMasked,
+      activeSecret: cfg.activeSecret,
+      previousSecret: cfg.previousSecret,
       secretVersion: cfg.secretVersion,
       gracePeriodUntil: cfg.gracePeriodUntil,
+      createdBy: cfg.createdBy,
       changedBy: cfg.changedBy,
+      createdAt: cfg.createdAt,
       changedAt: cfg.changedAt,
     });
   });
 
-  app.patch("/api/settings/connect/game", requireAuth, requireLevel(1), async (req, res) => {
+  app.get("/api/connect-config/audit-logs", requireAuth, requireLevel(1), async (req, res) => {
+    const logs = await storage.getConnectAuditLogs();
+    res.json(logs);
+  });
+
+  app.patch("/api/connect-config/game", requireAuth, requireLevel(1), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     const { gameName } = req.body;
     if (!gameName || typeof gameName !== "string" || gameName.trim().length === 0) {
       return res.status(400).json({ message: "Game name is required" });
     }
-    await storage.upsertConnectConfig({ gameName: gameName.trim() });
+    const oldCfg = await storage.getConnectConfig();
+    const oldGameName = oldCfg?.gameName || "";
+    await storage.upsertConnectConfig({ gameName: gameName.trim(), changedBy: user.username, changedAt: new Date() });
+    await storage.createConnectAuditLog({
+      actionType: "update",
+      entityType: "game_name",
+      oldValue: oldGameName,
+      newValue: gameName.trim(),
+      actorUserId: user.id,
+      actorUsername: user.username,
+    });
     await storage.createHistory({
       userId: user.id,
       userDo: user.username,
@@ -1358,15 +1368,73 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ message: "Game name updated" });
   });
 
-  app.post("/api/settings/connect/rotate-secret", requireAuth, requireLevel(1), async (req, res) => {
+  app.patch("/api/connect-config/secret", requireAuth, requireLevel(1), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const { newSecret, gracePeriodMinutes } = req.body;
+    const { activeSecret } = req.body;
+    if (!activeSecret || typeof activeSecret !== "string" || activeSecret.trim().length < 16) {
+      return res.status(400).json({ message: "Secret must be at least 16 characters" });
+    }
+    const oldCfg = await storage.getConnectConfig();
+    const oldMasked = oldCfg?.activeSecret
+      ? (oldCfg.activeSecret.length > 8
+        ? oldCfg.activeSecret.slice(0, 4) + "****" + oldCfg.activeSecret.slice(-4)
+        : "****")
+      : "(none)";
+    const newMasked = activeSecret.trim().length > 8
+      ? activeSecret.trim().slice(0, 4) + "****" + activeSecret.trim().slice(-4)
+      : "****";
+    await storage.upsertConnectConfig({
+      activeSecret: activeSecret.trim(),
+      previousSecret: null,
+      gracePeriodUntil: null,
+      changedBy: user.username,
+      changedAt: new Date(),
+    } as any);
+    await storage.createConnectAuditLog({
+      actionType: "update",
+      entityType: "active_secret",
+      oldValue: oldMasked,
+      newValue: newMasked,
+      actorUserId: user.id,
+      actorUsername: user.username,
+    });
+    await storage.createHistory({
+      userId: user.id,
+      userDo: user.username,
+      activity: "connect_config",
+      description: `Updated active secret directly`,
+    });
+    res.json({ message: "Secret updated" });
+  });
+
+  app.post("/api/connect-config/rotate-secret", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const { newSecret, gracePeriodMinutes, note } = req.body;
     if (!newSecret || typeof newSecret !== "string" || newSecret.trim().length < 16) {
       return res.status(400).json({ message: "Secret must be at least 16 characters" });
     }
     const grace = Math.max(0, Math.min(1440, parseInt(gracePeriodMinutes) || 60));
+    const oldCfg = await storage.getConnectConfig();
+    const oldMasked = oldCfg?.activeSecret
+      ? (oldCfg.activeSecret.length > 8
+        ? oldCfg.activeSecret.slice(0, 4) + "****" + oldCfg.activeSecret.slice(-4)
+        : "****")
+      : "(none)";
+    const newMasked = newSecret.trim().length > 8
+      ? newSecret.trim().slice(0, 4) + "****" + newSecret.trim().slice(-4)
+      : "****";
     const updated = await storage.rotateConnectSecret(newSecret.trim(), user.username, grace);
+    await storage.createConnectAuditLog({
+      actionType: "rotate",
+      entityType: "secret",
+      oldValue: `v${(oldCfg?.secretVersion || 0)} — ${oldMasked}`,
+      newValue: `v${updated.secretVersion} — ${newMasked}`,
+      actorUserId: user.id,
+      actorUsername: user.username,
+      note: note || `Grace period: ${grace}min`,
+    });
     await storage.createHistory({
       userId: user.id,
       userDo: user.username,
@@ -1374,6 +1442,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       description: `Rotated connect secret to v${updated.secretVersion}, grace period ${grace}min`,
     });
     res.json({ message: "Secret rotated", version: updated.secretVersion });
+  });
+
+  app.post("/api/connect-config/generate-secret", requireAuth, requireLevel(1), async (req, res) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    let secret = "";
+    for (let i = 0; i < 32; i++) {
+      secret += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res.json({ secret });
   });
 
   return httpServer;

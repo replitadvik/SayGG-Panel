@@ -31,7 +31,8 @@ client/src/
     referrals.tsx   — Referral code CRUD (role-filtered: owner sees all, admin sees own)
     games.tsx       — Game Management hub with duration counts (owner only)
     game-durations.tsx — Per-game duration/pricing with breadcrumb nav (owner only)
-    settings.tsx    — Features, mod name, ftext, maintenance
+    connect-config.tsx — Dedicated Connect Config page: full secret view, copy, edit, rotate, audit log (owner only)
+    settings.tsx    — Features, mod name, ftext, maintenance, session config
     profile.tsx     — Username/password/telegram/2FA changes
 
 server/
