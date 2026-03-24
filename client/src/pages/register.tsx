@@ -64,8 +64,8 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-            <UserPlus className="w-6 h-6 text-primary" />
+          <div className="mx-auto w-14 h-14 rounded-lg bg-panel-header flex items-center justify-center mb-4">
+            <UserPlus className="w-6 h-6 text-panel-header-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-register-title">Create Account</h1>
           <p className="text-sm text-muted-foreground mt-1.5">Register for Key-Panel access</p>

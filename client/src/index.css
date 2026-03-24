@@ -39,6 +39,9 @@
   --sidebar-accent-foreground: 220 15% 15%;
   --sidebar-ring: 43 72% 48%;
 
+  --panel-header: 240 21% 15%;
+  --panel-header-foreground: 0 0% 100%;
+
   --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
 }
@@ -78,6 +81,9 @@
   --sidebar-accent: 228 14% 12%;
   --sidebar-accent-foreground: 220 15% 88%;
   --sidebar-ring: 43 72% 50%;
+
+  --panel-header: 240 19% 20%;
+  --panel-header-foreground: 0 0% 96%;
 }
 
 @layer base {

@@ -45,25 +45,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
-      <header className="sticky top-0 z-40 glass-surface bg-background/80 border-b border-border/60">
+      <header className="sticky top-0 z-40 bg-panel-header border-b border-white/5">
         <div className="flex items-center justify-between h-14 px-4 lg:px-6">
           <div className="flex items-center gap-2.5">
-            <span className="text-base font-semibold tracking-tight text-foreground" data-testid="text-brand-header">
+            <span className="text-base font-semibold tracking-tight text-panel-header-foreground" data-testid="text-brand-header">
               Key-Panel
             </span>
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-panel-header-foreground/10 text-panel-header-foreground/80 border border-panel-header-foreground/10">
               {levelLabel}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1 hidden sm:block" data-testid="text-header-saldo">
-              <span className="font-medium font-mono text-foreground">{formatCurrency(user?.saldo ?? 0)}</span>
+            <span className="text-xs text-panel-header-foreground/50 mr-1 hidden sm:block" data-testid="text-header-saldo">
+              <span className="font-medium font-mono text-panel-header-foreground/90">{formatCurrency(user?.saldo ?? 0)}</span>
             </span>
 
             <button
               onClick={toggleTheme}
-              className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded text-panel-header-foreground/50 hover:text-panel-header-foreground hover:bg-panel-header-foreground/10 transition-colors"
               data-testid="button-theme-toggle"
               aria-label="Toggle theme"
             >
@@ -72,7 +72,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             <button
               onClick={() => setSheetOpen(true)}
-              className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded text-panel-header-foreground/60 hover:text-panel-header-foreground hover:bg-panel-header-foreground/10 transition-colors"
               data-testid="button-open-sidebar"
               aria-label="Open menu"
             >
@@ -92,7 +92,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
           <SheetHeader className="p-5 pb-4 border-b border-border/60">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+              <div className="w-10 h-10 rounded-lg bg-panel-header flex items-center justify-center text-sm font-semibold text-panel-header-foreground">
                 {user?.username?.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">

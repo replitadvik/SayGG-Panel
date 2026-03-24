@@ -68,6 +68,10 @@ export default {
           DEFAULT: "hsl(var(--sidebar-accent) / <alpha-value>)",
           foreground: "hsl(var(--sidebar-accent-foreground) / <alpha-value>)",
         },
+        "panel-header": {
+          DEFAULT: "hsl(var(--panel-header) / <alpha-value>)",
+          foreground: "hsl(var(--panel-header-foreground) / <alpha-value>)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

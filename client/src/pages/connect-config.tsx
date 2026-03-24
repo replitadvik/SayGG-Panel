@@ -145,97 +145,98 @@ export default function ConnectConfigPage() {
         <p className="text-sm text-muted-foreground mt-0.5">Manage connect secret & settings</p>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Key className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Active Connect Secret</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Key className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Active Connect Secret</h2>
         </div>
+        <div className="p-5 space-y-4">
+          {config?.activeSecret ? (
+            <>
+              <div className="p-4 rounded bg-muted/60 border border-border/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Secret</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium" data-testid="text-secret-version">
+                      v{config.secretVersion}
+                    </span>
+                    <CopyButton text={config.activeSecret} />
+                  </div>
+                </div>
+                <code className="block text-xs font-mono break-all p-3 bg-background rounded border border-border/60 select-all" data-testid="text-connect-active-secret">
+                  {config.activeSecret}
+                </code>
+              </div>
 
-        {config?.activeSecret ? (
-          <>
-            <div className="p-4 rounded bg-muted/60 border border-border/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Secret</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium" data-testid="text-secret-version">
-                    v{config.secretVersion}
-                  </span>
-                  <CopyButton text={config.activeSecret} />
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded bg-muted/40">
+                  <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Created</span>
+                  <p className="font-medium" data-testid="text-secret-created-at">{formatDate(config.createdAt)}</p>
+                </div>
+                <div className="p-3 rounded bg-muted/40">
+                  <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Created By</span>
+                  <p className="font-medium" data-testid="text-secret-created-by">{config.createdBy || "System"}</p>
+                </div>
+                <div className="p-3 rounded bg-muted/40">
+                  <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Changed</span>
+                  <p className="font-medium" data-testid="text-secret-changed-at">{formatDate(config.changedAt)}</p>
+                </div>
+                <div className="p-3 rounded bg-muted/40">
+                  <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Changed By</span>
+                  <p className="font-medium" data-testid="text-secret-changed-by">{config.changedBy || "\u2014"}</p>
                 </div>
               </div>
-              <code className="block text-xs font-mono break-all p-3 bg-background rounded border border-border/60 select-all" data-testid="text-connect-active-secret">
-                {config.activeSecret}
-              </code>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded bg-muted/40">
-                <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Created</span>
-                <p className="font-medium" data-testid="text-secret-created-at">{formatDate(config.createdAt)}</p>
-              </div>
-              <div className="p-3 rounded bg-muted/40">
-                <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Created By</span>
-                <p className="font-medium" data-testid="text-secret-created-by">{config.createdBy || "System"}</p>
-              </div>
-              <div className="p-3 rounded bg-muted/40">
-                <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Changed</span>
-                <p className="font-medium" data-testid="text-secret-changed-at">{formatDate(config.changedAt)}</p>
-              </div>
-              <div className="p-3 rounded bg-muted/40">
-                <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Changed By</span>
-                <p className="font-medium" data-testid="text-secret-changed-by">{config.changedBy || "\u2014"}</p>
-              </div>
-            </div>
+              {gracePeriodActive && (
+                <div className="p-3 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+                  <span className="font-medium">Grace Period Active</span> {"\u2014"} Previous secret accepted until {formatDate(config.gracePeriodUntil)}
+                </div>
+              )}
 
-            {gracePeriodActive && (
-              <div className="p-3 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
-                <span className="font-medium">Grace Period Active</span> \u2014 Previous secret accepted until {formatDate(config.gracePeriodUntil)}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setEditSecretValue(config.activeSecret); setEditSecretOpen(true); }}
+                  className="rounded gap-1.5 text-xs h-9"
+                  data-testid="button-edit-secret"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRotateOpen(true)}
+                  className="rounded gap-1.5 text-xs h-9"
+                  data-testid="button-rotate-secret"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Rotate
+                </Button>
               </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setEditSecretValue(config.activeSecret); setEditSecretOpen(true); }}
-                className="rounded gap-1.5 text-xs h-9"
-                data-testid="button-edit-secret"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setRotateOpen(true)}
-                className="rounded gap-1.5 text-xs h-9"
-                data-testid="button-rotate-secret"
-              >
-                <RotateCcw className="h-3.5 w-3.5" /> Rotate
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <Key className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground mb-3">No connect secret configured</p>
+              <Button size="sm" onClick={() => setRotateOpen(true)} className="rounded h-9 text-xs" data-testid="button-create-secret">
+                Create Secret
               </Button>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-8">
-            <Key className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground mb-3">No connect secret configured</p>
-            <Button size="sm" onClick={() => setRotateOpen(true)} className="rounded h-9 text-xs" data-testid="button-create-secret">
-              Create Secret
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {config?.previousSecret && (
         <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
-          <button className="w-full flex items-center justify-between p-5" onClick={() => setShowPrevious(!showPrevious)}>
-            <span className="flex items-center gap-2 text-sm font-semibold">
-              <Shield className="h-4 w-4 text-muted-foreground" />
+          <button className="w-full flex items-center justify-between bg-panel-header px-5 py-3" onClick={() => setShowPrevious(!showPrevious)}>
+            <span className="flex items-center gap-2 text-sm font-semibold text-panel-header-foreground">
+              <Shield className="h-4 w-4 text-panel-header-foreground/70" />
               Previous / Fallback Secret
             </span>
-            {showPrevious ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            {showPrevious ? <ChevronUp className="h-4 w-4 text-panel-header-foreground/50" /> : <ChevronDown className="h-4 w-4 text-panel-header-foreground/50" />}
           </button>
           {showPrevious && (
-            <div className="px-5 pb-5 space-y-3 border-t border-border/60 pt-4">
+            <div className="p-5 space-y-3">
               <div className="p-4 rounded bg-muted/60 border border-border/60 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Previous Secret</span>
@@ -255,47 +256,49 @@ export default function ConnectConfigPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Connect Settings</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Connect Settings</h2>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Default Game Name</Label>
-          <div className="flex gap-2">
-            <Input
-              value={gameName}
-              onChange={e => setGameName(e.target.value)}
-              placeholder="e.g. PUBG"
-              className="h-11 rounded bg-muted/50 border-border/60"
-              data-testid="input-connect-game-name"
-            />
-            <Button
-              onClick={() => gameNameMutation.mutate(gameName)}
-              disabled={gameNameMutation.isPending || !gameName.trim()}
-              className="rounded h-11"
-              data-testid="button-save-game-name"
-            >
-              {gameNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-            </Button>
+        <div className="p-5 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Default Game Name</Label>
+            <div className="flex gap-2">
+              <Input
+                value={gameName}
+                onChange={e => setGameName(e.target.value)}
+                placeholder="e.g. PUBG"
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-connect-game-name"
+              />
+              <Button
+                onClick={() => gameNameMutation.mutate(gameName)}
+                disabled={gameNameMutation.isPending || !gameName.trim()}
+                className="rounded h-11"
+                data-testid="button-save-game-name"
+              >
+                {gameNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Game name used in the /connect endpoint for client verification</p>
           </div>
-          <p className="text-xs text-muted-foreground">Game name used in the /connect endpoint for client verification</p>
         </div>
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
-        <button className="w-full flex items-center justify-between p-5" onClick={() => setShowAudit(!showAudit)}>
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        <button className="w-full flex items-center justify-between bg-panel-header px-5 py-3" onClick={() => setShowAudit(!showAudit)}>
+          <span className="flex items-center gap-2 text-sm font-semibold text-panel-header-foreground">
+            <Clock className="h-4 w-4 text-panel-header-foreground/70" />
             Audit History
             {auditLogs && auditLogs.length > 0 && (
-              <span className="text-xs font-normal text-muted-foreground">({auditLogs.length})</span>
+              <span className="text-xs font-normal text-panel-header-foreground/50">({auditLogs.length})</span>
             )}
           </span>
-          {showAudit ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          {showAudit ? <ChevronUp className="h-4 w-4 text-panel-header-foreground/50" /> : <ChevronDown className="h-4 w-4 text-panel-header-foreground/50" />}
         </button>
         {showAudit && (
-          <div className="px-5 pb-5 border-t border-border/60 pt-4">
+          <div className="p-5">
             {logsLoading ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />

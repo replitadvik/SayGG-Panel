@@ -111,186 +111,196 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-0.5">System configuration</p>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Feature Toggles</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Feature Toggles</h2>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {featureList.map(f => (
-            <div key={f} className="flex items-center justify-between p-3 rounded bg-muted/40">
-              <Label className="text-sm font-medium">{f}</Label>
-              <Switch
-                checked={featureState[f] === "on"}
-                onCheckedChange={(checked) =>
-                  setFeatureState(prev => ({ ...prev, [f]: checked ? "on" : "off" }))
-                }
-                data-testid={`switch-feature-${f.toLowerCase()}`}
-              />
-            </div>
-          ))}
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            {featureList.map(f => (
+              <div key={f} className="flex items-center justify-between p-3 rounded bg-muted/40">
+                <Label className="text-sm font-medium">{f}</Label>
+                <Switch
+                  checked={featureState[f] === "on"}
+                  onCheckedChange={(checked) =>
+                    setFeatureState(prev => ({ ...prev, [f]: checked ? "on" : "off" }))
+                  }
+                  data-testid={`switch-feature-${f.toLowerCase()}`}
+                />
+              </div>
+            ))}
+          </div>
+          <Button
+            onClick={() => featuresMutation.mutate(featureState)}
+            disabled={featuresMutation.isPending}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-features"
+          >
+            {featuresMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Features
+          </Button>
         </div>
-        <Button
-          onClick={() => featuresMutation.mutate(featureState)}
-          disabled={featuresMutation.isPending}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-features"
-        >
-          {featuresMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save Features
-        </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Mod Name</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Settings className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Mod Name</h2>
         </div>
-        <Input
-          value={modname}
-          onChange={e => setModname(e.target.value)}
-          placeholder="Enter mod name"
-          className="h-11 rounded bg-muted/50 border-border/60"
-          data-testid="input-modname"
-        />
-        <Button
-          onClick={() => modnameMutation.mutate(modname)}
-          disabled={modnameMutation.isPending}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-modname"
-        >
-          {modnameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save Mod Name
-        </Button>
-      </div>
-
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Type className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Floating Text</h2>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Status Text</Label>
+        <div className="p-5 space-y-4">
           <Input
-            value={ftextStatus}
-            onChange={e => setFtextStatus(e.target.value)}
-            placeholder="Status text"
+            value={modname}
+            onChange={e => setModname(e.target.value)}
+            placeholder="Enter mod name"
             className="h-11 rounded bg-muted/50 border-border/60"
-            data-testid="input-ftext-status"
+            data-testid="input-modname"
           />
+          <Button
+            onClick={() => modnameMutation.mutate(modname)}
+            disabled={modnameMutation.isPending}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-modname"
+          >
+            {modnameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Mod Name
+          </Button>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Credit / Footer Text</Label>
-          <Textarea
-            value={ftextContent}
-            onChange={e => setFtextContent(e.target.value)}
-            placeholder="Credit text"
-            rows={3}
-            className="rounded bg-muted/50 border-border/60"
-            data-testid="input-ftext-content"
-          />
-        </div>
-        <Button
-          onClick={() => ftextMutation.mutate({ _status: ftextStatus, _ftext: ftextContent })}
-          disabled={ftextMutation.isPending}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-ftext"
-        >
-          {ftextMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save Text
-        </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Maintenance Mode</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Type className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Floating Text</h2>
         </div>
-        <div className="flex items-center justify-between p-3 rounded bg-muted/40">
-          <Label className="text-sm font-medium">{maintStatus === "on" ? "Maintenance ON" : "Maintenance OFF"}</Label>
-          <Switch
-            checked={maintStatus === "on"}
-            onCheckedChange={(checked) => setMaintStatus(checked ? "on" : "off")}
-            data-testid="switch-maintenance"
-          />
+        <div className="p-5 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Status Text</Label>
+            <Input
+              value={ftextStatus}
+              onChange={e => setFtextStatus(e.target.value)}
+              placeholder="Status text"
+              className="h-11 rounded bg-muted/50 border-border/60"
+              data-testid="input-ftext-status"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Credit / Footer Text</Label>
+            <Textarea
+              value={ftextContent}
+              onChange={e => setFtextContent(e.target.value)}
+              placeholder="Credit text"
+              rows={3}
+              className="rounded bg-muted/50 border-border/60"
+              data-testid="input-ftext-content"
+            />
+          </div>
+          <Button
+            onClick={() => ftextMutation.mutate({ _status: ftextStatus, _ftext: ftextContent })}
+            disabled={ftextMutation.isPending}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-ftext"
+          >
+            {ftextMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Text
+          </Button>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Maintenance Message</Label>
-          <Textarea
-            value={maintInput}
-            onChange={e => setMaintInput(e.target.value)}
-            placeholder="Message shown during maintenance"
-            rows={2}
-            className="rounded bg-muted/50 border-border/60"
-            data-testid="input-maintenance-message"
-          />
-        </div>
-        <Button
-          onClick={() => maintenanceMutation.mutate({ status: maintStatus, myinput: maintInput })}
-          disabled={maintenanceMutation.isPending}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-maintenance"
-        >
-          {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save Maintenance
-        </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Session Settings</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Maintenance Mode</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Normal Session</Label>
-            <Input
-              value={sessionNormalTtl}
-              onChange={e => setSessionNormalTtl(e.target.value)}
-              placeholder="e.g. 30m, 1h, 7d"
-              className="h-11 rounded bg-muted/50 border-border/60"
-              data-testid="input-session-normal-ttl"
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between p-3 rounded bg-muted/40">
+            <Label className="text-sm font-medium">{maintStatus === "on" ? "Maintenance ON" : "Maintenance OFF"}</Label>
+            <Switch
+              checked={maintStatus === "on"}
+              onCheckedChange={(checked) => setMaintStatus(checked ? "on" : "off")}
+              data-testid="switch-maintenance"
             />
-            <p className="text-xs text-muted-foreground">Default: {sessionData?.envNormalTtl || "30m"}</p>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Remember Me</Label>
-            <Input
-              value={sessionRememberTtl}
-              onChange={e => setSessionRememberTtl(e.target.value)}
-              placeholder="e.g. 24h, 7d, 30d"
-              className="h-11 rounded bg-muted/50 border-border/60"
-              data-testid="input-session-remember-ttl"
+            <Label className="text-sm font-medium">Maintenance Message</Label>
+            <Textarea
+              value={maintInput}
+              onChange={e => setMaintInput(e.target.value)}
+              placeholder="Message shown during maintenance"
+              rows={2}
+              className="rounded bg-muted/50 border-border/60"
+              data-testid="input-maintenance-message"
             />
-            <p className="text-xs text-muted-foreground">Default: {sessionData?.envRememberMeTtl || "24h"}</p>
           </div>
+          <Button
+            onClick={() => maintenanceMutation.mutate({ status: maintStatus, myinput: maintInput })}
+            disabled={maintenanceMutation.isPending}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-maintenance"
+          >
+            {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Maintenance
+          </Button>
         </div>
-        {sessionData?.isCustom && sessionData?.changedBy && (
-          <p className="text-xs text-muted-foreground" data-testid="text-session-changed-by">
-            Last changed by {sessionData.changedBy}
-            {sessionData.changedAt && ` on ${new Date(sessionData.changedAt).toLocaleString()}`}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button
-            onClick={() => sessionMutation.mutate({ normalTtl: sessionNormalTtl, rememberMeTtl: sessionRememberTtl })}
-            disabled={sessionMutation.isPending}
-            className="flex-1 h-10 rounded text-sm"
-            data-testid="button-save-session"
-          >
-            {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Session
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => sessionResetMutation.mutate()}
-            disabled={sessionResetMutation.isPending}
-            className="h-10 rounded text-sm"
-            data-testid="button-reset-session"
-          >
-            {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Reset
-          </Button>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Session Settings</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Normal Session</Label>
+              <Input
+                value={sessionNormalTtl}
+                onChange={e => setSessionNormalTtl(e.target.value)}
+                placeholder="e.g. 30m, 1h, 7d"
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-session-normal-ttl"
+              />
+              <p className="text-xs text-muted-foreground">Default: {sessionData?.envNormalTtl || "30m"}</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Remember Me</Label>
+              <Input
+                value={sessionRememberTtl}
+                onChange={e => setSessionRememberTtl(e.target.value)}
+                placeholder="e.g. 24h, 7d, 30d"
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-session-remember-ttl"
+              />
+              <p className="text-xs text-muted-foreground">Default: {sessionData?.envRememberMeTtl || "24h"}</p>
+            </div>
+          </div>
+          {sessionData?.isCustom && sessionData?.changedBy && (
+            <p className="text-xs text-muted-foreground" data-testid="text-session-changed-by">
+              Last changed by {sessionData.changedBy}
+              {sessionData.changedAt && ` on ${new Date(sessionData.changedAt).toLocaleString()}`}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sessionMutation.mutate({ normalTtl: sessionNormalTtl, rememberMeTtl: sessionRememberTtl })}
+              disabled={sessionMutation.isPending}
+              className="flex-1 h-10 rounded text-sm"
+              data-testid="button-save-session"
+            >
+              {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Session
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => sessionResetMutation.mutate()}
+              disabled={sessionResetMutation.isPending}
+              className="h-10 rounded text-sm"
+              data-testid="button-reset-session"
+            >
+              {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Reset
+            </Button>
+          </div>
         </div>
       </div>
     </div>

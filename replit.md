@@ -121,13 +121,16 @@ docs/
 - Dead code removed: unused imports (passport, memorystore, sql, boolean, ne, ilike, getDurationLabel, formatDuration, storage in auth.ts)
 
 ## UI/UX Design System
-- Premium iOS-inspired mobile-first redesign with sharp box/square design language
+- Premium admin panel with dark header + white content design language
 - Font: system-ui + Inter (SF Pro fallback) via CSS custom property --font-sans
 - Primary color: amber/gold (43 72% 48%)
+- Panel header: dark charcoal (240 21% 15% light / 240 19% 20% dark) — used for app header, card section headers, auth icon boxes, sidebar avatar
 - Light theme: off-white bg (0 0% 97.5%), white cards, subtle borders
 - Dark theme: deep dark bg (228 16% 6%), refined surfaces (228 14% 9%)
 - ThemeProvider: localStorage-persisted light/dark toggle, respects prefers-color-scheme
-- Layout: sticky glass header (site name left, theme toggle + hamburger right), right-side Sheet drawer nav
+- Layout: sticky dark `bg-panel-header` header (white text/icons, site name left, theme toggle + hamburger right), right-side Sheet drawer nav
+- Card section pattern: `rounded-lg overflow-hidden` card with `bg-panel-header px-5 py-3` dark header bar (white icon + title) + `p-5` white content area
+- Auth pages: centered card with `bg-panel-header` icon box (white icons)
 - Shape system: sharp/boxy with max 6-8px radius (NO rounded-full, rounded-xl, or rounded-2xl anywhere)
   - Tailwind radius override: sm=2px, DEFAULT/md=4px, lg=6px, xl/2xl=8px
   - Cards/containers: rounded-lg (6px), shadow-sm, border-border/60

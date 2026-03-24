@@ -97,103 +97,109 @@ export default function GeneratePage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Game</Label>
-            <Select value={selectedGameId} onValueChange={handleGameChange}>
-              <SelectTrigger data-testid="select-game" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue placeholder="Select game" /></SelectTrigger>
-              <SelectContent>
-                {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
-                {activeGames.map((g) => (
-                  <SelectItem key={g.id} value={String(g.id)}>{g.displayName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Duration</Label>
-            <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
-              <SelectTrigger data-testid="select-duration" className="h-11 rounded bg-muted/50 border-border/60">
-                <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {durationsLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
-                {durations.map((d: GameDuration) => (
-                  <SelectItem key={d.id} value={String(d.durationHours)}>
-                    {d.label} — {formatCurrency(d.price)}/Device
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Max Devices</Label>
-            <Input
-              type="number"
-              min="1"
-              max={user?.level === 3 ? 2 : 99}
-              value={maxDevices}
-              onChange={(e) => setMaxDevices(e.target.value)}
-              className="h-11 rounded bg-muted/50 border-border/60"
-              data-testid="input-max-devices"
-            />
-            {user?.level === 3 && (
-              <p className="text-xs text-muted-foreground">Reseller: max 2 devices</p>
-            )}
-          </div>
-
-          {user?.level !== 3 && (
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Key className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Key Details</h2>
+        </div>
+        <div className="p-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Key Type</Label>
-              <Select value={customInput} onValueChange={setCustomInput}>
-                <SelectTrigger data-testid="select-key-type" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
+              <Label className="text-sm font-medium">Game</Label>
+              <Select value={selectedGameId} onValueChange={handleGameChange}>
+                <SelectTrigger data-testid="select-game" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue placeholder="Select game" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="random">Random</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                  {activeGames.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>{g.displayName}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {customInput === "custom" && (
-                <Input
-                  placeholder="Enter custom key (4-19 chars)"
-                  value={customLicense}
-                  onChange={(e) => setCustomLicense(e.target.value)}
-                  minLength={4}
-                  maxLength={19}
-                  className="h-11 rounded bg-muted/50 border-border/60 font-mono"
-                  data-testid="input-custom-key"
-                />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Duration</Label>
+              <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
+                <SelectTrigger data-testid="select-duration" className="h-11 rounded bg-muted/50 border-border/60">
+                  <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {durationsLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                  {durations.map((d: GameDuration) => (
+                    <SelectItem key={d.id} value={String(d.durationHours)}>
+                      {d.label} — {formatCurrency(d.price)}/Device
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Max Devices</Label>
+              <Input
+                type="number"
+                min="1"
+                max={user?.level === 3 ? 2 : 99}
+                value={maxDevices}
+                onChange={(e) => setMaxDevices(e.target.value)}
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-max-devices"
+              />
+              {user?.level === 3 && (
+                <p className="text-xs text-muted-foreground">Reseller: max 2 devices</p>
               )}
             </div>
-          )}
 
-          {cost > 0 && (
-            <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cost</span>
-                <span className="font-bold text-primary font-mono">{user?.level === 1 ? "Free (Owner)" : formatCurrency(cost)}</span>
+            {user?.level !== 3 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Key Type</Label>
+                <Select value={customInput} onValueChange={setCustomInput}>
+                  <SelectTrigger data-testid="select-key-type" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="random">Random</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                {customInput === "custom" && (
+                  <Input
+                    placeholder="Enter custom key (4-19 chars)"
+                    value={customLicense}
+                    onChange={(e) => setCustomLicense(e.target.value)}
+                    minLength={4}
+                    maxLength={19}
+                    className="h-11 rounded bg-muted/50 border-border/60 font-mono"
+                    data-testid="input-custom-key"
+                  />
+                )}
               </div>
-              {user?.level !== 1 && (
-                <div className="flex justify-between mt-1">
-                  <span className="text-muted-foreground">Remaining</span>
-                  <span className="font-mono text-foreground">{formatCurrency((user?.saldo ?? 0) - cost)}</span>
-                </div>
-              )}
-            </div>
-          )}
+            )}
 
-          <Button
-            type="submit"
-            className="w-full h-11 rounded text-sm font-semibold"
-            disabled={generateMutation.isPending || !selectedGameId || !duration}
-            data-testid="button-generate"
-          >
-            {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}
-            Generate Key
-          </Button>
-        </form>
+            {cost > 0 && (
+              <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cost</span>
+                  <span className="font-bold text-primary font-mono">{user?.level === 1 ? "Free (Owner)" : formatCurrency(cost)}</span>
+                </div>
+                {user?.level !== 1 && (
+                  <div className="flex justify-between mt-1">
+                    <span className="text-muted-foreground">Remaining</span>
+                    <span className="font-mono text-foreground">{formatCurrency((user?.saldo ?? 0) - cost)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-11 rounded text-sm font-semibold"
+              disabled={generateMutation.isPending || !selectedGameId || !duration}
+              data-testid="button-generate"
+            >
+              {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}
+              Generate Key
+            </Button>
+          </form>
+        </div>
       </div>
 
       {generatedKey && (

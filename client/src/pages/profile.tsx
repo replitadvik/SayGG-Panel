@@ -66,127 +66,137 @@ export default function ProfilePage() {
         <p className="text-sm text-muted-foreground mt-0.5">Account settings</p>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Account Info</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <User className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Account Info</h2>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
-            {user?.username?.charAt(0).toUpperCase()}
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-lg bg-panel-header flex items-center justify-center text-lg font-bold text-panel-header-foreground">
+              {user?.username?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold" data-testid="text-profile-username">{user?.username}</p>
+              <p className="text-xs text-muted-foreground" data-testid="text-profile-level">{levelLabel}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="font-semibold" data-testid="text-profile-username">{user?.username}</p>
-            <p className="text-xs text-muted-foreground" data-testid="text-profile-level">{levelLabel}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded bg-muted/40">
-            <span className="text-muted-foreground block mb-0.5">Email</span>
-            <span className="font-medium text-foreground">{user?.email || "\u2014"}</span>
-          </div>
-          <div className="p-3 rounded bg-muted/40">
-            <span className="text-muted-foreground block mb-0.5">Balance</span>
-            <span className="font-bold text-foreground font-mono">{formatCurrency(user?.saldo ?? 0)}</span>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="p-3 rounded bg-muted/40">
+              <span className="text-muted-foreground block mb-0.5">Email</span>
+              <span className="font-medium text-foreground">{user?.email || "\u2014"}</span>
+            </div>
+            <div className="p-3 rounded bg-muted/40">
+              <span className="text-muted-foreground block mb-0.5">Balance</span>
+              <span className="font-bold text-foreground font-mono">{formatCurrency(user?.saldo ?? 0)}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Change Username</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <User className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Change Username</h2>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">New Username</Label>
-          <Input
-            value={newUsername}
-            onChange={e => setNewUsername(e.target.value)}
-            placeholder="Enter new username"
-            className="h-11 rounded bg-muted/50 border-border/60"
-            data-testid="input-new-username"
-          />
-        </div>
-        <Button
-          onClick={() => usernameMutation.mutate(newUsername)}
-          disabled={usernameMutation.isPending || newUsername === user?.username}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-username"
-        >
-          {usernameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Update Username
-        </Button>
-      </div>
-
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Lock className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Change Password</h2>
-        </div>
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+        <div className="p-5 space-y-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Current Password</Label>
-            <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-current-password" />
+            <Label className="text-sm font-medium">New Username</Label>
+            <Input
+              value={newUsername}
+              onChange={e => setNewUsername(e.target.value)}
+              placeholder="Enter new username"
+              className="h-11 rounded bg-muted/50 border-border/60"
+              data-testid="input-new-username"
+            />
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">New Password</Label>
-            <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-new-password" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Confirm New Password</Label>
-            <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-confirm-password" />
-          </div>
-          <Button type="submit" disabled={passwordMutation.isPending} className="w-full h-10 rounded text-sm" data-testid="button-save-password">
-            {passwordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Update Password
+          <Button
+            onClick={() => usernameMutation.mutate(newUsername)}
+            disabled={usernameMutation.isPending || newUsername === user?.username}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-username"
+          >
+            {usernameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Update Username
           </Button>
-        </form>
+        </div>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Telegram</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Lock className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Change Password</h2>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Telegram Chat ID</Label>
-          <Input
-            value={telegramChatId}
-            onChange={e => setTelegramChatId(e.target.value)}
-            placeholder="Enter Telegram Chat ID"
-            className="h-11 rounded bg-muted/50 border-border/60"
-            data-testid="input-telegram-chatid"
-          />
+        <div className="p-5 space-y-4">
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Current Password</Label>
+              <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-current-password" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">New Password</Label>
+              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-new-password" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Confirm New Password</Label>
+              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-confirm-password" />
+            </div>
+            <Button type="submit" disabled={passwordMutation.isPending} className="w-full h-10 rounded text-sm" data-testid="button-save-password">
+              {passwordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Update Password
+            </Button>
+          </form>
         </div>
-        <Button
-          onClick={() => telegramMutation.mutate(telegramChatId)}
-          disabled={telegramMutation.isPending}
-          className="w-full h-10 rounded text-sm"
-          data-testid="button-save-telegram"
-        >
-          {telegramMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save Telegram
-        </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Two-Factor Authentication</h2>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Telegram</h2>
         </div>
-        <div className="flex items-center justify-between p-3 rounded bg-muted/40">
-          <div>
-            <Label className="text-sm font-medium">{user?.twofaEnabled === 1 ? "2FA Enabled" : "2FA Disabled"}</Label>
-            {!user?.telegramChatId && (
-              <p className="text-xs text-muted-foreground mt-0.5">Add Telegram Chat ID first</p>
-            )}
+        <div className="p-5 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Telegram Chat ID</Label>
+            <Input
+              value={telegramChatId}
+              onChange={e => setTelegramChatId(e.target.value)}
+              placeholder="Enter Telegram Chat ID"
+              className="h-11 rounded bg-muted/50 border-border/60"
+              data-testid="input-telegram-chatid"
+            />
           </div>
-          <Switch
-            checked={user?.twofaEnabled === 1}
-            onCheckedChange={(checked) => twofaMutation.mutate(checked)}
-            disabled={twofaMutation.isPending || !user?.telegramChatId}
-            data-testid="switch-2fa"
-          />
+          <Button
+            onClick={() => telegramMutation.mutate(telegramChatId)}
+            disabled={telegramMutation.isPending}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-telegram"
+          >
+            {telegramMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Telegram
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Two-Factor Authentication</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between p-3 rounded bg-muted/40">
+            <div>
+              <Label className="text-sm font-medium">{user?.twofaEnabled === 1 ? "2FA Enabled" : "2FA Disabled"}</Label>
+              {!user?.telegramChatId && (
+                <p className="text-xs text-muted-foreground mt-0.5">Add Telegram Chat ID first</p>
+              )}
+            </div>
+            <Switch
+              checked={user?.twofaEnabled === 1}
+              onCheckedChange={(checked) => twofaMutation.mutate(checked)}
+              disabled={twofaMutation.isPending || !user?.telegramChatId}
+              data-testid="switch-2fa"
+            />
+          </div>
         </div>
       </div>
     </div>

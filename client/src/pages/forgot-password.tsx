@@ -75,8 +75,8 @@ export default function ForgotPasswordPage() {
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-            <Lock className="w-6 h-6 text-primary" />
+          <div className="mx-auto w-14 h-14 rounded-lg bg-panel-header flex items-center justify-center mb-4">
+            <Lock className="w-6 h-6 text-panel-header-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             {otpSent ? "Reset Password" : "Forgot Password"}
