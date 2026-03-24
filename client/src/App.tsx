@@ -15,7 +15,6 @@ import GeneratePage from "@/pages/generate";
 import UsersPage from "@/pages/users";
 import BalancePage from "@/pages/balance";
 import ReferralsPage from "@/pages/referrals";
-import PricesPage from "@/pages/prices";
 import GamesPage from "@/pages/games";
 import GameDurationsPage from "@/pages/game-durations";
 import SettingsPage from "@/pages/settings";
@@ -83,7 +82,7 @@ function Router() {
       <Route path="/users">{() => <ProtectedRoute component={UsersPage} />}</Route>
       <Route path="/balance">{() => <ProtectedRoute component={BalancePage} maxLevel={2} />}</Route>
       <Route path="/referrals">{() => <ProtectedRoute component={ReferralsPage} maxLevel={2} />}</Route>
-      <Route path="/prices">{() => <ProtectedRoute component={PricesPage} maxLevel={1} />}</Route>
+      <Route path="/prices">{() => <Redirect to="/games" />}</Route>
       <Route path="/games/:id/durations">{() => <ProtectedRoute component={GameDurationsPage} maxLevel={1} />}</Route>
       <Route path="/games">{() => <ProtectedRoute component={GamesPage} maxLevel={1} />}</Route>
       <Route path="/settings">{() => <ProtectedRoute component={SettingsPage} maxLevel={1} />}</Route>

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { formatCurrency } from "@/lib/currency";
 import type { Game, GameDuration } from "@shared/schema";
@@ -52,6 +52,7 @@ export default function GameDurationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "durations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
       setShowAdd(false);
       resetForm();
       toast({ title: "Duration added" });
@@ -68,6 +69,7 @@ export default function GameDurationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "durations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
       setEditDur(null);
       resetForm();
       toast({ title: "Duration updated" });
@@ -84,6 +86,7 @@ export default function GameDurationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "durations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
       setDeleteConfirm(null);
       toast({ title: "Duration deleted" });
     },
@@ -100,6 +103,7 @@ export default function GameDurationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "durations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
     },
   });
 
@@ -123,10 +127,17 @@ export default function GameDurationsPage() {
           </Button>
         </Link>
         <div className="flex-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-0.5" data-testid="text-breadcrumb">
+            <Link href="/games" className="hover:text-foreground transition-colors">Game Management</Link>
+            <span>/</span>
+            <span className="text-foreground">{game?.displayName || "..."}</span>
+          </div>
           <h1 className="text-2xl font-bold" data-testid="text-durations-title">
-            {game?.displayName || "Game"} — Durations
+            Durations & Pricing
           </h1>
-          <p className="text-sm text-muted-foreground">Manage pricing durations for this game</p>
+          <p className="text-sm text-muted-foreground">
+            Managing durations for {game?.displayName || "this game"} — {durations.length} {durations.length === 1 ? "duration" : "durations"} configured
+          </p>
         </div>
         <Button onClick={() => { resetForm(); setShowAdd(true); }} data-testid="button-add-duration">
           <Plus className="h-4 w-4 mr-2" />
@@ -139,7 +150,11 @@ export default function GameDurationsPage() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : durations.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No durations configured for this game</div>
+            <div className="text-center py-12">
+              <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground mb-1">No durations configured for {game?.displayName || "this game"}</p>
+              <p className="text-xs text-muted-foreground">Add a duration to set pricing for key generation</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -156,7 +171,9 @@ export default function GameDurationsPage() {
                   <TableRow key={d.id} data-testid={`row-duration-${d.id}`}>
                     <TableCell className="font-medium">{d.label}</TableCell>
                     <TableCell>{d.durationHours}h</TableCell>
-                    <TableCell>{formatCurrency(d.price)}</TableCell>
+                    <TableCell>
+                      <span className="font-semibold text-primary">{formatCurrency(d.price)}</span>
+                    </TableCell>
                     <TableCell>
                       <Switch
                         checked={d.isActive === 1}
@@ -184,7 +201,7 @@ export default function GameDurationsPage() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Duration</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add Duration for {game?.displayName || "Game"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Label</Label>
@@ -193,6 +210,7 @@ export default function GameDurationsPage() {
             <div className="space-y-2">
               <Label>Duration (hours)</Label>
               <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} placeholder="e.g. 24" data-testid="input-duration-hours" />
+              <p className="text-xs text-muted-foreground">Common: 1h, 2h, 24h (1 day), 168h (1 week), 720h (1 month)</p>
             </div>
             <div className="space-y-2">
               <Label>Price per device</Label>
@@ -248,7 +266,7 @@ export default function GameDurationsPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Delete Duration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>{deleteConfirm?.label}</strong>? This cannot be undone.
+            Are you sure you want to delete <strong>{deleteConfirm?.label}</strong> ({deleteConfirm?.durationHours}h, {formatCurrency(deleteConfirm?.price ?? 0)})? This cannot be undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>

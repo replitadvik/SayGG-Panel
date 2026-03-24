@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, count } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, sessionSettings,
@@ -66,6 +66,7 @@ export interface IStorage {
   getAllGames(): Promise<Game[]>;
   getActiveGames(): Promise<Game[]>;
   getGame(id: number): Promise<Game | undefined>;
+  getGameDurationCount(gameId: number): Promise<number>;
   getGameBySlug(slug: string): Promise<Game | undefined>;
   getGameByName(name: string): Promise<Game | undefined>;
   createGame(data: Partial<Game>): Promise<Game>;
@@ -352,6 +353,11 @@ export class DatabaseStorage implements IStorage {
   async getGame(id: number): Promise<Game | undefined> {
     const [g] = await db.select().from(games).where(eq(games.id, id));
     return g;
+  }
+
+  async getGameDurationCount(gameId: number): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(gameDurations).where(eq(gameDurations.gameId, gameId));
+    return result?.count ?? 0;
   }
 
   async getGameBySlug(slug: string): Promise<Game | undefined> {

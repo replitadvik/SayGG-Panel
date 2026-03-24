@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Key, Users, DollarSign, Settings,
+  LayoutDashboard, Key, Users, Settings,
   LogOut, Menu, X, ChevronDown, Wallet, Link2, User, Gamepad2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
@@ -15,8 +15,7 @@ const navItems = [
   { path: "/users", label: "Users", icon: Users, minLevel: 1 },
   { path: "/balance", label: "Balance", icon: Wallet, minLevel: 1, maxLevel: 2 },
   { path: "/referrals", label: "Referrals", icon: Link2, minLevel: 1, maxLevel: 2 },
-  { path: "/prices", label: "Prices", icon: DollarSign, minLevel: 1, maxLevel: 1 },
-  { path: "/games", label: "Games", icon: Gamepad2, minLevel: 1, maxLevel: 1 },
+  { path: "/games", label: "Game Management", icon: Gamepad2, minLevel: 1, maxLevel: 1 },
   { path: "/settings", label: "Settings", icon: Settings, minLevel: 1, maxLevel: 1 },
   { path: "/profile", label: "Profile", icon: User, minLevel: 1 },
 ];

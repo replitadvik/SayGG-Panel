@@ -28,10 +28,9 @@ client/src/
     generate.tsx    — Game-aware key generation (select game → load durations)
     users.tsx       — User management, approve/decline
     balance.tsx     — Balance topup for users
-    referrals.tsx   — Referral code CRUD
-    prices.tsx      — Price configuration (owner only)
-    games.tsx       — Games CRUD management (owner only)
-    game-durations.tsx — Per-game duration/pricing management (owner only)
+    referrals.tsx   — Referral code CRUD (role-filtered: owner sees all, admin sees own)
+    games.tsx       — Game Management hub with duration counts (owner only)
+    game-durations.tsx — Per-game duration/pricing with breadcrumb nav (owner only)
     settings.tsx    — Features, mod name, ftext, maintenance
     profile.tsx     — Username/password/telegram/2FA changes
 

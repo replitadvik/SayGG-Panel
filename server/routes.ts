@@ -1001,13 +1001,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/games", requireAuth, async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    if (user.level === 1) {
-      const allGames = await storage.getAllGames();
-      res.json(allGames);
-    } else {
-      const activeGames = await storage.getActiveGames();
-      res.json(activeGames);
-    }
+    const gameList = user.level === 1
+      ? await storage.getAllGames()
+      : await storage.getActiveGames();
+
+    const enriched = await Promise.all(gameList.map(async (g) => ({
+      ...g,
+      durationCount: await storage.getGameDurationCount(g.id),
+    })));
+    res.json(enriched);
   });
 
   app.get("/api/games/active", requireAuth, async (req, res) => {
@@ -1372,17 +1374,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       description: `Rotated connect secret to v${updated.secretVersion}, grace period ${grace}min`,
     });
     res.json({ message: "Secret rotated", version: updated.secretVersion });
-  });
-
-  app.get("/api/games", requireAuth, async (req, res) => {
-    const features = await storage.getFeatures();
-    const games: Record<string, string> = {};
-    if (features) {
-      const cfg = await storage.getConnectConfig();
-      const gameName = cfg?.gameName || DEFAULT_GAME_NAME;
-      games[gameName] = gameName;
-    }
-    res.json(games);
   });
 
   return httpServer;

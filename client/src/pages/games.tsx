@@ -5,15 +5,17 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, Gamepad2, Clock } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Gamepad2, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import type { Game } from "@shared/schema";
+
+type GameWithCount = Game & { durationCount: number };
 
 export default function GamesPage() {
   const { user } = useAuth();
@@ -23,7 +25,7 @@ export default function GamesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<Game | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", displayName: "", description: "" });
 
-  const { data: games = [], isLoading } = useQuery<Game[]>({
+  const { data: games = [], isLoading } = useQuery<GameWithCount[]>({
     queryKey: ["/api/games"],
   });
 
@@ -113,7 +115,12 @@ export default function GamesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold" data-testid="text-games-title">Games</h1>
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-games-title">Game Management</h1>
+          <p className="text-sm text-muted-foreground">
+            {games.length} {games.length === 1 ? "game" : "games"} configured
+          </p>
+        </div>
         <Button onClick={() => { resetForm(); setShowAdd(true); }} data-testid="button-add-game">
           <Plus className="h-4 w-4 mr-2" />
           Add Game
@@ -125,15 +132,18 @@ export default function GamesPage() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : games.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No games configured</div>
+            <div className="text-center py-12">
+              <Gamepad2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground mb-1">No games configured yet</p>
+              <p className="text-xs text-muted-foreground">Add a game to start managing durations and pricing</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Game</TableHead>
                   <TableHead>Slug</TableHead>
-                  <TableHead>Display Name</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Active</TableHead>
                   <TableHead>Durations</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -141,9 +151,15 @@ export default function GamesPage() {
               <TableBody>
                 {games.map((g) => (
                   <TableRow key={g.id} data-testid={`row-game-${g.id}`}>
-                    <TableCell className="font-medium">{g.name}</TableCell>
+                    <TableCell>
+                      <div>
+                        <span className="font-medium">{g.displayName}</span>
+                        {g.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{g.description}</p>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{g.slug}</code></TableCell>
-                    <TableCell>{g.displayName}</TableCell>
                     <TableCell>
                       <Switch
                         checked={g.isActive === 1}
@@ -153,9 +169,10 @@ export default function GamesPage() {
                     </TableCell>
                     <TableCell>
                       <Link href={`/games/${g.id}/durations`}>
-                        <Button variant="outline" size="sm" data-testid={`button-durations-${g.id}`}>
-                          <Clock className="h-3 w-3 mr-1" />
-                          Durations
+                        <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-durations-${g.id}`}>
+                          <Clock className="h-3 w-3" />
+                          {g.durationCount} {g.durationCount === 1 ? "duration" : "durations"}
+                          <ChevronRight className="h-3 w-3 ml-0.5" />
                         </Button>
                       </Link>
                     </TableCell>
@@ -243,7 +260,7 @@ export default function GamesPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Delete Game</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This cannot be undone.
+            Are you sure you want to delete <strong>{deleteConfirm?.displayName}</strong>? This cannot be undone.
             Games with existing keys cannot be deleted.
           </p>
           <DialogFooter>
