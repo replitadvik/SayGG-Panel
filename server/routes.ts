@@ -870,7 +870,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.get("/api/referrals", requireLevel(2), async (req, res) => {
-    const codes = await storage.getReferralCodes();
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    let codes;
+    if (user.level === 1) {
+      codes = await storage.getReferralCodes();
+    } else {
+      codes = await storage.getReferralCodesByCreator(user.username);
+    }
     res.json(codes);
   });
 

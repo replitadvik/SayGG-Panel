@@ -65,7 +65,12 @@ export default function ReferralsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold" data-testid="text-referrals-title">Referral Codes</h1>
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-referrals-title">Referral Codes</h1>
+          <p className="text-sm text-muted-foreground" data-testid="text-referrals-scope">
+            {user?.level === 1 ? "All Referral History" : "Your Referral History"}
+          </p>
+        </div>
         <Button onClick={() => setShowCreate(true)} data-testid="button-create-referral">
           <Plus className="h-4 w-4 mr-2" />
           Create Code

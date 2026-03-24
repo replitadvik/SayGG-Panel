@@ -28,6 +28,7 @@ export interface IStorage {
   deleteKeys(ids: number[]): Promise<void>;
 
   getReferralCodes(): Promise<ReferralCode[]>;
+  getReferralCodesByCreator(createdBy: string): Promise<ReferralCode[]>;
   createReferral(data: Partial<ReferralCode>): Promise<ReferralCode>;
   checkReferralCode(code: string): Promise<ReferralCode | undefined>;
   useReferral(id: number, usedBy: string): Promise<void>;
@@ -153,6 +154,12 @@ export class DatabaseStorage implements IStorage {
 
   async getReferralCodes(): Promise<ReferralCode[]> {
     return db.select().from(referralCode).orderBy(desc(referralCode.id));
+  }
+
+  async getReferralCodesByCreator(createdBy: string): Promise<ReferralCode[]> {
+    return db.select().from(referralCode)
+      .where(eq(referralCode.createdBy, createdBy))
+      .orderBy(desc(referralCode.id));
   }
 
   async createReferral(data: Partial<ReferralCode>): Promise<ReferralCode> {
