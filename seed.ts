@@ -46,7 +46,7 @@ async function seed() {
   await db.insert(modname).values({ modname: "PowerHouse" } as any);
   console.log("Set default mod name.");
 
-  await db.insert(ftext).values({ _status: "on", _ftext: "Welcome to Key-Panel" } as any);
+  await db.insert(ftext).values({ _status: "on", _ftext: "Welcome" } as any);
   console.log("Set default floating text.");
 
   await db.insert(onoff).values({ status: "off", myinput: "" } as any);
