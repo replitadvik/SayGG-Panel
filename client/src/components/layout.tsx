@@ -50,9 +50,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 bg-panel-header border-b border-white/5">
         <div className="flex items-center justify-between h-14 px-4 lg:px-6">
           <div className="flex items-center gap-2.5">
-            <span className="text-base font-semibold tracking-tight text-panel-header-foreground" data-testid="text-brand-header">
+            <Link href="/" className="text-base font-semibold tracking-tight text-panel-header-foreground hover:text-panel-header-foreground/80 transition-colors" data-testid="text-brand-header">
               {siteName}
-            </span>
+            </Link>
             <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-panel-header-foreground/10 text-panel-header-foreground/80 border border-panel-header-foreground/10">
               {levelLabel}
             </span>
