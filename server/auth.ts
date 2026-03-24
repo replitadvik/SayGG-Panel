@@ -35,7 +35,7 @@ export function generateKeyLicense(durationHours: number): string {
   for (let i = 0; i < 5; i++) {
     suffix += chars[Math.floor(Math.random() * chars.length)];
   }
-  return `PowerHouse_${durationLabel}_${suffix}`;
+  return `SayGG_${durationLabel}_${suffix}`;
 }
 
 export function getDurationLabel(hours: number): string {

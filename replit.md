@@ -83,7 +83,7 @@ docs/
 - `game_durations` — per-game pricing tiers (gameId FK, durationHours, label, price, isActive)
 
 ## Key Business Logic
-- Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
+- Key format: `SayGG_[DurationLabel]_[5-char-random]`
 - Reseller restrictions: max 2 devices, no custom keys
 - Key device reset: non-owners limited to 3 resets (tracked via key_reset_time counter)
 - User device reset: limit 2 per 24 hours (PHP parity with deviceResetLimit=2)
