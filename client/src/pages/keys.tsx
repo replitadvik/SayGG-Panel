@@ -158,7 +158,7 @@ export default function KeysPage() {
             size="sm"
             onClick={() => bulkDeleteMutation.mutate(selectedKeys)}
             disabled={bulkDeleteMutation.isPending}
-            className="h-9 rounded-lg text-xs"
+            className="h-9 rounded text-xs"
             data-testid="button-bulk-delete"
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
@@ -174,12 +174,12 @@ export default function KeysPage() {
             placeholder="Search keys..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-10 rounded-xl bg-muted/50 border-border/60"
+            className="pl-10 h-10 rounded bg-muted/50 border-border/60"
             data-testid="input-search-keys"
           />
         </div>
         {filtered.length > 0 && (
-          <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-border/60 bg-card">
+          <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-border/60 bg-card">
             <Checkbox
               checked={selectedKeys.length === filtered.length && filtered.length > 0}
               onCheckedChange={toggleAll}
@@ -204,7 +204,7 @@ export default function KeysPage() {
           {filtered.map(key => (
             <div
               key={key.id}
-              className="rounded-xl border border-border/60 bg-card p-4 shadow-sm"
+              className="rounded-lg border border-border/60 bg-card p-4 shadow-sm"
               data-testid={`row-key-${key.id}`}
             >
               <div className="flex items-start gap-3">
@@ -221,7 +221,7 @@ export default function KeysPage() {
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <Badge variant={key.status === 1 ? "default" : "destructive"} className="text-[10px] rounded-full flex-shrink-0">
+                    <Badge variant={key.status === 1 ? "default" : "destructive"} className="text-[10px] rounded flex-shrink-0">
                       {key.status === 1 ? "Active" : "Inactive"}
                     </Badge>
                   </div>
@@ -236,18 +236,18 @@ export default function KeysPage() {
                   <div className="text-[11px] text-muted-foreground">{formatDate(key.expiredDate)}</div>
 
                   <div className="flex items-center gap-1 pt-1">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={() => openEdit(key)} data-testid={`button-edit-key-${key.id}`}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded" onClick={() => openEdit(key)} data-testid={`button-edit-key-${key.id}`}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
                     {(user?.level === 1 || user?.level === 2) && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={() => { setExtendKey(key); setExtendDuration(""); }} data-testid={`button-extend-key-${key.id}`}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded" onClick={() => { setExtendKey(key); setExtendDuration(""); }} data-testid={`button-extend-key-${key.id}`}>
                         <Clock className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={() => resetDeviceMutation.mutate(key.id)} data-testid={`button-reset-key-${key.id}`}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded" onClick={() => resetDeviceMutation.mutate(key.id)} data-testid={`button-reset-key-${key.id}`}>
                       <RotateCcw className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-destructive" onClick={() => deleteMutation.mutate(key.id)} data-testid={`button-delete-key-${key.id}`}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded text-destructive" onClick={() => deleteMutation.mutate(key.id)} data-testid={`button-delete-key-${key.id}`}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -259,7 +259,7 @@ export default function KeysPage() {
       )}
 
       <Dialog open={!!editKey} onOpenChange={() => setEditKey(null)}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Edit Key</DialogTitle>
           </DialogHeader>
@@ -268,20 +268,20 @@ export default function KeysPage() {
               <>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Game</Label>
-                  <Input value={editForm.game || ""} onChange={e => setEditForm({...editForm, game: e.target.value})} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-game" />
+                  <Input value={editForm.game || ""} onChange={e => setEditForm({...editForm, game: e.target.value})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-game" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Key</Label>
-                  <Input value={editForm.userKey || ""} onChange={e => setEditForm({...editForm, userKey: e.target.value})} className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono" data-testid="input-edit-key" />
+                  <Input value={editForm.userKey || ""} onChange={e => setEditForm({...editForm, userKey: e.target.value})} className="h-11 rounded bg-muted/50 border-border/60 font-mono" data-testid="input-edit-key" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Duration (hrs)</Label>
-                    <Input type="number" value={editForm.duration || ""} onChange={e => setEditForm({...editForm, duration: parseInt(e.target.value)})} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration" />
+                    <Input type="number" value={editForm.duration || ""} onChange={e => setEditForm({...editForm, duration: parseInt(e.target.value)})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Max Devices</Label>
-                    <Input type="number" value={editForm.maxDevices || ""} onChange={e => setEditForm({...editForm, maxDevices: parseInt(e.target.value)})} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-max-devices" />
+                    <Input type="number" value={editForm.maxDevices || ""} onChange={e => setEditForm({...editForm, maxDevices: parseInt(e.target.value)})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-devices" />
                   </div>
                 </div>
               </>
@@ -289,7 +289,7 @@ export default function KeysPage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Status</Label>
               <Select value={String(editForm.status)} onValueChange={v => setEditForm({...editForm, status: parseInt(v)})}>
-                <SelectTrigger data-testid="select-edit-status" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-edit-status" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">Active</SelectItem>
                   <SelectItem value="0">Inactive</SelectItem>
@@ -298,11 +298,11 @@ export default function KeysPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditKey(null)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setEditKey(null)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => updateMutation.mutate({ id: editKey.id, data: editForm })}
               disabled={updateMutation.isPending}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-save-edit"
             >
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
@@ -313,12 +313,12 @@ export default function KeysPage() {
       </Dialog>
 
       <Dialog open={!!extendKey} onOpenChange={() => setExtendKey(null)}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Extend Duration</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-muted/60 border border-border/60 text-sm space-y-1.5">
+            <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm space-y-1.5">
               <div className="text-muted-foreground">Key: <code className="font-mono text-foreground">{extendKey?.userKey}</code></div>
               <div className="text-muted-foreground">Current: <span className="text-foreground">{extendKey ? formatDuration(extendKey.duration) : ""}</span></div>
               <div className="text-muted-foreground">Expiry: <span className="text-foreground">{extendKey ? formatDate(extendKey.expiredDate) : ""}</span></div>
@@ -329,18 +329,18 @@ export default function KeysPage() {
                 value={extendDuration}
                 onChange={e => setExtendDuration(e.target.value.toUpperCase())}
                 placeholder="e.g. 30D, 12H, 7D"
-                className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono"
+                className="h-11 rounded bg-muted/50 border-border/60 font-mono"
                 data-testid="input-extend-duration"
               />
               <p className="text-xs text-muted-foreground">Format: number + D (days) or H (hours)</p>
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setExtendKey(null)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setExtendKey(null)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => extendMutation.mutate({ id: extendKey.id, duration: extendDuration })}
               disabled={extendMutation.isPending || !extendDuration}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-extend-save"
             >
               {extendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}

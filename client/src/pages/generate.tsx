@@ -89,7 +89,7 @@ export default function GeneratePage() {
         <p className="text-sm text-muted-foreground mt-0.5">Create a new license key</p>
       </div>
 
-      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+      <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
         <Wallet className="h-5 w-5 text-primary flex-shrink-0" />
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">Your Balance</p>
@@ -97,12 +97,12 @@ export default function GeneratePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Game</Label>
             <Select value={selectedGameId} onValueChange={handleGameChange}>
-              <SelectTrigger data-testid="select-game" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue placeholder="Select game" /></SelectTrigger>
+              <SelectTrigger data-testid="select-game" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue placeholder="Select game" /></SelectTrigger>
               <SelectContent>
                 {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
                 {activeGames.map((g) => (
@@ -115,7 +115,7 @@ export default function GeneratePage() {
           <div className="space-y-2">
             <Label className="text-sm font-medium">Duration</Label>
             <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
-              <SelectTrigger data-testid="select-duration" className="h-11 rounded-xl bg-muted/50 border-border/60">
+              <SelectTrigger data-testid="select-duration" className="h-11 rounded bg-muted/50 border-border/60">
                 <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
               </SelectTrigger>
               <SelectContent>
@@ -137,7 +137,7 @@ export default function GeneratePage() {
               max={user?.level === 3 ? 2 : 99}
               value={maxDevices}
               onChange={(e) => setMaxDevices(e.target.value)}
-              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              className="h-11 rounded bg-muted/50 border-border/60"
               data-testid="input-max-devices"
             />
             {user?.level === 3 && (
@@ -149,7 +149,7 @@ export default function GeneratePage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Key Type</Label>
               <Select value={customInput} onValueChange={setCustomInput}>
-                <SelectTrigger data-testid="select-key-type" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-key-type" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="random">Random</SelectItem>
                   <SelectItem value="custom">Custom</SelectItem>
@@ -162,7 +162,7 @@ export default function GeneratePage() {
                   onChange={(e) => setCustomLicense(e.target.value)}
                   minLength={4}
                   maxLength={19}
-                  className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono"
+                  className="h-11 rounded bg-muted/50 border-border/60 font-mono"
                   data-testid="input-custom-key"
                 />
               )}
@@ -170,7 +170,7 @@ export default function GeneratePage() {
           )}
 
           {cost > 0 && (
-            <div className="p-4 rounded-xl bg-muted/60 border border-border/60 text-sm">
+            <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cost</span>
                 <span className="font-bold text-primary font-mono">{formatCurrency(cost)}</span>
@@ -184,7 +184,7 @@ export default function GeneratePage() {
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl text-sm font-semibold"
+            className="w-full h-11 rounded text-sm font-semibold"
             disabled={generateMutation.isPending || !selectedGameId || !duration}
             data-testid="button-generate"
           >
@@ -195,14 +195,14 @@ export default function GeneratePage() {
       </div>
 
       {generatedKey && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 shadow-sm">
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-5 shadow-sm">
           <div className="text-center space-y-3">
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Generated Successfully</div>
             <div className="flex items-center justify-center gap-2">
-              <code className="text-sm font-mono font-bold bg-card px-4 py-2.5 rounded-xl border border-border/60" data-testid="text-generated-key">
+              <code className="text-sm font-mono font-bold bg-card px-4 py-2.5 rounded border border-border/60" data-testid="text-generated-key">
                 {generatedKey.key?.userKey}
               </code>
-              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={handleCopy} data-testid="button-copy-key">
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded" onClick={handleCopy} data-testid="button-copy-key">
                 {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>

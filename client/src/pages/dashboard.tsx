@@ -12,12 +12,12 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <Skeleton className="h-7 w-32 rounded-lg" />
-          <Skeleton className="h-4 w-48 rounded-lg mt-2" />
+          <Skeleton className="h-7 w-32 rounded" />
+          <Skeleton className="h-4 w-48 rounded mt-2" />
         </div>
         <div className="grid gap-3 grid-cols-2">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+            <Skeleton key={i} className="h-24 rounded" />
           ))}
         </div>
       </div>
@@ -40,7 +40,7 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold tracking-tight" data-testid="text-dashboard-title">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Overview of your panel</p>
         </div>
-        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary" data-testid="text-user-level">
+        <span className="inline-flex items-center px-3 py-1.5 rounded text-xs font-medium bg-primary/10 text-primary" data-testid="text-user-level">
           {stats?.levelName}
         </span>
       </div>
@@ -49,12 +49,12 @@ export default function DashboardPage() {
         {cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
+            className="rounded-lg border border-border/60 bg-card p-4 shadow-sm"
             data-testid={`card-${card.title.toLowerCase().replace(/\s/g, "-")}`}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-muted-foreground">{card.title}</span>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.color}`}>
+              <div className={`w-8 h-8 rounded flex items-center justify-center ${card.color}`}>
                 <card.icon className="h-4 w-4" />
               </div>
             </div>

@@ -63,7 +63,7 @@ export default function ReferralsPage() {
             {user?.level === 1 ? "All referral history" : "Your referral history"}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="h-10 rounded-xl text-sm" data-testid="button-create-referral">
+        <Button onClick={() => setShowCreate(true)} className="h-10 rounded text-sm" data-testid="button-create-referral">
           <Plus className="h-4 w-4 mr-1.5" />
           Create
         </Button>
@@ -81,18 +81,18 @@ export default function ReferralsPage() {
       ) : (
         <div className="space-y-2">
           {referrals.map(ref => (
-            <div key={ref.id} className="rounded-xl border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-referral-${ref.id}`}>
+            <div key={ref.id} className="rounded-lg border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-referral-${ref.id}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <code className="text-xs bg-muted/60 px-2.5 py-1 rounded-lg font-mono">{ref.code}</code>
+                  <code className="text-xs bg-muted/60 px-2.5 py-1 rounded font-mono">{ref.code}</code>
                   <button onClick={() => handleCopy(ref.code)} className="text-muted-foreground hover:text-primary">
                     <Copy className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 {ref.usedBy ? (
-                  <Badge variant="secondary" className="rounded-full text-[10px]">Used</Badge>
+                  <Badge variant="secondary" className="rounded text-[10px]">Used</Badge>
                 ) : (
-                  <Badge variant="default" className="rounded-full text-[10px]">Available</Badge>
+                  <Badge variant="default" className="rounded text-[10px]">Available</Badge>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
@@ -107,7 +107,7 @@ export default function ReferralsPage() {
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
               <Link2 className="h-5 w-5" /> Create Referral
@@ -117,7 +117,7 @@ export default function ReferralsPage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Account Level</Label>
               <Select value={createForm.level} onValueChange={v => setCreateForm({ ...createForm, level: v })}>
-                <SelectTrigger data-testid="select-ref-level" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-ref-level" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {user?.level === 1 && <SelectItem value="1">Owner</SelectItem>}
                   <SelectItem value="2">Admin</SelectItem>
@@ -127,15 +127,15 @@ export default function ReferralsPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Starting Balance</Label>
-              <Input type="number" min="0" value={createForm.setSaldo} onChange={e => setCreateForm({ ...createForm, setSaldo: e.target.value })} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-ref-saldo" />
+              <Input type="number" min="0" value={createForm.setSaldo} onChange={e => setCreateForm({ ...createForm, setSaldo: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-saldo" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Expiration Date (optional)</Label>
-              <Input type="date" value={createForm.accExpiration} onChange={e => setCreateForm({ ...createForm, accExpiration: e.target.value })} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-ref-expiration" />
+              <Input type="date" value={createForm.accExpiration} onChange={e => setCreateForm({ ...createForm, accExpiration: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-expiration" />
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" type="button" onClick={() => setShowCreate(false)} className="rounded-xl h-10">Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending} className="rounded-xl h-10" data-testid="button-submit-referral">
+              <Button variant="outline" type="button" onClick={() => setShowCreate(false)} className="rounded h-10">Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending} className="rounded h-10" data-testid="button-submit-referral">
                 {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create
               </Button>

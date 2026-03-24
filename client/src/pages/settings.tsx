@@ -111,14 +111,14 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-0.5">System configuration</p>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Feature Toggles</h2>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {featureList.map(f => (
-            <div key={f} className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+            <div key={f} className="flex items-center justify-between p-3 rounded bg-muted/40">
               <Label className="text-sm font-medium">{f}</Label>
               <Switch
                 checked={featureState[f] === "on"}
@@ -133,7 +133,7 @@ export default function SettingsPage() {
         <Button
           onClick={() => featuresMutation.mutate(featureState)}
           disabled={featuresMutation.isPending}
-          className="w-full h-10 rounded-xl text-sm"
+          className="w-full h-10 rounded text-sm"
           data-testid="button-save-features"
         >
           {featuresMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -141,7 +141,7 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Settings className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Mod Name</h2>
@@ -150,13 +150,13 @@ export default function SettingsPage() {
           value={modname}
           onChange={e => setModname(e.target.value)}
           placeholder="Enter mod name"
-          className="h-11 rounded-xl bg-muted/50 border-border/60"
+          className="h-11 rounded bg-muted/50 border-border/60"
           data-testid="input-modname"
         />
         <Button
           onClick={() => modnameMutation.mutate(modname)}
           disabled={modnameMutation.isPending}
-          className="w-full h-10 rounded-xl text-sm"
+          className="w-full h-10 rounded text-sm"
           data-testid="button-save-modname"
         >
           {modnameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -164,7 +164,7 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Type className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Floating Text</h2>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
             value={ftextStatus}
             onChange={e => setFtextStatus(e.target.value)}
             placeholder="Status text"
-            className="h-11 rounded-xl bg-muted/50 border-border/60"
+            className="h-11 rounded bg-muted/50 border-border/60"
             data-testid="input-ftext-status"
           />
         </div>
@@ -186,14 +186,14 @@ export default function SettingsPage() {
             onChange={e => setFtextContent(e.target.value)}
             placeholder="Credit text"
             rows={3}
-            className="rounded-xl bg-muted/50 border-border/60"
+            className="rounded bg-muted/50 border-border/60"
             data-testid="input-ftext-content"
           />
         </div>
         <Button
           onClick={() => ftextMutation.mutate({ _status: ftextStatus, _ftext: ftextContent })}
           disabled={ftextMutation.isPending}
-          className="w-full h-10 rounded-xl text-sm"
+          className="w-full h-10 rounded text-sm"
           data-testid="button-save-ftext"
         >
           {ftextMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -201,12 +201,12 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Wrench className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Maintenance Mode</h2>
         </div>
-        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+        <div className="flex items-center justify-between p-3 rounded bg-muted/40">
           <Label className="text-sm font-medium">{maintStatus === "on" ? "Maintenance ON" : "Maintenance OFF"}</Label>
           <Switch
             checked={maintStatus === "on"}
@@ -221,14 +221,14 @@ export default function SettingsPage() {
             onChange={e => setMaintInput(e.target.value)}
             placeholder="Message shown during maintenance"
             rows={2}
-            className="rounded-xl bg-muted/50 border-border/60"
+            className="rounded bg-muted/50 border-border/60"
             data-testid="input-maintenance-message"
           />
         </div>
         <Button
           onClick={() => maintenanceMutation.mutate({ status: maintStatus, myinput: maintInput })}
           disabled={maintenanceMutation.isPending}
-          className="w-full h-10 rounded-xl text-sm"
+          className="w-full h-10 rounded text-sm"
           data-testid="button-save-maintenance"
         >
           {maintenanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -236,7 +236,7 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Session Settings</h2>
@@ -248,7 +248,7 @@ export default function SettingsPage() {
               value={sessionNormalTtl}
               onChange={e => setSessionNormalTtl(e.target.value)}
               placeholder="e.g. 30m, 1h, 7d"
-              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              className="h-11 rounded bg-muted/50 border-border/60"
               data-testid="input-session-normal-ttl"
             />
             <p className="text-xs text-muted-foreground">Default: {sessionData?.envNormalTtl || "30m"}</p>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
               value={sessionRememberTtl}
               onChange={e => setSessionRememberTtl(e.target.value)}
               placeholder="e.g. 24h, 7d, 30d"
-              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              className="h-11 rounded bg-muted/50 border-border/60"
               data-testid="input-session-remember-ttl"
             />
             <p className="text-xs text-muted-foreground">Default: {sessionData?.envRememberMeTtl || "24h"}</p>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
           <Button
             onClick={() => sessionMutation.mutate({ normalTtl: sessionNormalTtl, rememberMeTtl: sessionRememberTtl })}
             disabled={sessionMutation.isPending}
-            className="flex-1 h-10 rounded-xl text-sm"
+            className="flex-1 h-10 rounded text-sm"
             data-testid="button-save-session"
           >
             {sessionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -285,7 +285,7 @@ export default function SettingsPage() {
             variant="outline"
             onClick={() => sessionResetMutation.mutate()}
             disabled={sessionResetMutation.isPending}
-            className="h-10 rounded-xl text-sm"
+            className="h-10 rounded text-sm"
             data-testid="button-reset-session"
           >
             {sessionResetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

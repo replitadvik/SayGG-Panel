@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       data-testid="button-copy-secret"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -145,7 +145,7 @@ export default function ConnectConfigPage() {
         <p className="text-sm text-muted-foreground mt-0.5">Manage connect secret & settings</p>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <Key className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Active Connect Secret</h2>
@@ -153,42 +153,42 @@ export default function ConnectConfigPage() {
 
         {config?.activeSecret ? (
           <>
-            <div className="p-4 rounded-xl bg-muted/60 border border-border/60 space-y-3">
+            <div className="p-4 rounded bg-muted/60 border border-border/60 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Secret</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium" data-testid="text-secret-version">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium" data-testid="text-secret-version">
                     v{config.secretVersion}
                   </span>
                   <CopyButton text={config.activeSecret} />
                 </div>
               </div>
-              <code className="block text-xs font-mono break-all p-3 bg-background rounded-lg border border-border/60 select-all" data-testid="text-connect-active-secret">
+              <code className="block text-xs font-mono break-all p-3 bg-background rounded border border-border/60 select-all" data-testid="text-connect-active-secret">
                 {config.activeSecret}
               </code>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg bg-muted/40">
+              <div className="p-3 rounded bg-muted/40">
                 <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Created</span>
                 <p className="font-medium" data-testid="text-secret-created-at">{formatDate(config.createdAt)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/40">
+              <div className="p-3 rounded bg-muted/40">
                 <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Created By</span>
                 <p className="font-medium" data-testid="text-secret-created-by">{config.createdBy || "System"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/40">
+              <div className="p-3 rounded bg-muted/40">
                 <span className="text-muted-foreground flex items-center gap-1 mb-1"><Clock className="h-3 w-3" /> Changed</span>
                 <p className="font-medium" data-testid="text-secret-changed-at">{formatDate(config.changedAt)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/40">
+              <div className="p-3 rounded bg-muted/40">
                 <span className="text-muted-foreground flex items-center gap-1 mb-1"><User className="h-3 w-3" /> Changed By</span>
                 <p className="font-medium" data-testid="text-secret-changed-by">{config.changedBy || "\u2014"}</p>
               </div>
             </div>
 
             {gracePeriodActive && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+              <div className="p-3 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
                 <span className="font-medium">Grace Period Active</span> \u2014 Previous secret accepted until {formatDate(config.gracePeriodUntil)}
               </div>
             )}
@@ -198,7 +198,7 @@ export default function ConnectConfigPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => { setEditSecretValue(config.activeSecret); setEditSecretOpen(true); }}
-                className="rounded-lg gap-1.5 text-xs h-9"
+                className="rounded gap-1.5 text-xs h-9"
                 data-testid="button-edit-secret"
               >
                 <Pencil className="h-3.5 w-3.5" /> Edit
@@ -207,7 +207,7 @@ export default function ConnectConfigPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setRotateOpen(true)}
-                className="rounded-lg gap-1.5 text-xs h-9"
+                className="rounded gap-1.5 text-xs h-9"
                 data-testid="button-rotate-secret"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> Rotate
@@ -218,7 +218,7 @@ export default function ConnectConfigPage() {
           <div className="text-center py-8">
             <Key className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground mb-3">No connect secret configured</p>
-            <Button size="sm" onClick={() => setRotateOpen(true)} className="rounded-xl h-9 text-xs" data-testid="button-create-secret">
+            <Button size="sm" onClick={() => setRotateOpen(true)} className="rounded h-9 text-xs" data-testid="button-create-secret">
               Create Secret
             </Button>
           </div>
@@ -226,7 +226,7 @@ export default function ConnectConfigPage() {
       </div>
 
       {config?.previousSecret && (
-        <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
           <button className="w-full flex items-center justify-between p-5" onClick={() => setShowPrevious(!showPrevious)}>
             <span className="flex items-center gap-2 text-sm font-semibold">
               <Shield className="h-4 w-4 text-muted-foreground" />
@@ -236,12 +236,12 @@ export default function ConnectConfigPage() {
           </button>
           {showPrevious && (
             <div className="px-5 pb-5 space-y-3 border-t border-border/60 pt-4">
-              <div className="p-4 rounded-xl bg-muted/60 border border-border/60 space-y-2">
+              <div className="p-4 rounded bg-muted/60 border border-border/60 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Previous Secret</span>
                   <CopyButton text={config.previousSecret} />
                 </div>
-                <code className="block text-xs font-mono break-all p-3 bg-background rounded-lg border border-border/60 select-all" data-testid="text-connect-previous-secret">
+                <code className="block text-xs font-mono break-all p-3 bg-background rounded border border-border/60 select-all" data-testid="text-connect-previous-secret">
                   {config.previousSecret}
                 </code>
               </div>
@@ -255,7 +255,7 @@ export default function ConnectConfigPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Connect Settings</h2>
@@ -267,13 +267,13 @@ export default function ConnectConfigPage() {
               value={gameName}
               onChange={e => setGameName(e.target.value)}
               placeholder="e.g. PUBG"
-              className="h-11 rounded-xl bg-muted/50 border-border/60"
+              className="h-11 rounded bg-muted/50 border-border/60"
               data-testid="input-connect-game-name"
             />
             <Button
               onClick={() => gameNameMutation.mutate(gameName)}
               disabled={gameNameMutation.isPending || !gameName.trim()}
-              className="rounded-xl h-11"
+              className="rounded h-11"
               data-testid="button-save-game-name"
             >
               {gameNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
@@ -283,7 +283,7 @@ export default function ConnectConfigPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
         <button className="w-full flex items-center justify-between p-5" onClick={() => setShowAudit(!showAudit)}>
           <span className="flex items-center gap-2 text-sm font-semibold">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -308,7 +308,7 @@ export default function ConnectConfigPage() {
             ) : (
               <div className="space-y-2">
                 {auditLogs.map((log: any) => (
-                  <div key={log.id} className="flex gap-3 p-3 rounded-xl bg-muted/40 text-xs" data-testid={`audit-log-${log.id}`}>
+                  <div key={log.id} className="flex gap-3 p-3 rounded bg-muted/40 text-xs" data-testid={`audit-log-${log.id}`}>
                     <div className="flex-shrink-0 mt-0.5">
                       {log.actionType === "rotate" ? (
                         <RotateCcw className="h-3.5 w-3.5 text-orange-500" />
@@ -345,7 +345,7 @@ export default function ConnectConfigPage() {
       </div>
 
       <Dialog open={editSecretOpen} onOpenChange={setEditSecretOpen}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit Active Secret</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -354,7 +354,7 @@ export default function ConnectConfigPage() {
                 value={editSecretValue}
                 onChange={e => setEditSecretValue(e.target.value)}
                 placeholder="Enter secret (min 16 characters)"
-                className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono text-xs"
+                className="h-11 rounded bg-muted/50 border-border/60 font-mono text-xs"
                 data-testid="input-edit-secret"
               />
               <p className="text-xs text-muted-foreground">
@@ -363,11 +363,11 @@ export default function ConnectConfigPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditSecretOpen(false)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setEditSecretOpen(false)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => editSecretMutation.mutate(editSecretValue)}
               disabled={editSecretMutation.isPending || editSecretValue.trim().length < 16}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-confirm-edit-secret"
             >
               {editSecretMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -378,7 +378,7 @@ export default function ConnectConfigPage() {
       </Dialog>
 
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader><DialogTitle className="text-base font-semibold">Rotate Connect Secret</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -388,7 +388,7 @@ export default function ConnectConfigPage() {
                   value={rotateSecret}
                   onChange={e => setRotateSecret(e.target.value)}
                   placeholder="Enter new secret (min 16 chars)"
-                  className="h-11 rounded-xl bg-muted/50 border-border/60 font-mono text-xs"
+                  className="h-11 rounded bg-muted/50 border-border/60 font-mono text-xs"
                   data-testid="input-rotate-secret"
                 />
                 <Button
@@ -396,7 +396,7 @@ export default function ConnectConfigPage() {
                   size="sm"
                   onClick={() => generateMutation.mutate()}
                   disabled={generateMutation.isPending}
-                  className="rounded-xl h-11 gap-1.5 whitespace-nowrap text-xs"
+                  className="rounded h-11 gap-1.5 whitespace-nowrap text-xs"
                   data-testid="button-generate-secret"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${generateMutation.isPending ? "animate-spin" : ""}`} />
@@ -406,16 +406,16 @@ export default function ConnectConfigPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Grace Period (minutes)</Label>
-              <Input type="number" min="0" max="1440" value={gracePeriod} onChange={e => setGracePeriod(e.target.value)} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-grace-period" />
+              <Input type="number" min="0" max="1440" value={gracePeriod} onChange={e => setGracePeriod(e.target.value)} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-grace-period" />
               <p className="text-xs text-muted-foreground">Both old and new secrets accepted during this period (0-1440 min)</p>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Note (optional)</Label>
-              <Input value={rotateNote} onChange={e => setRotateNote(e.target.value)} placeholder="e.g. Scheduled rotation" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-rotate-note" />
+              <Input value={rotateNote} onChange={e => setRotateNote(e.target.value)} placeholder="e.g. Scheduled rotation" className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-rotate-note" />
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setRotateOpen(false)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setRotateOpen(false)} className="rounded h-10">Cancel</Button>
             <Button
               variant="destructive"
               onClick={() => rotateMutation.mutate({
@@ -424,7 +424,7 @@ export default function ConnectConfigPage() {
                 note: rotateNote,
               })}
               disabled={rotateMutation.isPending || rotateSecret.trim().length < 16}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-confirm-rotate"
             >
               {rotateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

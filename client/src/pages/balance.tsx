@@ -57,7 +57,7 @@ export default function BalancePage() {
         <p className="text-sm text-muted-foreground mt-0.5">Add balance to user accounts</p>
       </div>
 
-      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+      <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
         <Wallet className="h-5 w-5 text-primary flex-shrink-0" />
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">Your Balance</p>
@@ -65,7 +65,7 @@ export default function BalancePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+      <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -75,7 +75,7 @@ export default function BalancePage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Select User</Label>
               <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger data-testid="select-topup-user" className="h-11 rounded-xl bg-muted/50 border-border/60"><SelectValue placeholder="Choose a user" /></SelectTrigger>
+                <SelectTrigger data-testid="select-topup-user" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue placeholder="Choose a user" /></SelectTrigger>
                 <SelectContent>
                   {activeUsers.map(u => (
                     <SelectItem key={u.id} value={String(u.id)}>
@@ -94,7 +94,7 @@ export default function BalancePage() {
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="h-11 rounded-xl bg-muted/50 border-border/60"
+                className="h-11 rounded bg-muted/50 border-border/60"
                 data-testid="input-topup-amount"
               />
             </div>
@@ -105,14 +105,14 @@ export default function BalancePage() {
                 placeholder="Reason for topup"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="h-11 rounded-xl bg-muted/50 border-border/60"
+                className="h-11 rounded bg-muted/50 border-border/60"
                 data-testid="input-topup-note"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-11 rounded-xl text-sm font-semibold"
+              className="w-full h-11 rounded text-sm font-semibold"
               disabled={topupMutation.isPending}
               data-testid="button-topup"
             >

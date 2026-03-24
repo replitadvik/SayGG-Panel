@@ -51,19 +51,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <span className="text-base font-semibold tracking-tight text-foreground" data-testid="text-brand-header">
               Key-Panel
             </span>
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
               {levelLabel}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground mr-1 hidden sm:block" data-testid="text-header-saldo">
               <span className="font-medium font-mono text-foreground">{formatCurrency(user?.saldo ?? 0)}</span>
             </span>
 
             <button
               onClick={toggleTheme}
-              className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               data-testid="button-theme-toggle"
               aria-label="Toggle theme"
             >
@@ -72,7 +72,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             <button
               onClick={() => setSheetOpen(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               data-testid="button-open-sidebar"
               aria-label="Open menu"
             >
@@ -92,7 +92,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
           <SheetHeader className="p-5 pb-4 border-b border-border/60">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
                 {user?.username?.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-muted-foreground" data-testid="text-sidebar-level">{levelLabel}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-3 px-3 py-2.5 rounded-lg bg-muted/60">
+            <div className="flex items-center justify-between mt-3 px-3 py-2.5 rounded bg-muted/60 border border-border/40">
               <span className="text-xs text-muted-foreground">Balance</span>
               <span className="text-sm font-semibold font-mono text-foreground" data-testid="text-header-saldo">
                 {formatCurrency(user?.saldo ?? 0)}
@@ -117,7 +117,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <Link key={item.path} href={item.path}>
                   <div
                     data-testid={`nav-${item.label.toLowerCase()}`}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer mb-0.5 ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all cursor-pointer mb-0.5 ${
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-foreground/70 hover:bg-accent hover:text-foreground"
@@ -136,7 +136,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               onClick={handleLogout}
-              className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-destructive h-11 rounded-lg"
+              className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-destructive h-11 rounded"
               data-testid="button-logout"
             >
               <LogOut className="h-[18px] w-[18px]" />

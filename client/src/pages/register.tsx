@@ -56,7 +56,7 @@ export default function RegisterPage() {
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="h-10 w-10 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
@@ -64,14 +64,14 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+          <div className="mx-auto w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
             <UserPlus className="w-6 h-6 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-register-title">Create Account</h1>
           <p className="text-sm text-muted-foreground mt-1.5">Register for Key-Panel access</p>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border/60 bg-card p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {fields.map(f => (
               <div key={f.key} className="space-y-2">
@@ -83,7 +83,7 @@ export default function RegisterPage() {
                   onChange={handleChange(f.key)}
                   required
                   placeholder={f.placeholder}
-                  className="h-11 rounded-xl bg-muted/50 border-border/60"
+                  className="h-11 rounded bg-muted/50 border-border/60"
                   minLength={f.key === "password" || f.key === "password2" ? 6 : f.key === "username" ? 4 : undefined}
                   maxLength={f.key === "username" ? 25 : undefined}
                 />
@@ -91,7 +91,7 @@ export default function RegisterPage() {
             ))}
             <Button
               type="submit"
-              className="w-full h-11 rounded-xl text-sm font-semibold"
+              className="w-full h-11 rounded text-sm font-semibold"
               disabled={loading}
               data-testid="button-register"
             >

@@ -6,11 +6,12 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: "0.75rem",
-        md: "0.5rem",
-        sm: "0.375rem",
-        xl: "1rem",
-        "2xl": "1.25rem",
+        sm: "0.125rem",
+        DEFAULT: "0.25rem",
+        md: "0.25rem",
+        lg: "0.375rem",
+        xl: "0.5rem",
+        "2xl": "0.5rem",
       },
       colors: {
         background: "hsl(var(--background) / <alpha-value>)",

@@ -123,7 +123,7 @@ export default function GameDurationsPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link href="/games">
-          <button className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-testid="button-back-games">
+          <button className="h-9 w-9 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-testid="button-back-games">
             <ArrowLeft className="h-5 w-5" />
           </button>
         </Link>
@@ -136,7 +136,7 @@ export default function GameDurationsPage() {
           <h1 className="text-xl font-bold tracking-tight" data-testid="text-durations-title">Durations & Pricing</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{durations.length} durations configured</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }} className="h-10 rounded-xl text-sm flex-shrink-0" data-testid="button-add-duration">
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} className="h-10 rounded text-sm flex-shrink-0" data-testid="button-add-duration">
           <Plus className="h-4 w-4 mr-1.5" />
           Add
         </Button>
@@ -155,10 +155,10 @@ export default function GameDurationsPage() {
       ) : (
         <div className="space-y-2">
           {durations.map((d) => (
-            <div key={d.id} className="rounded-xl border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-duration-${d.id}`}>
+            <div key={d.id} className="rounded-lg border border-border/60 bg-card p-4 shadow-sm" data-testid={`row-duration-${d.id}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -176,10 +176,10 @@ export default function GameDurationsPage() {
                 </div>
               </div>
               <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/40">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={() => openEdit(d)} data-testid={`button-edit-duration-${d.id}`}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded" onClick={() => openEdit(d)} data-testid={`button-edit-duration-${d.id}`}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-destructive" onClick={() => setDeleteConfirm(d)} data-testid={`button-delete-duration-${d.id}`}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded text-destructive" onClick={() => setDeleteConfirm(d)} data-testid={`button-delete-duration-${d.id}`}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -189,29 +189,29 @@ export default function GameDurationsPage() {
       )}
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader><DialogTitle className="text-base font-semibold">Add Duration for {game?.displayName || "Game"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Label</Label>
-              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. 1 Day" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-label" />
+              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. 1 Day" className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-duration-label" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Duration (hours)</Label>
-              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} placeholder="e.g. 24" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-hours" />
+              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} placeholder="e.g. 24" className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-duration-hours" />
               <p className="text-xs text-muted-foreground">Common: 1h, 24h (1 day), 168h (1 week), 720h (1 month)</p>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Price per device</Label>
-              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="e.g. 100" className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-duration-price" />
+              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="e.g. 100" className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-duration-price" />
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowAdd(false)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowAdd(false)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => createMutation.mutate({ durationHours: parseInt(form.durationHours), label: form.label, price: parseInt(form.price), gameId })}
               disabled={createMutation.isPending || !form.label || !form.durationHours || !form.price}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-save-duration"
             >
               {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -222,28 +222,28 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!editDur} onOpenChange={() => setEditDur(null)}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit Duration</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Label</Label>
-              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-label" />
+              <Input value={form.label} onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration-label" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Duration (hours)</Label>
-              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-hours" />
+              <Input type="number" min="1" value={form.durationHours} onChange={(e) => setForm(f => ({ ...f, durationHours: e.target.value }))} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration-hours" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Price per device</Label>
-              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} className="h-11 rounded-xl bg-muted/50 border-border/60" data-testid="input-edit-duration-price" />
+              <Input type="number" min="0" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration-price" />
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditDur(null)} className="rounded-xl h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => setEditDur(null)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => editDur && updateMutation.mutate({ id: editDur.id, data: { durationHours: parseInt(form.durationHours), label: form.label, price: parseInt(form.price) } })}
               disabled={updateMutation.isPending}
-              className="rounded-xl h-10"
+              className="rounded h-10"
               data-testid="button-update-duration"
             >
               {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -254,14 +254,14 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="rounded-2xl mx-4">
+        <DialogContent className="rounded-lg mx-4">
           <DialogHeader><DialogTitle className="text-base font-semibold">Delete Duration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete <strong>{deleteConfirm?.label}</strong> ({deleteConfirm?.durationHours}h, {formatCurrency(deleteConfirm?.price ?? 0)})? This cannot be undone.
           </p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="rounded-xl h-10">Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="rounded-xl h-10" data-testid="button-confirm-delete-duration">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="rounded h-10">Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isPending} className="rounded h-10" data-testid="button-confirm-delete-duration">
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Delete
             </Button>

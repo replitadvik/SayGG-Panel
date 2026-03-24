@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="h-10 w-10 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+          <div className="mx-auto w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border/60 bg-card p-6 shadow-sm">
           {!otpSent ? (
             <form onSubmit={handleForgot} className="space-y-5">
               <div className="space-y-2">
@@ -99,12 +99,12 @@ export default function ForgotPasswordPage() {
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-11 rounded-xl bg-muted/50 border-border/60"
+                    className="pl-10 h-11 rounded bg-muted/50 border-border/60"
                     required
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full h-11 rounded-xl text-sm font-semibold" disabled={loading} data-testid="button-send-otp">
+              <Button type="submit" className="w-full h-11 rounded text-sm font-semibold" disabled={loading} data-testid="button-send-otp">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Send OTP
               </Button>
@@ -117,24 +117,24 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleReset} className="space-y-5">
               {otpHint && (
-                <div className="p-4 rounded-xl bg-muted/60 border border-border/60 text-center">
+                <div className="p-4 rounded bg-muted/60 border border-border/60 text-center">
                   <span className="text-xs text-muted-foreground block mb-1">OTP Code</span>
                   <span className="font-mono font-bold text-lg text-primary tracking-widest">{otpHint}</span>
                 </div>
               )}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">OTP Code</Label>
-                <Input id="otp" data-testid="input-otp" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="h-11 rounded-xl bg-muted/50 border-border/60" required />
+                <Input id="otp" data-testid="input-otp" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="h-11 rounded bg-muted/50 border-border/60" required />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">New Password</Label>
-                <Input id="newPassword" data-testid="input-new-password" type="password" placeholder="Min 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-11 rounded-xl bg-muted/50 border-border/60" required />
+                <Input id="newPassword" data-testid="input-new-password" type="password" placeholder="Min 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-11 rounded bg-muted/50 border-border/60" required />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Confirm Password</Label>
-                <Input id="confirmPassword" data-testid="input-confirm-password" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-11 rounded-xl bg-muted/50 border-border/60" required />
+                <Input id="confirmPassword" data-testid="input-confirm-password" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-11 rounded bg-muted/50 border-border/60" required />
               </div>
-              <Button type="submit" className="w-full h-11 rounded-xl text-sm font-semibold" disabled={loading} data-testid="button-reset-password">
+              <Button type="submit" className="w-full h-11 rounded text-sm font-semibold" disabled={loading} data-testid="button-reset-password">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Reset Password
               </Button>

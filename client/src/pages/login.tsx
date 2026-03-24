@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="h-10 w-10 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           data-testid="button-auth-theme-toggle"
         >
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -77,7 +77,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+          <div className="mx-auto w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-page-title">
@@ -88,7 +88,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border/60 bg-card p-6 shadow-sm">
           {!show2FA ? (
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
@@ -101,7 +101,7 @@ export default function LoginPage() {
                     placeholder="Enter username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-11 rounded-xl bg-muted/50 border-border/60"
+                    className="pl-10 h-11 rounded bg-muted/50 border-border/60"
                     required
                   />
                 </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
                     placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11 rounded-xl bg-muted/50 border-border/60"
+                    className="pl-10 pr-10 h-11 rounded bg-muted/50 border-border/60"
                     required
                   />
                   <button
@@ -143,7 +143,7 @@ export default function LoginPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 rounded-xl text-sm font-semibold"
+                className="w-full h-11 rounded text-sm font-semibold"
                 disabled={loading}
                 data-testid="button-login"
               >
@@ -168,7 +168,7 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-5">
               {otpHint && (
-                <div className="p-4 rounded-xl bg-muted/60 border border-border/60 text-center">
+                <div className="p-4 rounded bg-muted/60 border border-border/60 text-center">
                   <span className="text-xs text-muted-foreground block mb-1">OTP Code</span>
                   <span className="font-mono font-bold text-lg text-primary tracking-widest">{otpHint}</span>
                 </div>
@@ -182,13 +182,13 @@ export default function LoginPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   maxLength={6}
-                  className="h-12 rounded-xl bg-muted/50 border-border/60 font-mono text-center text-xl tracking-[0.5em]"
+                  className="h-12 rounded bg-muted/50 border-border/60 font-mono text-center text-xl tracking-[0.5em]"
                   required
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 rounded-xl text-sm font-semibold"
+                className="w-full h-11 rounded text-sm font-semibold"
                 disabled={loading}
                 data-testid="button-verify-otp"
               >
