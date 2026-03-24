@@ -34,7 +34,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/login";
   };
 
   return (
