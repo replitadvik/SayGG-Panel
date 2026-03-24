@@ -182,7 +182,7 @@ export default function GamesPage() {
       )}
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Add Game</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -213,7 +213,7 @@ export default function GamesPage() {
       </Dialog>
 
       <Dialog open={!!editGame} onOpenChange={() => setEditGame(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit Game</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -244,7 +244,7 @@ export default function GamesPage() {
       </Dialog>
 
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Delete Game</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete <strong>{deleteConfirm?.displayName}</strong>? This cannot be undone. Games with existing keys cannot be deleted.

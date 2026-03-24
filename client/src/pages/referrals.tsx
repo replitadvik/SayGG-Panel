@@ -108,7 +108,7 @@ export default function ReferralsPage() {
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
               <Link2 className="h-5 w-5" /> Create Referral

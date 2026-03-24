@@ -195,7 +195,7 @@ export default function GameDurationsPage() {
       )}
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Add Duration for {game?.displayName || "Game"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -228,7 +228,7 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!editDur} onOpenChange={() => setEditDur(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit Duration</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -260,7 +260,7 @@ export default function GameDurationsPage() {
       </Dialog>
 
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Delete Duration</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete <strong>{deleteConfirm?.label}</strong> ({deleteConfirm?.durationHours}h, {formatCurrency(deleteConfirm?.price ?? 0)})? This cannot be undone.

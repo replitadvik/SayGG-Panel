@@ -173,7 +173,7 @@ export default function UsersPage() {
       )}
 
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Edit User: {editUser?.username}</DialogTitle>
           </DialogHeader>
@@ -182,7 +182,7 @@ export default function UsersPage() {
               <Label className="text-sm font-medium">Full Name</Label>
               <Input value={editForm.fullname || ""} onChange={e => setEditForm({ ...editForm, fullname: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-fullname" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Level</Label>
                 <Select value={String(editForm.level)} onValueChange={v => setEditForm({ ...editForm, level: parseInt(v) })}>
@@ -206,7 +206,7 @@ export default function UsersPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Balance</Label>
                 <Input type="number" value={editForm.saldo ?? ""} onChange={e => setEditForm({ ...editForm, saldo: parseInt(e.target.value) || 0 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-saldo" />

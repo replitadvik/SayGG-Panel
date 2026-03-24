@@ -260,7 +260,7 @@ export default function KeysPage() {
       )}
 
       <Dialog open={!!editKey} onOpenChange={() => setEditKey(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Edit Key</DialogTitle>
           </DialogHeader>
@@ -275,7 +275,7 @@ export default function KeysPage() {
                   <Label className="text-sm font-medium">Key</Label>
                   <Input value={editForm.userKey || ""} onChange={e => setEditForm({...editForm, userKey: e.target.value})} className="h-11 rounded bg-muted/50 border-border/60 font-mono" data-testid="input-edit-key" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Duration (hrs)</Label>
                     <Input type="number" value={editForm.duration || ""} onChange={e => setEditForm({...editForm, duration: parseInt(e.target.value)})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration" />
@@ -314,7 +314,7 @@ export default function KeysPage() {
       </Dialog>
 
       <Dialog open={!!extendKey} onOpenChange={() => setExtendKey(null)}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Extend Duration</DialogTitle>
           </DialogHeader>

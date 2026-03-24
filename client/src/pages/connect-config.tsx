@@ -348,7 +348,7 @@ export default function ConnectConfigPage() {
       </div>
 
       <Dialog open={editSecretOpen} onOpenChange={setEditSecretOpen}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit Active Secret</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -381,17 +381,17 @@ export default function ConnectConfigPage() {
       </Dialog>
 
       <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
-        <DialogContent className="rounded-lg mx-4">
+        <DialogContent>
           <DialogHeader><DialogTitle className="text-base font-semibold">Rotate Connect Secret</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">New Secret</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   value={rotateSecret}
                   onChange={e => setRotateSecret(e.target.value)}
                   placeholder="Enter new secret (min 16 chars)"
-                  className="h-11 rounded bg-muted/50 border-border/60 font-mono text-xs"
+                  className="h-11 rounded bg-muted/50 border-border/60 font-mono text-xs flex-1 min-w-0"
                   data-testid="input-rotate-secret"
                 />
                 <Button
