@@ -11,7 +11,7 @@ import {
   parseTtl, isValidTtlFormat, getDefaultNormalTtlMs, getDefaultRememberMeTtlMs,
   getEnvNormalTtl, getEnvRememberMeTtl,
 } from "./auth";
-import { loginSchema, registerSchema, generateKeySchema } from "@shared/schema";
+import { loginSchema, registerSchema, generateKeySchema, insertGameSchema, insertGameDurationSchema } from "@shared/schema";
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 function rateLimit(windowMs: number, maxHits: number) {
@@ -458,11 +458,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "Custom key not allowed for reseller." });
       }
 
-      const activePrices = await storage.getActivePrices();
-      const priceMap: Record<number, number> = {};
-      for (const p of activePrices) priceMap[p.duration] = p.price;
+      const gameRecord = await storage.getGame(data.gameId);
+      if (!gameRecord) return res.status(400).json({ message: "Game not found." });
+      if (gameRecord.isActive !== 1) return res.status(400).json({ message: "Game is not active." });
 
-      const cost = getPrice(priceMap, data.duration, data.maxDevices);
+      const gameDurs = await storage.getActiveGameDurations(data.gameId);
+      const durEntry = gameDurs.find(d => d.durationHours === data.duration);
+      if (!durEntry) {
+        return res.status(400).json({ message: "Invalid duration for this game." });
+      }
+
+      const cost = durEntry.price * data.maxDevices;
       if (user.saldo - cost < 0) {
         return res.status(400).json({ message: "Insufficient balance." });
       }
@@ -472,7 +478,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (data.customLicense.length < 4 || data.customLicense.length > 19) {
           return res.status(400).json({ message: "Custom key must be 4-19 characters." });
         }
-        const existingKey = await storage.getKeyByUserKeyAndGame(data.customLicense, data.game);
+        const existingKey = await storage.getKeyByUserKeyAndGame(data.customLicense, gameRecord.name);
         if (existingKey) return res.status(400).json({ message: "Key already exists." });
         license = data.customLicense;
       } else {
@@ -480,7 +486,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const newKey = await storage.createKey({
-        game: data.game,
+        game: gameRecord.name,
+        gameId: data.gameId,
         userKey: license,
         duration: data.duration,
         maxDevices: data.maxDevices,
@@ -494,7 +501,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await storage.createHistory({
         keysId: newKey.id,
         userDo: user.username,
-        info: `${data.game}|${license.substring(0, 5)}|${data.duration}|${data.maxDevices}`,
+        info: `${gameRecord.name}|${license.substring(0, 5)}|${data.duration}|${data.maxDevices}`,
       });
 
       res.json({ key: newKey, cost });
@@ -983,6 +990,175 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
+  app.get("/api/games", requireAuth, async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (user.level === 1) {
+      const allGames = await storage.getAllGames();
+      res.json(allGames);
+    } else {
+      const activeGames = await storage.getActiveGames();
+      res.json(activeGames);
+    }
+  });
+
+  app.get("/api/games/active", requireAuth, async (req, res) => {
+    const activeGames = await storage.getActiveGames();
+    res.json(activeGames);
+  });
+
+  app.get("/api/games/:id", requireAuth, async (req, res) => {
+    const game = await storage.getGame(parseInt(req.params.id));
+    if (!game) return res.status(404).json({ message: "Game not found" });
+    res.json(game);
+  });
+
+  app.post("/api/games", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const data = insertGameSchema.parse(req.body);
+      const existingName = await storage.getGameByName(data.name);
+      if (existingName) return res.status(400).json({ message: "Game name already exists." });
+      const existingSlug = await storage.getGameBySlug(data.slug);
+      if (existingSlug) return res.status(400).json({ message: "Game slug already exists." });
+      const game = await storage.createGame(data as any);
+      await storage.createHistory({
+        userId: user.id,
+        userDo: user.username,
+        activity: "game_create",
+        description: `Created game: ${data.name} (${data.slug})`,
+      });
+      res.json(game);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to create game" });
+    }
+  });
+
+  app.patch("/api/games/:id", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const game = await storage.getGame(parseInt(req.params.id));
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      const { name, slug, displayName, description, isActive } = req.body;
+      const updates: any = {};
+      if (name !== undefined) {
+        const existing = await storage.getGameByName(name);
+        if (existing && existing.id !== game.id) return res.status(400).json({ message: "Game name already exists." });
+        updates.name = name;
+      }
+      if (slug !== undefined) {
+        const existing = await storage.getGameBySlug(slug);
+        if (existing && existing.id !== game.id) return res.status(400).json({ message: "Game slug already exists." });
+        updates.slug = slug;
+      }
+      if (displayName !== undefined) updates.displayName = displayName;
+      if (description !== undefined) updates.description = description;
+      if (isActive !== undefined) updates.isActive = isActive;
+      const updated = await storage.updateGame(game.id, updates);
+      await storage.createHistory({
+        userId: user.id,
+        userDo: user.username,
+        activity: "game_update",
+        description: `Updated game: ${game.name} → ${JSON.stringify(updates)}`,
+      });
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to update game" });
+    }
+  });
+
+  app.delete("/api/games/:id", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const game = await storage.getGame(parseInt(req.params.id));
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      const keyCount = await storage.getKeyCountByGameId(game.id);
+      if (keyCount > 0) {
+        return res.status(400).json({ message: `Cannot delete game with ${keyCount} existing keys. Disable it instead.` });
+      }
+      await storage.deleteGame(game.id);
+      await storage.createHistory({
+        userId: user.id,
+        userDo: user.username,
+        activity: "game_delete",
+        description: `Deleted game: ${game.name} (${game.slug})`,
+      });
+      res.json({ message: "Game deleted" });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to delete game" });
+    }
+  });
+
+  app.get("/api/games/:id/durations", requireAuth, async (req, res) => {
+    const gameId = parseInt(req.params.id);
+    const game = await storage.getGame(gameId);
+    if (!game) return res.status(404).json({ message: "Game not found" });
+    const user = await storage.getUser(req.session.userId!);
+    if (user?.level === 1) {
+      res.json(await storage.getGameDurations(gameId));
+    } else {
+      res.json(await storage.getActiveGameDurations(gameId));
+    }
+  });
+
+  app.post("/api/games/:id/durations", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const gameId = parseInt(req.params.id);
+      const game = await storage.getGame(gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      const data = insertGameDurationSchema.parse({ ...req.body, gameId });
+      const dur = await storage.createGameDuration(data as any);
+      await storage.createHistory({
+        userId: user.id,
+        userDo: user.username,
+        activity: "game_duration_create",
+        description: `Added duration ${data.label} (${data.durationHours}h, ₹${data.price}) to game ${game.name}`,
+      });
+      res.json(dur);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to create duration" });
+    }
+  });
+
+  app.patch("/api/games/:gameId/durations/:id", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const dur = await storage.getGameDuration(parseInt(req.params.id));
+      if (!dur) return res.status(404).json({ message: "Duration not found" });
+      if (dur.gameId !== parseInt(req.params.gameId)) return res.status(400).json({ message: "Duration does not belong to this game" });
+      const { durationHours, label, price, isActive } = req.body;
+      const updates: any = {};
+      if (durationHours !== undefined) updates.durationHours = durationHours;
+      if (label !== undefined) updates.label = label;
+      if (price !== undefined) updates.price = price;
+      if (isActive !== undefined) updates.isActive = isActive;
+      const updated = await storage.updateGameDuration(dur.id, updates);
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to update duration" });
+    }
+  });
+
+  app.delete("/api/games/:gameId/durations/:id", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const dur = await storage.getGameDuration(parseInt(req.params.id));
+      if (!dur) return res.status(404).json({ message: "Duration not found" });
+      if (dur.gameId !== parseInt(req.params.gameId)) return res.status(400).json({ message: "Duration does not belong to this game" });
+      await storage.deleteGameDuration(dur.id);
+      res.json({ message: "Duration deleted" });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to delete duration" });
+    }
+  });
+
   app.post("/connect", async (req, res) => {
     try {
       const maintenance = await storage.getMaintenanceStatus();
@@ -994,6 +1170,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!game || !user_key || !serial) {
         return res.json({ status: false, reason: "INVALID PARAMETER" });
       }
+
+      const gameRecord = await storage.getGameByName(game);
+      if (!gameRecord) return res.json({ status: false, reason: "GAME NOT FOUND" });
+      if (gameRecord.isActive !== 1) return res.json({ status: false, reason: "GAME INACTIVE" });
 
       const findKey = await storage.getKeyByUserKeyAndGame(user_key, game);
       if (!findKey) return res.json({ status: false, reason: "USER OR GAME NOT REGISTERED" });
@@ -1027,10 +1207,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const real = `${game}-${user_key}-${serial}-${activeSecret}`;
       const token = crypto.createHash("md5").update(real).digest("hex");
 
+      const timeLeftMs = expired.getTime() - Date.now();
+      const durationLabel = findKey.duration >= 720 ? `${Math.round(findKey.duration / 720)} Month` :
+                            findKey.duration >= 168 ? `${Math.round(findKey.duration / 168)} Week` :
+                            findKey.duration >= 24 ? `${Math.round(findKey.duration / 24)} Day` :
+                            `${findKey.duration} Hour`;
+
       res.json({
         status: true,
         data: {
-          real, token,
+          token,
           secret_version: connectCfg?.secretVersion || 1,
           modname: modData || "",
           mod_status: textData?._status || "",
@@ -1046,6 +1232,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           EXP: expired.toISOString(),
           device: findKey.maxDevices,
           rng: Date.now(),
+          game: gameRecord.name,
+          gameDisplayName: gameRecord.displayName,
+          keyStatus: findKey.status === 1 ? "active" : "blocked",
+          durationLabel,
+          expiresAt: expired.toISOString(),
+          timeLeftMs,
+          timeLeft: timeLeftMs > 0 ? `${Math.floor(timeLeftMs / 3600000)}h ${Math.floor((timeLeftMs % 3600000) / 60000)}m` : "Expired",
+          maxDevices: findKey.maxDevices,
+          usedDevices: devicesArray.length,
         },
       });
     } catch (e: any) {

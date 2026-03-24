@@ -25,11 +25,13 @@ client/src/
     device-reset.tsx — Device binding reset (username+password)
     dashboard.tsx   — Stats cards (keys, users, balance)
     keys.tsx        — Key list with CRUD, bulk delete, search, extend duration
-    generate.tsx    — Key generation form
+    generate.tsx    — Game-aware key generation (select game → load durations)
     users.tsx       — User management, approve/decline
     balance.tsx     — Balance topup for users
     referrals.tsx   — Referral code CRUD
     prices.tsx      — Price configuration (owner only)
+    games.tsx       — Games CRUD management (owner only)
+    game-durations.tsx — Per-game duration/pricing management (owner only)
     settings.tsx    — Features, mod name, ftext, maintenance
     profile.tsx     — Username/password/telegram/2FA changes
 
@@ -43,8 +45,21 @@ server/
 shared/
   schema.ts         — Drizzle tables + Zod schemas + types
 
-seed.ts             — Database seeder (admin + default prices/features)
+seed.ts             — Database seeder (admin + default prices/features + PUBG game)
 migrations/         — Drizzle migration files
+
+loader/
+  Login.h           — C++ header (ConnectResponse struct, macros)
+  Login.cpp         — C++ impl (HTTP POST, JSON parse, token verify)
+
+expo-test-app/      — React Native (Expo) connect endpoint tester
+  src/App.tsx       — Main test UI
+  eas.json          — EAS Build profiles (APK + AAB)
+
+docs/
+  connect-integration.md   — Connect endpoint API reference
+  expo-test-app.md         — Expo test app setup guide
+  multi-game-management.md — Multi-game system documentation
 ```
 
 ## Database Tables
@@ -60,6 +75,8 @@ migrations/         — Drizzle migration files
 - `login_throttle` — brute-force protection (5 attempts -> 15min block)
 - `connect_config` — game name + license secret rotation (active/previous secret, version, grace period)
 - `session_settings` — configurable session TTL durations (normalTtl, rememberMeTtl, changedBy, changedAt)
+- `games` — multi-game definitions (name, slug, displayName, description, isActive)
+- `game_durations` — per-game pricing tiers (gameId FK, durationHours, label, price, isActive)
 
 ## Key Business Logic
 - Key format: `PowerHouse_[DurationLabel]_[5-char-random]`
@@ -77,6 +94,8 @@ migrations/         — Drizzle migration files
 - Game name: configurable in DB via Settings (Owner only), defaults to `CONNECT_GAME_NAME` env var
 - Currency: configurable via `VITE_DEFAULT_CURRENCY_SYMBOL` env var (default ₹/INR), all frontend uses `formatCurrency()`
 - C++ Loader: `loader/Login.h` + `loader/Login.cpp` — configurable via ENDPOINT_URL, GAME_NAME, LICENSE_SECRET macros
+- Multi-game: games table with per-game durations; key gen selects game → loads durations → prices from game_durations
+- Connect endpoint: validates game against DB, enriched response (gameDisplayName, durationLabel, timeLeft, device usage)
 - Password hash: md5(plain) -> sha256(md5)
 
 ## Session Management

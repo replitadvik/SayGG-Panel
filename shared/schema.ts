@@ -30,9 +30,32 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const games = pgTable("games", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 100 }).notNull(),
+  description: text("description"),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const gameDurations = pgTable("game_durations", {
+  id: serial("id").primaryKey(),
+  gameId: integer("game_id").notNull(),
+  durationHours: integer("duration_hours").notNull(),
+  label: varchar("label", { length: 50 }).notNull(),
+  price: integer("price").default(0).notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const keysCode = pgTable("keys_code", {
   id: serial("id_keys").primaryKey(),
   game: varchar("game", { length: 100 }).notNull(),
+  gameId: integer("game_id"),
   userKey: varchar("user_key", { length: 100 }).notNull(),
   duration: integer("duration").notNull(),
   expiredDate: timestamp("expired_date"),
@@ -171,11 +194,28 @@ export const registerSchema = z.object({
 });
 
 export const generateKeySchema = z.object({
-  game: z.string().min(1),
+  game: z.string().optional(),
+  gameId: z.number().int().min(1),
   duration: z.number().int().min(1),
   maxDevices: z.number().int().min(1),
   customInput: z.enum(["random", "custom"]).optional(),
   customLicense: z.string().min(4).max(19).optional(),
+});
+
+export const insertGameSchema = z.object({
+  name: z.string().min(1).max(100),
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  displayName: z.string().min(1).max(100),
+  description: z.string().optional(),
+  isActive: z.number().int().min(0).max(1).optional(),
+});
+
+export const insertGameDurationSchema = z.object({
+  gameId: z.number().int().min(1),
+  durationHours: z.number().int().min(1),
+  label: z.string().min(1).max(50),
+  price: z.number().int().min(0),
+  isActive: z.number().int().min(0).max(1).optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -188,3 +228,5 @@ export type Feature = typeof feature.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
 export type SessionSettings = typeof sessionSettings.$inferSelect;
+export type Game = typeof games.$inferSelect;
+export type GameDuration = typeof gameDurations.$inferSelect;

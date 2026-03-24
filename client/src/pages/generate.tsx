@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Key, Wallet, Copy, Check } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import type { Game, GameDuration } from "@shared/schema";
 
 export default function GeneratePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [game, setGame] = useState("");
+  const [selectedGameId, setSelectedGameId] = useState("");
   const [duration, setDuration] = useState("");
   const [maxDevices, setMaxDevices] = useState("1");
   const [customInput, setCustomInput] = useState("random");
@@ -22,13 +23,24 @@ export default function GeneratePage() {
   const [generatedKey, setGeneratedKey] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  const { data: games = {} } = useQuery<Record<string, string>>({
-    queryKey: ["/api/games"],
+  const { data: activeGames = [], isLoading: gamesLoading } = useQuery<Game[]>({
+    queryKey: ["/api/games/active"],
   });
 
-  const { data: prices = [] } = useQuery<any[]>({
-    queryKey: ["/api/prices"],
+  const { data: durations = [], isLoading: durationsLoading } = useQuery<GameDuration[]>({
+    queryKey: ["/api/games", selectedGameId, "durations"],
+    queryFn: async () => {
+      if (!selectedGameId) return [];
+      const res = await fetch(`/api/games/${selectedGameId}/durations`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load durations");
+      return res.json();
+    },
+    enabled: !!selectedGameId,
   });
+
+  const selectedGame = activeGames.find(g => String(g.id) === selectedGameId);
+  const selectedDuration = durations.find((d: GameDuration) => String(d.durationHours) === duration);
+  const cost = selectedDuration ? selectedDuration.price * parseInt(maxDevices || "1") : 0;
 
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -47,13 +59,16 @@ export default function GeneratePage() {
     },
   });
 
-  const selectedPrice = prices.find((p: any) => p.duration === parseInt(duration));
-  const cost = selectedPrice ? selectedPrice.price * parseInt(maxDevices || "1") : 0;
+  const handleGameChange = (val: string) => {
+    setSelectedGameId(val);
+    setDuration("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedGame) return;
     generateMutation.mutate({
-      game,
+      gameId: parseInt(selectedGameId),
       duration: parseInt(duration),
       maxDevices: parseInt(maxDevices),
       customInput,
@@ -67,15 +82,6 @@ export default function GeneratePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const getDurationLabel = (hours: number) => {
-    if (hours === 1) return "1 Hour Trail";
-    if (hours === 2) return "2 Hours Trail";
-    if (hours < 24) return `${hours} Hours`;
-    if (hours % 720 === 0) return `${hours / 720} Month(s)`;
-    if (hours % 24 === 0) return `${hours / 24} Day(s)`;
-    return `${hours} Hours`;
   };
 
   return (
@@ -93,11 +99,12 @@ export default function GeneratePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Game</Label>
-              <Select value={game} onValueChange={setGame}>
+              <Select value={selectedGameId} onValueChange={handleGameChange}>
                 <SelectTrigger data-testid="select-game"><SelectValue placeholder="Select game" /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(games).map(([key, val]) => (
-                    <SelectItem key={key} value={key}>{val}</SelectItem>
+                  {gamesLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                  {activeGames.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>{g.displayName}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -105,12 +112,15 @@ export default function GeneratePage() {
 
             <div className="space-y-2">
               <Label>Duration</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger data-testid="select-duration"><SelectValue placeholder="Select duration" /></SelectTrigger>
+              <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
+                <SelectTrigger data-testid="select-duration">
+                  <SelectValue placeholder={selectedGameId ? "Select duration" : "Select a game first"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {prices.map((p: any) => (
-                    <SelectItem key={p.duration} value={String(p.duration)}>
-                      {getDurationLabel(p.duration)} — {formatCurrency(p.price)}/Device
+                  {durationsLoading && <SelectItem value="_loading" disabled>Loading...</SelectItem>}
+                  {durations.map((d: GameDuration) => (
+                    <SelectItem key={d.id} value={String(d.durationHours)}>
+                      {d.label} — {formatCurrency(d.price)}/Device
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -165,7 +175,7 @@ export default function GeneratePage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={generateMutation.isPending || !game || !duration}
+              disabled={generateMutation.isPending || !selectedGameId || !duration}
               data-testid="button-generate"
             >
               {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}

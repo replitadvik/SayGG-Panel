@@ -239,6 +239,15 @@ bool Login_Connect(const std::string& userKey, const std::string& serial, Connec
     out.EXP = extract_json_string(dataBlock, "EXP");
     out.device = extract_json_int(dataBlock, "device");
     out.rng = extract_json_long(dataBlock, "rng");
+    out.game = extract_json_string(dataBlock, "game");
+    out.gameDisplayName = extract_json_string(dataBlock, "gameDisplayName");
+    out.keyStatus = extract_json_string(dataBlock, "keyStatus");
+    out.durationLabel = extract_json_string(dataBlock, "durationLabel");
+    out.expiresAt = extract_json_string(dataBlock, "expiresAt");
+    out.timeLeftMs = extract_json_long(dataBlock, "timeLeftMs");
+    out.timeLeft = extract_json_string(dataBlock, "timeLeft");
+    out.maxDevices = extract_json_int(dataBlock, "maxDevices");
+    out.usedDevices = extract_json_int(dataBlock, "usedDevices");
 
     return true;
 }

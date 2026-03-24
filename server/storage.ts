@@ -3,8 +3,10 @@ import { eq, and, desc, asc } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, sessionSettings,
+  games, gameDurations,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type SessionSettings,
+  type Game, type GameDuration,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -59,6 +61,23 @@ export interface IStorage {
   getSessionSettings(): Promise<SessionSettings | undefined>;
   upsertSessionSettings(data: Partial<SessionSettings>): Promise<SessionSettings>;
   deleteSessionSettings(): Promise<void>;
+
+  getAllGames(): Promise<Game[]>;
+  getActiveGames(): Promise<Game[]>;
+  getGame(id: number): Promise<Game | undefined>;
+  getGameBySlug(slug: string): Promise<Game | undefined>;
+  getGameByName(name: string): Promise<Game | undefined>;
+  createGame(data: Partial<Game>): Promise<Game>;
+  updateGame(id: number, data: Partial<Game>): Promise<Game | undefined>;
+  deleteGame(id: number): Promise<void>;
+
+  getGameDurations(gameId: number): Promise<GameDuration[]>;
+  getActiveGameDurations(gameId: number): Promise<GameDuration[]>;
+  getGameDuration(id: number): Promise<GameDuration | undefined>;
+  createGameDuration(data: Partial<GameDuration>): Promise<GameDuration>;
+  updateGameDuration(id: number, data: Partial<GameDuration>): Promise<GameDuration | undefined>;
+  deleteGameDuration(id: number): Promise<void>;
+  getKeyCountByGameId(gameId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -313,6 +332,76 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSessionSettings(): Promise<void> {
     await db.delete(sessionSettings);
+  }
+
+  async getAllGames(): Promise<Game[]> {
+    return db.select().from(games).orderBy(asc(games.name));
+  }
+
+  async getActiveGames(): Promise<Game[]> {
+    return db.select().from(games).where(eq(games.isActive, 1)).orderBy(asc(games.name));
+  }
+
+  async getGame(id: number): Promise<Game | undefined> {
+    const [g] = await db.select().from(games).where(eq(games.id, id));
+    return g;
+  }
+
+  async getGameBySlug(slug: string): Promise<Game | undefined> {
+    const [g] = await db.select().from(games).where(eq(games.slug, slug));
+    return g;
+  }
+
+  async getGameByName(name: string): Promise<Game | undefined> {
+    const [g] = await db.select().from(games).where(eq(games.name, name));
+    return g;
+  }
+
+  async createGame(data: Partial<Game>): Promise<Game> {
+    const [g] = await db.insert(games).values(data as any).returning();
+    return g;
+  }
+
+  async updateGame(id: number, data: Partial<Game>): Promise<Game | undefined> {
+    const [g] = await db.update(games).set({ ...data, updatedAt: new Date() } as any).where(eq(games.id, id)).returning();
+    return g;
+  }
+
+  async deleteGame(id: number): Promise<void> {
+    await db.delete(gameDurations).where(eq(gameDurations.gameId, id));
+    await db.delete(games).where(eq(games.id, id));
+  }
+
+  async getGameDurations(gameId: number): Promise<GameDuration[]> {
+    return db.select().from(gameDurations).where(eq(gameDurations.gameId, gameId)).orderBy(asc(gameDurations.durationHours));
+  }
+
+  async getActiveGameDurations(gameId: number): Promise<GameDuration[]> {
+    return db.select().from(gameDurations).where(and(eq(gameDurations.gameId, gameId), eq(gameDurations.isActive, 1))).orderBy(asc(gameDurations.durationHours));
+  }
+
+  async getGameDuration(id: number): Promise<GameDuration | undefined> {
+    const [d] = await db.select().from(gameDurations).where(eq(gameDurations.id, id));
+    return d;
+  }
+
+  async createGameDuration(data: Partial<GameDuration>): Promise<GameDuration> {
+    const [d] = await db.insert(gameDurations).values(data as any).returning();
+    return d;
+  }
+
+  async updateGameDuration(id: number, data: Partial<GameDuration>): Promise<GameDuration | undefined> {
+    const [d] = await db.update(gameDurations).set({ ...data, updatedAt: new Date() } as any).where(eq(gameDurations.id, id)).returning();
+    return d;
+  }
+
+  async deleteGameDuration(id: number): Promise<void> {
+    await db.delete(gameDurations).where(eq(gameDurations.id, id));
+  }
+
+  async getKeyCountByGameId(gameId: number): Promise<number> {
+    const rows = await db.select().from(keysCode).where(eq(keysCode.gameId, gameId));
+    return rows.length;
   }
 }
 

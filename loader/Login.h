@@ -5,11 +5,11 @@
 #endif
 
 #ifndef GAME_NAME
-#define GAME_NAME "PUBG"
+#define GAME_NAME "YourGame"
 #endif
 
 #ifndef LICENSE_SECRET
-#define LICENSE_SECRET "Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E"
+#define LICENSE_SECRET "REPLACE_WITH_YOUR_SECRET"
 #endif
 
 #include <string>
@@ -33,6 +33,15 @@ struct ConnectResponse {
     std::string EXP;
     int device;
     long long rng;
+    std::string game;
+    std::string gameDisplayName;
+    std::string keyStatus;
+    std::string durationLabel;
+    std::string expiresAt;
+    long long timeLeftMs;
+    std::string timeLeft;
+    int maxDevices;
+    int usedDevices;
 };
 
 bool Login_Connect(const std::string& userKey, const std::string& serial, ConnectResponse& out);

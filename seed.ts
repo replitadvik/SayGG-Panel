@@ -1,5 +1,5 @@
 import { db } from "./server/db";
-import { users, priceConfig, feature, modname, ftext, onoff } from "./shared/schema";
+import { users, priceConfig, feature, modname, ftext, onoff, games, gameDurations } from "./shared/schema";
 import { hashPassword } from "./server/auth";
 
 async function seed() {
@@ -51,6 +51,24 @@ async function seed() {
 
   await db.insert(onoff).values({ status: "off", myinput: "" } as any);
   console.log("Set maintenance mode to OFF.");
+
+  const [pubgGame] = await db.insert(games).values({
+    name: "PUBG",
+    slug: "pubg",
+    displayName: "PUBG Mobile",
+    description: "PUBG Mobile game",
+    isActive: 1,
+  } as any).returning();
+  console.log("Created default PUBG game.");
+
+  await db.insert(gameDurations).values([
+    { gameId: pubgGame.id, durationHours: 1, label: "1 Hour Trial", price: 500, isActive: 1 },
+    { gameId: pubgGame.id, durationHours: 2, label: "2 Hours Trial", price: 1000, isActive: 1 },
+    { gameId: pubgGame.id, durationHours: 24, label: "1 Day", price: 5000, isActive: 1 },
+    { gameId: pubgGame.id, durationHours: 168, label: "1 Week", price: 25000, isActive: 1 },
+    { gameId: pubgGame.id, durationHours: 720, label: "1 Month", price: 75000, isActive: 1 },
+  ] as any);
+  console.log("Created default PUBG game durations.");
 
   console.log("Seed complete.");
   process.exit(0);
