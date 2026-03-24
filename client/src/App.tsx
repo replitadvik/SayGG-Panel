@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useWebSocket } from "@/lib/useWebSocket";
 import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -77,6 +78,11 @@ function AuthRoute({ component: Component }: { component: React.ComponentType })
   return <Component />;
 }
 
+function WebSocketManager() {
+  useWebSocket();
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -107,6 +113,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <WebSocketManager />
             <Toaster />
             <Router />
           </AuthProvider>

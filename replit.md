@@ -145,6 +145,24 @@ docs/
 ## Default Credentials
 - Owner: `SayGG` / `Sk.kiru@96` (level 1)
 
+## WebSocket Real-Time System
+- **Server**: `server/websocket.ts` — WebSocket server on `/ws` path, authenticated via session middleware
+  - Typed event system (`WsEventType`): keys/users/referrals/games/durations/settings/connect/balance/dashboard events
+  - Role-scoped broadcasting: `emitScopedKeyEvent` (owner sees all, registrator sees own), `emitScopedUserEvent` (owner sees all, uplink sees referred), `emitToOwners`, `emitToAdminsAndAbove`, `emitToAll`, `emitToUser`
+  - Heartbeat ping/pong every 30s, auto-cleanup of dead connections
+- **Client**: `client/src/lib/useWebSocket.ts` — React hook with auto-connect, exponential backoff reconnect
+  - `EVENT_TO_QUERY_KEYS` mapping: each WS event type maps to TanStack Query keys for automatic cache invalidation
+  - Connected via `WebSocketManager` component in `App.tsx` (inside `AuthProvider`)
+- **Integration**: `server/index.ts` passes session middleware to `setupWebSocket()` for auth on upgrade
+- **Events emitted from**: all mutation routes in `server/routes.ts` (create/update/delete keys, users, referrals, games, durations, settings, balance, connect config)
+
+## Performance Optimizations
+- **Database indexes**: `idx_users_uplink`, `idx_users_status`, `idx_users_level`, `idx_keys_registrator`, `idx_keys_game_userkey`, `idx_keys_game_id`, `idx_keys_status`, `idx_game_durations_game_id`
+- **Dashboard stats**: `getDashboardStats()` / `getDashboardStatsByUser()` — single SQL query with `COUNT(*) FILTER` instead of fetching all rows and counting in JS
+- **Bulk delete**: `deleteKeys()` uses `IN (...)` single query instead of N+1 loop
+- **Key count**: `getKeyCountByGameId()` uses `COUNT(*)` aggregate instead of full row select
+- **Owner key generation**: Owner (level=1) bypasses balance check entirely, cost shown as "Free (Owner)" in UI
+
 ## Running
 - Workflow "Start application" runs `npm run dev` on port 5000
 - Seed: `npx tsx seed.ts`

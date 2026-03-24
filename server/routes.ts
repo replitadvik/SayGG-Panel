@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { type Server } from "http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -12,6 +12,11 @@ import {
   getEnvNormalTtl, getEnvRememberMeTtl,
 } from "./auth";
 import { loginSchema, registerSchema, generateKeySchema, insertGameSchema, insertGameDurationSchema } from "@shared/schema";
+import {
+  emitScopedKeyEvent, emitScopedUserEvent, emitToAll,
+  emitToOwners, emitToAdminsAndAbove, emitToUser,
+  type WsEvent, type WsEventType,
+} from "./websocket";
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 function rateLimit(windowMs: number, maxHits: number) {
@@ -91,23 +96,26 @@ async function resolveSessionTtlMs(rememberMe: boolean): Promise<number> {
   }
 }
 
+function wsEvent(type: WsEventType, payload?: any): WsEvent {
+  return { type, payload, timestamp: Date.now() };
+}
 
-export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+export async function registerRoutes(httpServer: Server, app: Express): Promise<RequestHandler> {
   const PgSession = connectPgSimple(session);
-  app.use(
-    session({
-      store: new PgSession({ pool, createTableIfMissing: true }),
-      secret: process.env.SESSION_SECRET!,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      },
-    })
-  );
+  const sessionMiddleware = session({
+    store: new PgSession({ pool, createTableIfMissing: true }),
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    },
+  });
+
+  app.use(sessionMiddleware);
 
   const cfg = await storage.getConnectConfig();
   if (!cfg) {
@@ -278,6 +286,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } as any);
 
       await storage.useReferral(refCode.id, data.username);
+
+      emitScopedUserEvent(wsEvent("users:created"), refCode.createdBy || undefined);
+      emitScopedUserEvent(wsEvent("referrals:used"), refCode.createdBy || undefined);
+
       res.json({ message: "Registration submitted. Wait for approval." });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Registration failed." });
@@ -469,7 +481,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const cost = durEntry.price * data.maxDevices;
-      if (user.saldo - cost < 0) {
+      const isOwner = user.level === 1;
+
+      if (!isOwner && user.saldo - cost < 0) {
         return res.status(400).json({ message: "Insufficient balance." });
       }
 
@@ -496,7 +510,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         status: 1,
       } as any);
 
-      await storage.updateUser(user.id, { saldo: user.saldo - cost });
+      if (!isOwner) {
+        await storage.updateUser(user.id, { saldo: user.saldo - cost });
+      }
 
       await storage.createHistory({
         keysId: newKey.id,
@@ -504,7 +520,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         info: `${gameRecord.name}|${license.substring(0, 5)}|${data.duration}|${data.maxDevices}`,
       });
 
-      res.json({ key: newKey, cost });
+      emitScopedKeyEvent(wsEvent("keys:created", { keyId: newKey.id, registrator: user.username }), user.username);
+
+      res.json({ key: newKey, cost: isOwner ? 0 : cost });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Key generation failed." });
     }
@@ -540,6 +558,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       Object.keys(updates).forEach(k => updates[k] === undefined && delete updates[k]);
       const updated = await storage.updateKey(keyId, updates);
+
+      emitScopedKeyEvent(wsEvent("keys:updated", { keyId }), key.registrator || user.username);
+
       res.json(updated);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Update failed." });
@@ -583,6 +604,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       if (!currentExpiry) {
         await storage.updateKey(key.id, { duration: newDuration });
+        emitScopedKeyEvent(wsEvent("keys:extended", { keyId }), key.registrator || user.username);
         return res.json({ success: true, newExpiry: null, totalDuration: newDuration });
       }
 
@@ -591,6 +613,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const newExpiry = new Date(baseTime.getTime() + addHours * 3600000);
 
       await storage.updateKey(key.id, { expiredDate: newExpiry, duration: newDuration });
+
+      emitScopedKeyEvent(wsEvent("keys:extended", { keyId }), key.registrator || user.username);
+
       res.json({ success: true, newExpiry: newExpiry.toISOString(), totalDuration: newDuration });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Extend failed." });
@@ -606,6 +631,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ message: "Access denied" });
     }
     await storage.deleteKey(key.id);
+
+    emitScopedKeyEvent(wsEvent("keys:deleted", { keyId: key.id }), key.registrator || user.username);
+
     res.json({ message: "Key deleted." });
   });
 
@@ -625,6 +653,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
 
     await storage.deleteKeys(ids);
+
+    emitToAll(wsEvent("keys:bulk-deleted", { count: ids.length }));
+
     res.json({ message: `${ids.length} keys deleted.` });
   });
 
@@ -662,6 +693,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       keyResetTime: String(newCount),
       keyResetToken: token,
     } as any);
+
+    emitScopedKeyEvent(wsEvent("keys:device-reset", { keyId: key.id }), key.registrator || user.username);
 
     res.json({
       message: "Devices reset successfully.",
@@ -710,6 +743,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ message: "Can only approve users you referred." });
     }
     await storage.updateUser(target.id, { status: 1 });
+
+    emitScopedUserEvent(wsEvent("users:approved", { userId: target.id }), target.uplink || undefined);
+
     res.json({ message: "User approved." });
   });
 
@@ -723,6 +759,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     await storage.updateUser(target.id, { status: 2 });
     await storage.blockKeysByRegistrator(target.username);
+
+    emitScopedUserEvent(wsEvent("users:declined", { userId: target.id }), target.uplink || undefined);
+
     res.json({ message: "User declined." });
   });
 
@@ -753,6 +792,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const updated = await storage.updateUser(target.id, updates);
     if (updated) {
       const { password, ...safe } = updated;
+
+      emitScopedUserEvent(wsEvent("users:updated", { userId: target.id }), target.uplink || undefined);
+      if (saldo !== undefined) {
+        emitToUser(target.id, wsEvent("balance:topup", { userId: target.id }));
+      }
+
       res.json({ ...safe, levelName: getLevelName(updated.level) });
     } else {
       res.status(500).json({ message: "Update failed." });
@@ -775,6 +820,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
 
     await storage.deleteUser(targetId);
+
+    emitScopedUserEvent(wsEvent("users:deleted", { userId: targetId }), target.uplink || undefined);
+
     res.json({ message: "User deleted." });
   });
 
@@ -790,6 +838,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
 
     await storage.updateUser(target.id, { deviceId: null } as any);
+
+    emitScopedUserEvent(wsEvent("users:device-reset", { userId: target.id }), target.uplink || undefined);
+
     res.json({ message: "User device reset." });
   });
 
@@ -807,6 +858,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       activity: "Balance Topup",
       description: `Added saldo: +${amount}${note ? ` (${note})` : ""}`,
     });
+
+    emitToUser(userId, wsEvent("balance:topup", { userId, amount }));
+    emitToAdminsAndAbove(wsEvent("balance:topup", { userId, amount }));
+
     res.json({ message: "Balance added successfully." });
   });
 
@@ -901,6 +956,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       createdBy: user.username,
       accExpiration: accExpiration || undefined,
     } as any);
+
+    emitScopedUserEvent(wsEvent("referrals:created", { refId: ref.id }), user.username);
+
     res.json(ref);
   });
 
@@ -935,6 +993,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/settings/features", requireLevel(1), async (req, res) => {
     await storage.updateFeatures(req.body);
+    emitToOwners(wsEvent("settings:updated", { section: "features" }));
     res.json({ message: "Features updated." });
   });
 
@@ -945,6 +1004,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/settings/modname", requireLevel(1), async (req, res) => {
     await storage.updateModname(req.body.modname || "");
+    emitToOwners(wsEvent("settings:updated", { section: "modname" }));
     res.json({ message: "Mod name updated." });
   });
 
@@ -955,6 +1015,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/settings/ftext", requireLevel(1), async (req, res) => {
     await storage.updateFtext(req.body);
+    emitToOwners(wsEvent("settings:updated", { section: "ftext" }));
     res.json({ message: "Text updated." });
   });
 
@@ -966,6 +1027,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch("/api/settings/maintenance", requireLevel(1), async (req, res) => {
     const { status, myinput } = req.body;
     await storage.updateMaintenance(status, myinput);
+    emitToOwners(wsEvent("settings:updated", { section: "maintenance" }));
     res.json({ message: "Maintenance status updated." });
   });
 
@@ -973,25 +1035,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    let allKeys: any[];
-    let allUsers: any[];
-    if (user.level === 1) {
-      allKeys = await storage.getAllKeys();
-      allUsers = await storage.getAllUsers();
-    } else {
-      allKeys = await storage.getKeysByRegistrator(user.username);
-      allUsers = await storage.getUsersByUplink(user.username);
-    }
-
-    const totalKeys = allKeys.length;
-    const activeKeys = allKeys.filter(k => k.status === 1).length;
-    const expiredKeys = allKeys.filter(k => k.expiredDate && new Date() > new Date(k.expiredDate)).length;
-    const totalUsers = allUsers.length;
-    const pendingUsers = allUsers.filter(u => u.status === 0).length;
+    const stats = user.level === 1
+      ? await storage.getDashboardStats()
+      : await storage.getDashboardStatsByUser(user.username);
 
     res.json({
-      totalKeys, activeKeys, expiredKeys,
-      totalUsers, pendingUsers,
+      ...stats,
       saldo: user.saldo,
       level: user.level,
       levelName: getLevelName(user.level),
@@ -1039,6 +1088,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         activity: "game_create",
         description: `Created game: ${data.name} (${data.slug})`,
       });
+
+      emitToAll(wsEvent("games:created", { gameId: game.id }));
+
       res.json(game);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to create game" });
@@ -1073,6 +1125,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         activity: "game_update",
         description: `Updated game: ${game.name} → ${JSON.stringify(updates)}`,
       });
+
+      emitToAll(wsEvent("games:updated", { gameId: game.id }));
+
       res.json(updated);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to update game" });
@@ -1096,6 +1151,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         activity: "game_delete",
         description: `Deleted game: ${game.name} (${game.slug})`,
       });
+
+      emitToAll(wsEvent("games:deleted", { gameId: game.id }));
+
       res.json({ message: "Game deleted" });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to delete game" });
@@ -1129,6 +1187,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         activity: "game_duration_create",
         description: `Added duration ${data.label} (${data.durationHours}h, ₹${data.price}) to game ${game.name}`,
       });
+
+      emitToAll(wsEvent("durations:created", { gameId, durationId: dur.id }));
+
       res.json(dur);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to create duration" });
@@ -1149,6 +1210,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (price !== undefined) updates.price = price;
       if (isActive !== undefined) updates.isActive = isActive;
       const updated = await storage.updateGameDuration(dur.id, updates);
+
+      emitToAll(wsEvent("durations:updated", { gameId: dur.gameId, durationId: dur.id }));
+
       res.json(updated);
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to update duration" });
@@ -1163,6 +1227,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!dur) return res.status(404).json({ message: "Duration not found" });
       if (dur.gameId !== parseInt(req.params.gameId)) return res.status(400).json({ message: "Duration does not belong to this game" });
       await storage.deleteGameDuration(dur.id);
+
+      emitToAll(wsEvent("durations:deleted", { gameId: dur.gameId, durationId: dur.id }));
+
       res.json({ message: "Duration deleted" });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Failed to delete duration" });
@@ -1300,6 +1367,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       activity: "session_settings",
       description: `Session TTL changed: normal ${oldNormal}->${normalTtl.trim()}, rememberMe ${oldRemember}->${rememberMeTtl.trim()}`,
     });
+
+    emitToOwners(wsEvent("settings:updated", { section: "session" }));
+
     res.json({ message: "Session settings updated" });
   });
 
@@ -1316,6 +1386,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         description: `Session TTL reset to env defaults: normal=${getEnvNormalTtl()}, rememberMe=${getEnvRememberMeTtl()}`,
       });
     }
+
+    emitToOwners(wsEvent("settings:updated", { section: "session" }));
+
     res.json({ message: "Session settings reset to defaults" });
   });
 
@@ -1365,6 +1438,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       activity: "connect_config",
       description: `Changed game name to "${gameName.trim()}"`,
     });
+
+    emitToOwners(wsEvent("connect:updated", { section: "game_name" }));
+
     res.json({ message: "Game name updated" });
   });
 
@@ -1405,6 +1481,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       activity: "connect_config",
       description: `Updated active secret directly`,
     });
+
+    emitToOwners(wsEvent("connect:updated", { section: "secret" }));
+
     res.json({ message: "Secret updated" });
   });
 
@@ -1441,6 +1520,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       activity: "connect_secret_rotate",
       description: `Rotated connect secret to v${updated.secretVersion}, grace period ${grace}min`,
     });
+
+    emitToOwners(wsEvent("connect:updated", { section: "secret_rotated" }));
+
     res.json({ message: "Secret rotated", version: updated.secretVersion });
   });
 
@@ -1453,5 +1535,5 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ secret });
   });
 
-  return httpServer;
+  return sessionMiddleware;
 }

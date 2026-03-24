@@ -173,12 +173,14 @@ export default function GeneratePage() {
             <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cost</span>
-                <span className="font-bold text-primary font-mono">{formatCurrency(cost)}</span>
+                <span className="font-bold text-primary font-mono">{user?.level === 1 ? "Free (Owner)" : formatCurrency(cost)}</span>
               </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-muted-foreground">Remaining</span>
-                <span className="font-mono text-foreground">{formatCurrency((user?.saldo ?? 0) - cost)}</span>
-              </div>
+              {user?.level !== 1 && (
+                <div className="flex justify-between mt-1">
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="font-mono text-foreground">{formatCurrency((user?.saldo ?? 0) - cost)}</span>
+                </div>
+              )}
             </div>
           )}
 

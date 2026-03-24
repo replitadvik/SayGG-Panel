@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc, asc, count } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
@@ -82,6 +82,9 @@ export interface IStorage {
   updateGameDuration(id: number, data: Partial<GameDuration>): Promise<GameDuration | undefined>;
   deleteGameDuration(id: number): Promise<void>;
   getKeyCountByGameId(gameId: number): Promise<number>;
+
+  getDashboardStats(): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }>;
+  getDashboardStatsByUser(username: string): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -150,9 +153,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteKeys(ids: number[]): Promise<void> {
-    for (const id of ids) {
-      await db.delete(keysCode).where(eq(keysCode.id, id));
-    }
+    if (ids.length === 0) return;
+    await db.delete(keysCode).where(sql`${keysCode.id} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`);
   }
 
   async getReferralCodes(): Promise<ReferralCode[]> {
@@ -427,8 +429,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getKeyCountByGameId(gameId: number): Promise<number> {
-    const rows = await db.select().from(keysCode).where(eq(keysCode.gameId, gameId));
-    return rows.length;
+    const [result] = await db.select({ count: count() }).from(keysCode).where(eq(keysCode.gameId, gameId));
+    return result?.count ?? 0;
+  }
+
+  async getDashboardStats(): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }> {
+    const [keyStats] = await db.select({
+      totalKeys: count(),
+      activeKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 1)`,
+      expiredKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.expiredDate} IS NOT NULL AND ${keysCode.expiredDate} < NOW())`,
+    }).from(keysCode);
+
+    const [userStats] = await db.select({
+      totalUsers: count(),
+      pendingUsers: sql<number>`COUNT(*) FILTER (WHERE ${users.status} = 0)`,
+    }).from(users);
+
+    return {
+      totalKeys: keyStats?.totalKeys ?? 0,
+      activeKeys: Number(keyStats?.activeKeys ?? 0),
+      expiredKeys: Number(keyStats?.expiredKeys ?? 0),
+      totalUsers: userStats?.totalUsers ?? 0,
+      pendingUsers: Number(userStats?.pendingUsers ?? 0),
+    };
+  }
+
+  async getDashboardStatsByUser(username: string): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }> {
+    const [keyStats] = await db.select({
+      totalKeys: count(),
+      activeKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 1)`,
+      expiredKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.expiredDate} IS NOT NULL AND ${keysCode.expiredDate} < NOW())`,
+    }).from(keysCode).where(eq(keysCode.registrator, username));
+
+    const [userStats] = await db.select({
+      totalUsers: count(),
+      pendingUsers: sql<number>`COUNT(*) FILTER (WHERE ${users.status} = 0)`,
+    }).from(users).where(eq(users.uplink, username));
+
+    return {
+      totalKeys: keyStats?.totalKeys ?? 0,
+      activeKeys: Number(keyStats?.activeKeys ?? 0),
+      expiredKeys: Number(keyStats?.expiredKeys ?? 0),
+      totalUsers: userStats?.totalUsers ?? 0,
+      pendingUsers: Number(userStats?.pendingUsers ?? 0),
+    };
   }
 }
 

@@ -5,6 +5,7 @@ import {
   varchar,
   integer,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -28,7 +29,11 @@ export const users = pgTable("users", {
   twofaEnabled: integer("twofa_enabled").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_users_uplink").on(table.uplink),
+  index("idx_users_status").on(table.status),
+  index("idx_users_level").on(table.level),
+]);
 
 export const games = pgTable("games", {
   id: serial("id").primaryKey(),
@@ -50,7 +55,9 @@ export const gameDurations = pgTable("game_durations", {
   isActive: integer("is_active").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_game_durations_game_id").on(table.gameId),
+]);
 
 export const keysCode = pgTable("keys_code", {
   id: serial("id_keys").primaryKey(),
@@ -68,7 +75,12 @@ export const keysCode = pgTable("keys_code", {
   keyResetToken: varchar("key_reset_token", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_keys_registrator").on(table.registrator),
+  index("idx_keys_game_userkey").on(table.game, table.userKey),
+  index("idx_keys_game_id").on(table.gameId),
+  index("idx_keys_status").on(table.status),
+]);
 
 export const referralCode = pgTable("referral_code", {
   id: serial("id_reff").primaryKey(),
