@@ -20,6 +20,10 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+/* ================================================================
+ *  JNI helpers
+ * ================================================================ */
+
 static std::string jstring_to_string(JNIEnv* env, jstring jstr) {
     if (!jstr) return "";
     const char* raw = env->GetStringUTFChars(jstr, nullptr);
@@ -34,6 +38,10 @@ static std::string get_system_property(const char* prop) {
     __system_property_get(prop, buf);
     return std::string(buf);
 }
+
+/* ================================================================
+ *  Device info helpers
+ * ================================================================ */
 
 std::string Login_GetAndroidId(JNIEnv* env, jobject context) {
     jclass settingsSecure = env->FindClass("android/provider/Settings$Secure");
@@ -52,7 +60,8 @@ std::string Login_GetAndroidId(JNIEnv* env, jobject context) {
     if (!resolver) return "";
 
     jstring fieldName = env->NewStringUTF("android_id");
-    jstring jResult = (jstring)env->CallStaticObjectMethod(settingsSecure, getString, resolver, fieldName);
+    jstring jResult = (jstring)env->CallStaticObjectMethod(settingsSecure,
+                                                            getString, resolver, fieldName);
 
     std::string result = jstring_to_string(env, jResult);
 
@@ -71,26 +80,9 @@ std::string Login_GetDeviceBrand() {
     return get_system_property("ro.product.brand");
 }
 
-std::string Login_GetPackageName(JNIEnv* env, jobject context) {
-    jclass ctxClass = env->GetObjectClass(context);
-    jmethodID getPackageName = env->GetMethodID(ctxClass, "getPackageName", "()Ljava/lang/String;");
-    if (!getPackageName) return "";
-
-    jstring jPkg = (jstring)env->CallObjectMethod(context, getPackageName);
-    std::string result = jstring_to_string(env, jPkg);
-    if (jPkg) env->DeleteLocalRef(jPkg);
-    return result;
-}
-
-std::string Login_BuildSerial(JNIEnv* env, jobject context) {
-    std::string androidId = Login_GetAndroidId(env, context);
-    std::string model     = Login_GetDeviceModel();
-    std::string brand     = Login_GetDeviceBrand();
-    std::string pkg       = Login_GetPackageName(env, context);
-
-    std::string raw = androidId + "|" + brand + "|" + model + "|" + pkg;
-    return Login_MD5(raw);
-}
+/* ================================================================
+ *  MD5 utility
+ * ================================================================ */
 
 std::string Login_MD5(const std::string& input) {
     unsigned char digest[MD5_DIGEST_LENGTH];
@@ -102,6 +94,62 @@ std::string Login_MD5(const std::string& input) {
         ss << std::hex << std::setw(2) << std::setfill('0') << (int)digest[i];
     return ss.str();
 }
+
+/* ================================================================
+ *  UUID.nameUUIDFromBytes compatible (Java UUID version 3)
+ *
+ *  Java's UUID.nameUUIDFromBytes(byte[]) performs:
+ *    1. MD5 hash the input
+ *    2. Set version nibble to 3:  digest[6] = (digest[6] & 0x0f) | 0x30
+ *    3. Set variant bits to IETF: digest[8] = (digest[8] & 0x3f) | 0x80
+ *    4. Format as 8-4-4-4-12 lowercase hex with dashes
+ *
+ *  This produces the same output as Java for identical input bytes.
+ * ================================================================ */
+
+std::string Login_NameUUID(const std::string& input) {
+    unsigned char digest[MD5_DIGEST_LENGTH];
+    MD5(reinterpret_cast<const unsigned char*>(input.data()),
+        input.size(), digest);
+
+    digest[6] = (digest[6] & 0x0f) | 0x30;
+    digest[8] = (digest[8] & 0x3f) | 0x80;
+
+    char buf[37];
+    snprintf(buf, sizeof(buf),
+             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+             digest[0],  digest[1],  digest[2],  digest[3],
+             digest[4],  digest[5],
+             digest[6],  digest[7],
+             digest[8],  digest[9],
+             digest[10], digest[11], digest[12], digest[13],
+             digest[14], digest[15]);
+
+    return std::string(buf);
+}
+
+/* ================================================================
+ *  Serial generation — LEGACY COMPATIBLE
+ *
+ *  Legacy Java loader logic:
+ *    String hwid = user_key + androidId + deviceModel + deviceBrand;
+ *    String serial = UUID.nameUUIDFromBytes(hwid.getBytes()).toString();
+ *
+ *  This replicates that exactly.
+ * ================================================================ */
+
+std::string Login_BuildSerial(JNIEnv* env, jobject context, const std::string& userKey) {
+    std::string androidId = Login_GetAndroidId(env, context);
+    std::string model     = Login_GetDeviceModel();
+    std::string brand     = Login_GetDeviceBrand();
+
+    std::string hwid = userKey + androidId + model + brand;
+    return Login_NameUUID(hwid);
+}
+
+/* ================================================================
+ *  HTTP POST via libcurl
+ * ================================================================ */
 
 static std::string url_encode(const std::string& value) {
     std::ostringstream escaped;
@@ -126,7 +174,8 @@ static size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void* userdata
     return total;
 }
 
-bool Login_HttpPost(const std::string& url, const std::string& body, std::string& responseOut) {
+bool Login_HttpPost(const std::string& url, const std::string& body,
+                    std::string& responseOut) {
     CURL* curl = curl_easy_init();
     if (!curl) {
         LOGE("curl_easy_init failed");
@@ -180,7 +229,12 @@ bool Login_HttpPost(const std::string& url, const std::string& body, std::string
     return true;
 }
 
-bool Login_Connect(const std::string& userKey, const std::string& serial, ConnectResponse& out) {
+/* ================================================================
+ *  /connect — send request, parse JSON, validate
+ * ================================================================ */
+
+bool Login_Connect(const std::string& userKey, const std::string& serial,
+                   ConnectResponse& out) {
     std::string postBody = "game=" + url_encode(GAME_NAME)
                          + "&user_key=" + url_encode(userKey)
                          + "&serial=" + url_encode(serial);
@@ -196,7 +250,7 @@ bool Login_Connect(const std::string& userKey, const std::string& serial, Connec
     try {
         root = nlohmann::json::parse(rawResponse);
     } catch (const std::exception& e) {
-        LOGE("JSON parse error: %s", e.what());
+        LOGE("JSON parse error");
         out.status = false;
         out.reason = "INVALID_RESPONSE";
         return false;
@@ -262,11 +316,22 @@ bool Login_Connect(const std::string& userKey, const std::string& serial, Connec
         return false;
     }
 
-    long long now_ms = (long long)time(nullptr) * 1000LL;
-    long long drift  = now_ms - out.rng;
-    if (drift < 0) drift = -drift;
-    if (drift > RNG_WINDOW_MS) {
-        LOGE("rng drift %lld ms exceeds window %d", drift, RNG_WINDOW_MS);
+    /* ----------------------------------------------------------------
+     *  RNG validation — LEGACY COMPATIBLE
+     *
+     *  Legacy PHP loader check: if (rng + 30 > time(0))
+     *
+     *  The backend sends rng as milliseconds (Date.now()).
+     *  Convert to seconds before applying the legacy window check.
+     *  This ensures the server timestamp, divided by 1000,
+     *  is still within RNG_WINDOW_SEC of the current device time.
+     * ---------------------------------------------------------------- */
+    long long rng_sec = out.rng / 1000;
+    long long now_sec = (long long)time(nullptr);
+
+    if (!(rng_sec + RNG_WINDOW_SEC > now_sec)) {
+        LOGE("rng expired: server=%lld now=%lld window=%d",
+             rng_sec, now_sec, RNG_WINDOW_SEC);
         out.status = false;
         out.reason = "RNG_EXPIRED";
         return false;
@@ -281,6 +346,11 @@ bool Login_Connect(const std::string& userKey, const std::string& serial, Connec
     return true;
 }
 
+/* ================================================================
+ *  Token verification
+ *  md5("{game}-{user_key}-{serial}-{license_secret}")
+ * ================================================================ */
+
 bool Login_VerifyToken(const std::string& game, const std::string& userKey,
                        const std::string& serial, const std::string& token) {
     std::string raw = game + "-" + userKey + "-" + serial + "-" + LICENSE_SECRET;
@@ -288,10 +358,23 @@ bool Login_VerifyToken(const std::string& game, const std::string& userKey,
     return expected == token;
 }
 
+/* ================================================================
+ *  JNI entrypoint
+ *
+ *  Maps to:
+ *    package com.keypanel.loader;
+ *    class Login;
+ *    static native String native_Check(Context ctx, String key);
+ *
+ *  If your app uses a different package path, either:
+ *    (a) rename this function to match, or
+ *    (b) use JNI_OnLoad + RegisterNatives (template at bottom)
+ * ================================================================ */
+
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
-                                              jobject context, jstring jUserKey) {
+                                             jobject context, jstring jUserKey) {
     if (!context) {
         return env->NewStringUTF("ERROR: null context");
     }
@@ -304,12 +387,12 @@ Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
         return env->NewStringUTF("ERROR: empty key");
     }
 
-    std::string serial = Login_BuildSerial(env, context);
+    std::string serial = Login_BuildSerial(env, context, userKey);
     if (serial.empty()) {
         return env->NewStringUTF("ERROR: device identity failed");
     }
 
-    LOGD("serial=%s key=%s", serial.c_str(), userKey.c_str());
+    LOGD("connect: game=%s", GAME_NAME);
 
     ConnectResponse resp = {};
     bool ok = Login_Connect(userKey, serial, resp);
@@ -321,3 +404,26 @@ Java_com_keypanel_loader_Login_native_1Check(JNIEnv* env, jclass clazz,
     std::string errMsg = resp.reason.empty() ? "AUTH_FAILED" : resp.reason;
     return env->NewStringUTF(errMsg.c_str());
 }
+
+/* ================================================================
+ *  ALTERNATIVE: RegisterNatives approach
+ *
+ *  Uncomment and adapt this if your app uses a different package.
+ *  Replace "com/yourpkg/YourClass" with the actual path.
+ *
+ *  static JNINativeMethod gMethods[] = {
+ *      {"native_Check", "(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;",
+ *       (void*)Java_com_keypanel_loader_Login_native_1Check}
+ *  };
+ *
+ *  extern "C" jint JNI_OnLoad(JavaVM* vm, void*) {
+ *      JNIEnv* env = nullptr;
+ *      if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK)
+ *          return JNI_ERR;
+ *      jclass cls = env->FindClass("com/yourpkg/YourClass");
+ *      if (!cls) return JNI_ERR;
+ *      env->RegisterNatives(cls, gMethods,
+ *                           sizeof(gMethods) / sizeof(gMethods[0]));
+ *      return JNI_VERSION_1_6;
+ *  }
+ * ================================================================ */

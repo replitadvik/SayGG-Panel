@@ -165,21 +165,28 @@ if (Login.isOk(result)) {
 }
 ```
 
-### Device Serial Generation
+### Device Serial Generation (Legacy-Compatible)
 
-The loader builds a unique device serial from:
-- Android ID (Settings.Secure)
-- Device brand (`ro.product.brand`)
-- Device model (`ro.product.model`)
-- App package name
+The loader builds a serial using the same algorithm as the legacy Java loader:
 
-These are combined and MD5-hashed to produce a stable 32-char hex serial.
+```
+hwid = user_key + androidId + deviceModel + deviceBrand
+serial = UUID.nameUUIDFromBytes(hwid.getBytes()).toString()
+```
+
+The C++ `Login_NameUUID()` function replicates Java's `UUID.nameUUIDFromBytes()` exactly:
+1. MD5 hash the concatenated hwid bytes
+2. Set version nibble to 3 (UUID v3)
+3. Set variant bits to IETF
+4. Format as `xxxxxxxx-xxxx-3xxx-Nxxx-xxxxxxxxxxxx`
+
+**Important:** The serial depends on the user's key, so the same device with different keys produces different serials. This matches the legacy device-binding behavior.
 
 ### Client-Side Validation
 
 After a successful `/connect` response, the loader verifies:
 1. **Token** — `md5("{game}-{user_key}-{serial}-{secret}")` must match
-2. **RNG window** — server timestamp must be within 30 seconds of device time
+2. **RNG window** — legacy-compatible: `(rng_ms / 1000) + 30 > time(0)` (server sends ms, loader converts to seconds)
 3. **Required fields** — token, rng, and EXP must be present
 
 ### Setup Checklist
