@@ -49,8 +49,12 @@ seed.ts             — Database seeder (admin + default prices/features + PUBG 
 migrations/         — Drizzle migration files
 
 loader/
-  Login.h           — C++ header (ConnectResponse struct, macros)
-  Login.cpp         — C++ impl (HTTP POST, JSON parse, token verify)
+  Login.h           — JNI header: ConnectResponse struct, native_Check declaration, helpers
+  Login.cpp         — JNI impl: Android serial gen, curl POST, nlohmann/json parse, MD5 token verify
+  json.hpp          — STUB: replace with real nlohmann/json v3.11.3 single-header
+  Android.mk        — ndk-build configuration
+  CMakeLists.txt    — CMake build alternative
+  java/com/keypanel/loader/Login.java — Java companion (loadLibrary + native bridge)
 
 expo-test-app/      — React Native (Expo) connect endpoint tester
   src/App.tsx       — Main test UI

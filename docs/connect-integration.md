@@ -109,12 +109,83 @@ The endpoint now validates the `game` field against the `games` database table. 
 
 The server supports secret rotation with a grace period. During rotation, both the active and previous secrets are valid. The `secret_version` field increments with each rotation, allowing clients to track which secret was used.
 
-## C++ Loader Integration
+## Android Native Loader Integration
 
-See `loader/Login.h` and `loader/Login.cpp` for a ready-to-use C++ implementation. Configure these macros at compile time:
+The `loader/` directory contains a production-ready Android NDK loader with JNI integration.
 
-```cpp
-#define ENDPOINT_URL "https://yourdomain.com/connect"
-#define GAME_NAME "PUBG"
-#define LICENSE_SECRET "your-secret-here"
+### File Structure
+
 ```
+loader/
+├── Login.h              # Header: structs, JNI declarations, helpers
+├── Login.cpp            # Implementation: JNI entry, serial gen, HTTP, JSON, token
+├── json.hpp             # Stub — replace with real nlohmann/json single-header
+├── Android.mk           # ndk-build config
+├── CMakeLists.txt       # CMake config (alternative)
+└── java/com/keypanel/loader/
+    └── Login.java       # Java-side companion class
+```
+
+### Build Configuration
+
+Pass your secrets as build variables (never hardcode in source):
+
+**CMake (app/build.gradle):**
+```groovy
+externalNativeBuild {
+    cmake {
+        arguments "-DKEYPANEL_ENDPOINT=https://yourdomain.com/connect",
+                  "-DKEYPANEL_GAME=PUBG",
+                  "-DKEYPANEL_SECRET=your-secret-here"
+    }
+}
+```
+
+**ndk-build:**
+```makefile
+KEYPANEL_ENDPOINT := https://yourdomain.com/connect
+KEYPANEL_GAME     := PUBG
+KEYPANEL_SECRET   := your-secret-here
+```
+
+### Optional TLS Pinning
+
+Add `-DKEYPANEL_PINNED_KEY=sha256//base64hash=` to pin the server's public key.
+
+### Java Usage
+
+```java
+import com.keypanel.loader.Login;
+
+String result = Login.check(context, "MY-LICENSE-KEY");
+if (Login.isOk(result)) {
+    // Authenticated successfully
+} else {
+    // result contains error reason (e.g., "EXPIRED KEY", "TOKEN_MISMATCH")
+}
+```
+
+### Device Serial Generation
+
+The loader builds a unique device serial from:
+- Android ID (Settings.Secure)
+- Device brand (`ro.product.brand`)
+- Device model (`ro.product.model`)
+- App package name
+
+These are combined and MD5-hashed to produce a stable 32-char hex serial.
+
+### Client-Side Validation
+
+After a successful `/connect` response, the loader verifies:
+1. **Token** — `md5("{game}-{user_key}-{serial}-{secret}")` must match
+2. **RNG window** — server timestamp must be within 30 seconds of device time
+3. **Required fields** — token, rng, and EXP must be present
+
+### Setup Checklist
+
+1. Download `json.hpp` from [nlohmann/json releases](https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp) and replace the stub
+2. Add `libcurl` and `openssl` to your NDK dependencies
+3. Set your endpoint, game name, and secret via build variables
+4. Add `Login.java` to your app's source tree
+5. Call `Login.check(context, key)` from your activity
