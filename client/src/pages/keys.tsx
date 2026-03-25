@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 function formatDuration(hours: number) {
@@ -531,7 +531,7 @@ export default function KeysPage() {
                       <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
                         {formatDate(key.createdAt)}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap sticky right-0 bg-card">
+                      <td className={`px-3 py-2.5 whitespace-nowrap sticky right-0 ${selectedKeys.includes(key.id) ? "bg-primary/5" : "bg-card"}`}>
                         <div className="flex items-center justify-end gap-0.5">
                           <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground" onClick={() => openEdit(key)} data-testid={`button-edit-key-${key.id}`}>
                             <Edit className="h-3.5 w-3.5" />
@@ -638,7 +638,7 @@ export default function KeysPage() {
         title={confirmAction?.title ?? ""}
         description={confirmAction?.description ?? ""}
         onConfirm={confirmAction?.action ?? (() => {})}
-        isPending={anyBulkPending || deleteMutation.isPending}
+        isPending={anyBulkPending || deleteMutation.isPending || resetDeviceMutation.isPending}
       />
 
       <Dialog open={!!editKey} onOpenChange={() => setEditKey(null)}>
