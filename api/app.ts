@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { runMigrations } from "../server/migrate";
 import { registerRoutes } from "../server/routes";
 
 declare module "http" {
@@ -61,6 +62,7 @@ let appReady: Promise<void> | null = null;
 export async function initApp() {
   if (appReady) return appReady;
   appReady = (async () => {
+    await runMigrations();
     await registerRoutes(null, app);
 
     app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
