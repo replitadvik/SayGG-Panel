@@ -499,12 +499,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!user) return res.status(401).json({ message: "Unauthorized" });
 
       const data = generateKeySchema.parse(req.body);
+      const isOwner = user.level === 1;
+      const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
 
       if (user.level === 3 && data.maxDevices > 2) {
-        return res.status(400).json({ message: "Reseller cannot create keys for more than 2 devices." });
+        return res.status(400).json({ message: "Reseller accounts are limited to 2 devices per key." });
       }
       if (user.level === 3 && data.customInput === "custom") {
-        return res.status(400).json({ message: "Custom key not allowed for reseller." });
+        return res.status(400).json({ message: "Custom key names are not available for Reseller accounts." });
+      }
+
+      if (!isOwner) {
+        const deviceCap = user.level === 3 ? 2 : Math.min(user.maxDevicesLimit ?? 1000, 1000);
+        if (data.maxDevices > deviceCap) {
+          return res.status(400).json({
+            message: `Max devices exceeded. Your account allows up to ${deviceCap} devices per key.`,
+          });
+        }
       }
 
       const gameRecord = await storage.getGame(data.gameId);
@@ -518,10 +529,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const cost = durEntry.price * data.maxDevices;
-      const isOwner = user.level === 1;
 
-      if (!isOwner && user.saldo - cost < 0) {
-        return res.status(400).json({ message: "Insufficient balance." });
+      if (!isOwner && cost > user.saldo) {
+        return res.status(400).json({
+          message: `Insufficient balance. This key costs ${cost.toLocaleString()} but your balance is ${user.saldo.toLocaleString()}.`,
+        });
       }
 
       let license: string;
@@ -547,21 +559,84 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         status: 1,
       } as any);
 
+      const newBalance = isOwner ? user.saldo : user.saldo - cost;
       if (!isOwner) {
-        await storage.updateUser(user.id, { saldo: user.saldo - cost });
+        await storage.updateUser(user.id, { saldo: newBalance });
       }
 
+      const costLabel = isOwner ? "Free (Owner)" : cost.toLocaleString();
+      const balLabel = isOwner ? "∞" : newBalance.toLocaleString();
       await storage.createHistory({
         keysId: newKey.id,
+        userId: user.id,
         userDo: user.username,
-        info: `${gameRecord.name}|${license.substring(0, 5)}|${data.duration}|${data.maxDevices}`,
+        activity: "Key Generated",
+        info: `[${roleName}] Generated key #${newKey.id}`,
+        description: [
+          `Key: ${license}`,
+          `Game: ${gameRecord.name}`,
+          `Duration: ${data.duration}h`,
+          `Devices: ${data.maxDevices}`,
+          `Type: ${data.customInput === "custom" ? "Custom" : "Random"}`,
+          `Cost: ${costLabel}`,
+          `Balance after: ${balLabel}`,
+        ].join(". ") + ".",
       });
 
       emitScopedKeyEvent(wsEvent("keys:created", { keyId: newKey.id, registrator: user.username }), user.username);
 
-      res.json({ key: newKey, cost: isOwner ? 0 : cost });
+      res.json({ key: newKey, cost: isOwner ? 0 : cost, balanceAfter: newBalance });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Key generation failed." });
+    }
+  });
+
+  app.post("/api/keys/log-action", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+      const { action, keyIds } = req.body;
+      if (!action || !["Key Copied", "Key Downloaded"].includes(action)) {
+        return res.status(400).json({ message: "Invalid action." });
+      }
+      if (!Array.isArray(keyIds) || keyIds.length === 0 || keyIds.length > 100) {
+        return res.status(400).json({ message: "Invalid key IDs." });
+      }
+
+      const isOwner = user.level === 1;
+      const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
+
+      const verifiedKeys: { id: number; userKey: string }[] = [];
+      for (const kid of keyIds) {
+        const k = await storage.getKey(kid);
+        if (!k) continue;
+        if (!isOwner && k.registrator !== user.username) continue;
+        verifiedKeys.push({ id: k.id, userKey: k.userKey });
+      }
+
+      if (verifiedKeys.length === 0) {
+        return res.status(400).json({ message: "No valid keys found." });
+      }
+
+      const keysLabel = verifiedKeys.length <= 3
+        ? verifiedKeys.map(k => k.userKey).join(", ")
+        : `${verifiedKeys.length} key(s)`;
+
+      for (const vk of verifiedKeys) {
+        await storage.createHistory({
+          keysId: vk.id,
+          userId: user.id,
+          userDo: user.username,
+          activity: action,
+          info: `[${roleName}] ${action}: ${vk.userKey}`,
+          description: `${action} by ${user.username}. Key: ${vk.userKey}.`,
+        });
+      }
+
+      res.json({ success: true, logged: verifiedKeys.length });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Log failed." });
     }
   });
 
