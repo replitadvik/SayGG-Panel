@@ -23,7 +23,7 @@ client/src/
     register.tsx    — Registration with referral code
     forgot-password.tsx — Forgot/reset password via OTP
     device-reset.tsx — Device binding reset (username+password)
-    dashboard.tsx   — Stats cards (keys, users, balance)
+    dashboard.tsx   — Role-aware premium dashboard (welcome, info, stats, quick actions)
     keys.tsx        — Key list with CRUD, bulk delete, search, extend duration
     generate.tsx    — Game-aware key generation (select game → load durations)
     users.tsx       — User management, approve/decline

@@ -85,8 +85,18 @@ export interface IStorage {
   deleteGameDuration(id: number): Promise<void>;
   getKeyCountByGameId(gameId: number): Promise<number>;
 
-  getDashboardStats(): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }>;
-  getDashboardStatsByUser(username: string): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }>;
+  getDashboardStats(): Promise<{
+    totalKeys: number; activeKeys: number; expiredKeys: number;
+    totalUsers: number; pendingUsers: number;
+    totalAdmins: number; totalResellers: number;
+    totalGames: number; totalReferrals: number;
+    blockedKeys: number;
+  }>;
+  getDashboardStatsByUser(username: string): Promise<{
+    totalKeys: number; activeKeys: number; expiredKeys: number;
+    totalUsers: number; pendingUsers: number;
+    totalReferrals: number; blockedKeys: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -449,32 +459,44 @@ export class DatabaseStorage implements IStorage {
     return result?.count ?? 0;
   }
 
-  async getDashboardStats(): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }> {
+  async getDashboardStats() {
     const [keyStats] = await db.select({
       totalKeys: count(),
       activeKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 1)`,
       expiredKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.expiredDate} IS NOT NULL AND ${keysCode.expiredDate} < NOW())`,
+      blockedKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 0)`,
     }).from(keysCode);
 
     const [userStats] = await db.select({
       totalUsers: count(),
       pendingUsers: sql<number>`COUNT(*) FILTER (WHERE ${users.status} = 0)`,
+      totalAdmins: sql<number>`COUNT(*) FILTER (WHERE ${users.level} = 2)`,
+      totalResellers: sql<number>`COUNT(*) FILTER (WHERE ${users.level} = 3)`,
     }).from(users);
+
+    const [gameStats] = await db.select({ totalGames: count() }).from(games);
+    const [refStats] = await db.select({ totalReferrals: count() }).from(referralCode);
 
     return {
       totalKeys: keyStats?.totalKeys ?? 0,
       activeKeys: Number(keyStats?.activeKeys ?? 0),
       expiredKeys: Number(keyStats?.expiredKeys ?? 0),
+      blockedKeys: Number(keyStats?.blockedKeys ?? 0),
       totalUsers: userStats?.totalUsers ?? 0,
       pendingUsers: Number(userStats?.pendingUsers ?? 0),
+      totalAdmins: Number(userStats?.totalAdmins ?? 0),
+      totalResellers: Number(userStats?.totalResellers ?? 0),
+      totalGames: gameStats?.totalGames ?? 0,
+      totalReferrals: refStats?.totalReferrals ?? 0,
     };
   }
 
-  async getDashboardStatsByUser(username: string): Promise<{ totalKeys: number; activeKeys: number; expiredKeys: number; totalUsers: number; pendingUsers: number }> {
+  async getDashboardStatsByUser(username: string) {
     const [keyStats] = await db.select({
       totalKeys: count(),
       activeKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 1)`,
       expiredKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.expiredDate} IS NOT NULL AND ${keysCode.expiredDate} < NOW())`,
+      blockedKeys: sql<number>`COUNT(*) FILTER (WHERE ${keysCode.status} = 0)`,
     }).from(keysCode).where(eq(keysCode.registrator, username));
 
     const [userStats] = await db.select({
@@ -482,12 +504,16 @@ export class DatabaseStorage implements IStorage {
       pendingUsers: sql<number>`COUNT(*) FILTER (WHERE ${users.status} = 0)`,
     }).from(users).where(eq(users.uplink, username));
 
+    const [refStats] = await db.select({ totalReferrals: count() }).from(referralCode).where(eq(referralCode.createdBy, username));
+
     return {
       totalKeys: keyStats?.totalKeys ?? 0,
       activeKeys: Number(keyStats?.activeKeys ?? 0),
       expiredKeys: Number(keyStats?.expiredKeys ?? 0),
+      blockedKeys: Number(keyStats?.blockedKeys ?? 0),
       totalUsers: userStats?.totalUsers ?? 0,
       pendingUsers: Number(userStats?.pendingUsers ?? 0),
+      totalReferrals: refStats?.totalReferrals ?? 0,
     };
   }
 }

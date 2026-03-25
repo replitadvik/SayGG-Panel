@@ -1057,11 +1057,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ? await storage.getDashboardStats()
       : await storage.getDashboardStatsByUser(user.username);
 
+    const cookieMaxAge = req.session.cookie?.maxAge ?? 0;
+    const sessionExpiry = cookieMaxAge > 0 ? Date.now() + cookieMaxAge : null;
+
     res.json({
       ...stats,
       saldo: user.saldo,
       level: user.level,
       levelName: getLevelName(user.level),
+      username: user.username,
+      fullname: user.fullname,
+      email: user.email,
+      status: user.status,
+      createdAt: user.createdAt,
+      sessionExpiresAt: sessionExpiry,
     });
   });
 
