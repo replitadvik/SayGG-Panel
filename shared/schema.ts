@@ -30,6 +30,7 @@ export const users = pgTable("users", {
   maxKeyEdits: integer("max_key_edits").default(3).notNull(),
   maxDevicesLimit: integer("max_devices_limit").default(1000).notNull(),
   maxKeyExtends: integer("max_key_extends").default(5).notNull(),
+  maxKeyResets: integer("max_key_resets").default(3).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -99,6 +100,7 @@ export const referralCode = pgTable("referral_code", {
   maxKeyEdits: integer("max_key_edits").default(3),
   maxDevicesLimit: integer("max_devices_limit").default(1000),
   maxKeyExtends: integer("max_key_extends").default(5),
+  maxKeyResets: integer("max_key_resets").default(3),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

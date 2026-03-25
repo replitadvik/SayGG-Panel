@@ -286,6 +286,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         maxKeyEdits: refCode.maxKeyEdits ?? 3,
         maxDevicesLimit: refCode.maxDevicesLimit ?? 1000,
         maxKeyExtends: refCode.maxKeyExtends ?? 5,
+        maxKeyResets: refCode.maxKeyResets ?? 3,
       } as any);
 
       await storage.useReferral(refCode.id, data.username);
@@ -593,12 +594,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       let updates: any = {};
 
       if (isOwner) {
-        const { game, userKey, duration, maxDevices, status } = req.body;
+        const { game, userKey, duration, maxDevices, status, registrator } = req.body;
         if (game !== undefined && game !== key.game) { changes.push(`game: "${key.game}" → "${game}"`); updates.game = game; }
         if (userKey !== undefined && userKey !== key.userKey) { changes.push(`key: "${key.userKey}" → "${userKey}"`); updates.userKey = userKey; }
         if (duration !== undefined && duration !== key.duration) { changes.push(`duration: ${key.duration}h → ${duration}h`); updates.duration = duration; }
         if (maxDevices !== undefined && maxDevices !== key.maxDevices) { changes.push(`maxDevices: ${key.maxDevices} → ${maxDevices}`); updates.maxDevices = maxDevices; }
         if (status !== undefined && status !== key.status) { changes.push(`status: ${key.status === 1 ? "Active" : "Block"} → ${status === 1 ? "Active" : "Block"}`); updates.status = status; }
+        if (registrator !== undefined && registrator !== key.registrator) {
+          const targetUser = await storage.getUserByUsername(registrator);
+          if (!targetUser) {
+            return res.status(400).json({ message: `User "${registrator}" does not exist.` });
+          }
+          changes.push(`registrator: "${key.registrator || "none"}" → "${registrator}"`);
+          updates.registrator = registrator;
+        }
       } else if (isAdmin) {
         const { userKey, duration, maxDevices, status } = req.body;
         if (userKey !== undefined && userKey !== key.userKey) { changes.push(`key: "${key.userKey}" → "${userKey}"`); updates.userKey = userKey; }
@@ -850,13 +859,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       : 0;
 
     const isOwner = user.level === 1;
-    const maxLimit = isOwner ? 999 : 3;
+    const resetLimit = isOwner ? null : (user.maxKeyResets ?? 3);
 
-    if (!isOwner && resetCount >= maxLimit) {
-      return res.status(400).json({ message: "Max reset already done." });
+    if (!isOwner && resetLimit !== null && resetCount >= resetLimit) {
+      return res.status(403).json({
+        message: `Reset limit reached (${resetCount}/${resetLimit}). Contact Owner for more.`,
+      });
     }
 
-    const newCount = resetCount + 1;
+    const newCount = resetCount + (isOwner ? 0 : 1);
     const token = crypto.randomBytes(16).toString("hex");
 
     await storage.updateKey(key.id, {
@@ -865,13 +876,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       keyResetToken: token,
     } as any);
 
+    const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
+    const remaining = resetLimit !== null ? Math.max(0, resetLimit - newCount) : null;
+    const resetNum = isOwner ? "N/A" : `${newCount}/${resetLimit}`;
+
+    const devicesSummary = devicesArray.length <= 5
+      ? devicesArray.join(", ")
+      : `${devicesArray.slice(0, 5).join(", ")} (+${devicesArray.length - 5} more)`;
+
+    await storage.createHistory({
+      keysId: key.id,
+      userId: user.id,
+      userDo: user.username,
+      activity: "Key Reset",
+      info: `[${roleName}] Reset devices on key #${key.id}`,
+      description: [
+        `Devices removed: ${devicesArray.length}`,
+        `Previous devices: ${devicesSummary}`,
+        `Reset count: ${resetNum}`,
+      ].join(". ") + ".",
+    });
+
     emitScopedKeyEvent(wsEvent("keys:device-reset", { keyId: key.id }), key.registrator || user.username);
 
     res.json({
       message: "Devices reset successfully.",
+      devicesRemoved: devicesArray.length,
       resetUsed: newCount,
-      resetLeft: isOwner ? "Unlimited" : Math.max(0, maxLimit - newCount),
+      resetLimit: resetLimit,
+      resetLeft: remaining,
+      keyUserKey: key.userKey,
     });
+  });
+
+  app.get("/api/users/usernames", requireLevel(1), async (req, res) => {
+    const allUsers = await storage.getAllUsers();
+    res.json(allUsers.map(u => ({ username: u.username, level: u.level })));
   });
 
   app.get("/api/users", requireAuth, async (req, res) => {
@@ -947,7 +987,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (target.uplink !== me.username) return res.status(403).json({ message: "Can only edit users you referred." });
     }
 
-    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit, maxKeyExtends } = req.body;
+    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets } = req.body;
     const updates: any = {};
     if (level !== undefined) updates.level = level;
     if (status !== undefined) {
@@ -963,6 +1003,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (maxKeyEdits !== undefined) updates.maxKeyEdits = Math.max(1, parseInt(maxKeyEdits) || 3);
       if (maxDevicesLimit !== undefined) updates.maxDevicesLimit = Math.max(1, parseInt(maxDevicesLimit) || 1000);
       if (maxKeyExtends !== undefined) updates.maxKeyExtends = Math.max(1, parseInt(maxKeyExtends) || 5);
+      if (maxKeyResets !== undefined) updates.maxKeyResets = Math.max(1, parseInt(maxKeyResets) || 3);
     }
 
     const updated = await storage.updateUser(target.id, updates);
@@ -1116,7 +1157,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/referrals", requireLevel(2), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit, maxKeyExtends } = req.body;
+    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets } = req.body;
 
     const refLevel = level || 3;
     if (user.level === 2 && refLevel !== 3) {
@@ -1134,6 +1175,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       maxKeyEdits: maxKeyEdits !== undefined ? Math.max(1, parseInt(maxKeyEdits) || 3) : 3,
       maxDevicesLimit: maxDevicesLimit !== undefined ? Math.max(1, parseInt(maxDevicesLimit) || 1000) : 1000,
       maxKeyExtends: maxKeyExtends !== undefined ? Math.max(1, parseInt(maxKeyExtends) || 5) : 5,
+      maxKeyResets: maxKeyResets !== undefined ? Math.max(1, parseInt(maxKeyResets) || 3) : 3,
     } as any);
 
     emitScopedUserEvent(wsEvent("referrals:created", { refId: ref.id }), user.username);

@@ -88,6 +88,7 @@ export default function UsersPage() {
       maxKeyEdits: u.maxKeyEdits ?? 3,
       maxDevicesLimit: u.maxDevicesLimit ?? 1000,
       maxKeyExtends: u.maxKeyExtends ?? 5,
+      maxKeyResets: u.maxKeyResets ?? 3,
     });
   };
 
@@ -237,6 +238,11 @@ export default function UsersPage() {
                     <Label className="text-sm font-medium">Max Key Extends</Label>
                     <Input type="number" min="1" value={editForm.maxKeyExtends ?? 5} onChange={e => setEditForm({ ...editForm, maxKeyExtends: parseInt(e.target.value) || 5 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-key-extends" />
                     <p className="text-[10px] text-muted-foreground">Max extend actions per key for this user</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Max Key Resets</Label>
+                    <Input type="number" min="1" value={editForm.maxKeyResets ?? 3} onChange={e => setEditForm({ ...editForm, maxKeyResets: parseInt(e.target.value) || 3 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-key-resets" />
+                    <p className="text-[10px] text-muted-foreground">Max device resets per key for this user</p>
                   </div>
                 </div>
               </div>

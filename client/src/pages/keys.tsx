@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +18,7 @@ import {
   Loader2, Search, Trash2, RotateCcw, Edit, Copy, Clock, Key,
   Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Smartphone, AlertTriangle, Filter, MoreHorizontal, Shield, Ban, Zap,
-  ChevronDown, ChevronUp, History,
+  ChevronDown, ChevronUp, History, User,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -26,10 +26,56 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function formatDuration(hours: number) {
-  if (hours === 1) return "1 Hour";
-  if (hours < 24) return `${hours} Hours`;
-  if (hours === 24) return "1 Day";
-  return `${(hours / 24).toFixed(0)} Days`;
+  if (hours < 1) return `${hours}h`;
+  if (hours < 24) return `${hours} Hour${hours !== 1 ? "s" : ""}`;
+  const days = Math.floor(hours / 24);
+  const rem = hours % 24;
+  if (rem === 0) return `${days} Day${days !== 1 ? "s" : ""}`;
+  return `${days}d ${rem}h`;
+}
+
+function formatDurationCompact(hours: number) {
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  const rem = hours % 24;
+  if (rem === 0) return `${days}d`;
+  return `${days}d ${rem}h`;
+}
+
+function RemainingTime({ expiredDate, status }: { expiredDate: string | null; status: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!expiredDate || status !== 1) return;
+    const t = setInterval(() => setTick(v => v + 1), 60000);
+    return () => clearInterval(t);
+  }, [expiredDate, status]);
+
+  if (status === 0) return <span className="text-red-500 text-[10px] font-medium">Blocked</span>;
+  if (!expiredDate) return <span className="text-muted-foreground text-[10px]">Not Activated</span>;
+
+  const now = Date.now();
+  const exp = new Date(expiredDate).getTime();
+  const diff = exp - now;
+
+  if (diff <= 0) return <span className="text-orange-500 text-[10px] font-medium">Expired</span>;
+
+  const totalMin = Math.floor(diff / 60000);
+  const totalHrs = Math.floor(totalMin / 60);
+  const days = Math.floor(totalHrs / 24);
+  const hrs = totalHrs % 24;
+  const mins = totalMin % 60;
+
+  let text = "";
+  if (days > 0) text = `${days}d ${hrs}h`;
+  else if (totalHrs > 0) text = `${totalHrs}h ${mins}m`;
+  else text = `${mins}m`;
+
+  const urgent = totalHrs < 6;
+  return (
+    <span className={`text-[10px] font-medium ${urgent ? "text-orange-500" : "text-emerald-500"}`}>
+      {text} left
+    </span>
+  );
 }
 
 function formatDate(d: string | null) {
@@ -153,6 +199,10 @@ export default function KeysPage() {
   const [extendDuration, setExtendDuration] = useState("");
   const [showExtendHistory, setShowExtendHistory] = useState(false);
   const [extendSuccess, setExtendSuccess] = useState<any>(null);
+  const [resetKey, setResetKey] = useState<any>(null);
+  const [resetSuccess, setResetSuccess] = useState<any>(null);
+  const [showResetHistory, setShowResetHistory] = useState(false);
+  const [registratorSearch, setRegistratorSearch] = useState("");
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; action: () => void } | null>(null);
 
   const isOwner = user?.level === 1;
@@ -246,11 +296,18 @@ export default function KeysPage() {
 
   const resetDeviceMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("POST", `/api/keys/${id}/reset-device`);
+      const resp = await apiRequest("POST", `/api/keys/${id}/reset-device`);
+      return resp.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
-      toast({ title: "Devices reset" });
+      setResetKey(null);
+      setShowResetHistory(false);
+      setResetSuccess(data);
+      setTimeout(() => setResetSuccess(null), 4000);
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 
@@ -311,9 +368,11 @@ export default function KeysPage() {
       duration: key.duration,
       maxDevices: key.maxDevices,
       status: key.status,
+      registrator: key.registrator || "",
     });
     setShowDevices(false);
     setShowHistory(false);
+    setRegistratorSearch("");
   };
 
   const editKeyHistory = useQuery<any[]>({
@@ -336,6 +395,27 @@ export default function KeysPage() {
       return res.json();
     },
     enabled: !!extendKey && showExtendHistory,
+  });
+
+  const resetKeyHistory = useQuery<any[]>({
+    queryKey: ["/api/keys", resetKey?.id, "reset-history"],
+    queryFn: async () => {
+      if (!resetKey) return [];
+      const res = await fetch(`/api/keys/${resetKey.id}/history?type=Key Reset`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!resetKey && showResetHistory,
+  });
+
+  const usernamesList = useQuery<{ username: string; level: number }[]>({
+    queryKey: ["/api/users/usernames"],
+    queryFn: async () => {
+      const res = await fetch("/api/users/usernames", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isOwner && !!editKey,
   });
 
   const handleCopy = (text: string) => {
@@ -546,7 +626,10 @@ export default function KeysPage() {
                         </div>
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
-                        {formatDuration(key.duration)}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs">{formatDuration(key.duration)} <span className="text-muted-foreground text-[10px]">/ {key.duration}h</span></span>
+                          <RemainingTime expiredDate={key.expiredDate} status={key.status} />
+                        </div>
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <Badge variant={statusInfo.variant} className="text-[10px] rounded px-1.5 py-0">
@@ -577,11 +660,8 @@ export default function KeysPage() {
                           )}
                           {deviceList.length > 0 && (
                             <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground" onClick={() => {
-                              setConfirmAction({
-                                title: "Reset Devices",
-                                description: `Reset all ${deviceList.length} device(s) on key "${key.userKey}"?`,
-                                action: () => { resetDeviceMutation.mutate(key.id); setConfirmAction(null); },
-                              });
+                              setResetKey(key);
+                              setShowResetHistory(false);
                             }} data-testid={`button-reset-key-${key.id}`}>
                               <RotateCcw className="h-3.5 w-3.5" />
                             </button>
@@ -760,6 +840,57 @@ export default function KeysPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                Generated By
+              </Label>
+              {isOwner ? (
+                <div className="relative">
+                  <Input
+                    value={registratorSearch || editForm.registrator || ""}
+                    onChange={e => {
+                      setRegistratorSearch(e.target.value);
+                      setEditForm({...editForm, registrator: e.target.value});
+                    }}
+                    placeholder="Search users..."
+                    className="h-11 rounded bg-muted/50 border-border/60"
+                    data-testid="input-edit-registrator"
+                  />
+                  {registratorSearch && usernamesList.data && (
+                    <div className="absolute z-50 top-12 left-0 right-0 bg-card border border-border/60 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {usernamesList.data
+                        .filter(u => u.username.toLowerCase().includes(registratorSearch.toLowerCase()))
+                        .slice(0, 10)
+                        .map(u => (
+                          <button
+                            key={u.username}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 flex items-center justify-between"
+                            onClick={() => {
+                              setEditForm({...editForm, registrator: u.username});
+                              setRegistratorSearch("");
+                            }}
+                            data-testid={`option-registrator-${u.username}`}
+                          >
+                            <span className="font-medium">{u.username}</span>
+                            <span className="text-muted-foreground text-[10px]">{u.level === 1 ? "Owner" : u.level === 2 ? "Admin" : "Reseller"}</span>
+                          </button>
+                        ))}
+                      {usernamesList.data.filter(u => u.username.toLowerCase().includes(registratorSearch.toLowerCase())).length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">No users found</p>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">Select from registered users only</p>
+                </div>
+              ) : (
+                <div className="h-11 flex items-center px-3 rounded bg-muted/30 border border-border/60 text-sm text-muted-foreground">
+                  {editForm.registrator || "—"}
+                </div>
+              )}
+            </div>
+
             {editKey && (() => {
               const deviceList = parseDevices(editKey.devices);
               return (
@@ -835,6 +966,7 @@ export default function KeysPage() {
                   payload.userKey = editForm.userKey;
                   payload.duration = editForm.duration;
                   payload.maxDevices = editForm.maxDevices;
+                  payload.registrator = editForm.registrator;
                 } else if (isAdmin) {
                   payload.userKey = editForm.userKey;
                   payload.duration = editForm.duration;
@@ -1012,6 +1144,151 @@ export default function KeysPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setExtendSuccess(null)} className="rounded h-10 w-full" data-testid="button-extend-success-close">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetKey} onOpenChange={v => { if (!v) { setResetKey(null); setShowResetHistory(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-destructive" />
+              Reset Devices
+            </DialogTitle>
+          </DialogHeader>
+          {resetKey && (() => {
+            const devices = parseDevices(resetKey.devices);
+            const raw = resetKey.keyResetTime || "0";
+            const resetUsed = /^\d+$/.test(raw) ? parseInt(raw) : 0;
+            const resetLimit = user?.maxKeyResets ?? 3;
+            const atLimit = !isOwner && resetUsed >= resetLimit;
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded bg-muted/50 border border-border/40">
+                    <p className="text-[10px] text-muted-foreground">Key</p>
+                    <p className="text-xs font-mono font-medium truncate">{resetKey.userKey}</p>
+                  </div>
+                  <div className="p-3 rounded bg-muted/50 border border-border/40">
+                    <p className="text-[10px] text-muted-foreground">Game</p>
+                    <p className="text-xs font-medium">{resetKey.game}</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded bg-muted/50 border border-border/40 space-y-2">
+                  <p className="text-xs font-medium flex items-center gap-1.5">
+                    <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                    Devices to Remove ({devices.length})
+                  </p>
+                  {devices.length > 0 ? (
+                    <div className="max-h-28 overflow-y-auto space-y-1">
+                      {devices.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2 px-2 py-1 rounded bg-card border border-border/40">
+                          <code className="text-[10px] font-mono flex-1 break-all text-destructive">{d}</code>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground">No devices registered</p>
+                  )}
+                </div>
+
+                {!isOwner && (
+                  <div className={`p-3 rounded border space-y-1 ${atLimit ? "bg-destructive/10 border-destructive/30" : "bg-muted/50 border-border/40"}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Resets Used</span>
+                      <span className={`text-xs font-medium ${atLimit ? "text-destructive" : ""}`}>{resetUsed} / {resetLimit}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Remaining</span>
+                      <span className={`text-xs font-medium ${atLimit ? "text-destructive" : ""}`}>{Math.max(0, resetLimit - resetUsed)}</span>
+                    </div>
+                    {atLimit && <p className="text-[10px] text-destructive font-medium">Reset limit reached</p>}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setShowResetHistory(!showResetHistory)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full"
+                  data-testid="button-toggle-reset-history"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Reset History
+                  {showResetHistory ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
+                </button>
+                {showResetHistory && (
+                  <div className="max-h-32 overflow-y-auto space-y-1.5">
+                    {resetKeyHistory.isLoading ? (
+                      <div className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                    ) : !resetKeyHistory.data?.length ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">No reset history</p>
+                    ) : resetKeyHistory.data.map((log: any) => (
+                      <div key={log.id} className="px-2 py-1.5 rounded bg-card border border-border/40 space-y-0.5">
+                        <div className="flex items-center gap-2 text-[11px]">
+                          <span className="font-medium">{log.userDo}</span>
+                          <span className="text-muted-foreground ml-auto">{log.createdAt ? formatDate(log.createdAt) : ""}</span>
+                        </div>
+                        {log.description && <p className="text-[10px] text-muted-foreground break-all">{log.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setResetKey(null); setShowResetHistory(false); }} className="rounded h-10">Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => resetDeviceMutation.mutate(resetKey.id)}
+              disabled={resetDeviceMutation.isPending || parseDevices(resetKey?.devices).length === 0 || (!isOwner && (/^\d+$/.test(resetKey?.keyResetTime || "0") ? parseInt(resetKey.keyResetTime) : 0) >= (user?.maxKeyResets ?? 3))}
+              className="rounded h-10"
+              data-testid="button-confirm-reset"
+            >
+              {resetDeviceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Reset All Devices
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetSuccess} onOpenChange={() => setResetSuccess(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2 text-green-600 dark:text-green-400">
+              <RotateCcw className="h-4 w-4" />
+              Devices Reset
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-4 rounded bg-green-500/10 border border-green-500/30 text-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Key</span>
+                <span className="font-mono text-xs font-medium">{resetSuccess?.keyUserKey}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Devices Removed</span>
+                <span className="font-medium text-xs text-destructive">{resetSuccess?.devicesRemoved}</span>
+              </div>
+              {resetSuccess?.resetLimit !== null && resetSuccess?.resetLimit !== undefined && (
+                <>
+                  <div className="border-t border-border/40 my-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">Resets Used</span>
+                    <span className="font-medium text-xs">{resetSuccess?.resetUsed} / {resetSuccess?.resetLimit}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">Remaining</span>
+                    <span className="font-medium text-xs">{resetSuccess?.resetLeft}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetSuccess(null)} className="rounded h-10 w-full" data-testid="button-reset-success-close">
               Close
             </Button>
           </DialogFooter>

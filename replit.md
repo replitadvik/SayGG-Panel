@@ -67,9 +67,9 @@ docs/
 ```
 
 ## Database Tables
-- `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding, max_key_edits/max_devices_limit (owner-configurable restrictions)
-- `keys_code` — license keys with game, duration, device tracking, key_reset_time (integer counter as text), edit_count (per-key edit counter)
-- `referral_code` — registration codes with level/balance presets, max_key_edits/max_devices_limit (inherited restrictions)
+- `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding, max_key_edits/max_devices_limit/max_key_extends/max_key_resets (owner-configurable restrictions)
+- `keys_code` — license keys with game, duration, device tracking, key_reset_time (integer counter as text), edit_count (per-key edit counter), extend_count (per-key extend counter)
+- `referral_code` — registration codes with level/balance presets, max_key_edits/max_devices_limit/max_key_extends/max_key_resets (inherited restrictions)
 - `price_config` — duration->price mapping
 - `feature` — game feature toggles (ESP, AIM, etc.)
 - `site_config` — site name (dynamic branding displayed in header, login, browser title)
@@ -88,7 +88,9 @@ docs/
 - Reseller restrictions: max 2 devices, no custom keys, cannot edit game/key/duration/maxDevices (only status)
 - Key edit restrictions: per-key edit counter (edit_count), admin/reseller limited by user.max_key_edits (default 3), owner unlimited
 - Key edit permissions: Owner=all fields; Admin=key/duration/maxDevices/status (duration limited by own account expiry, maxDevices capped by user.max_devices_limit/1000); Reseller=status only
-- Key device reset: non-owners limited to 3 resets (tracked via key_reset_time counter)
+- Key device reset: non-owners limited by user.max_key_resets (default 3), tracked via key_reset_time counter; Owner unlimited (count not incremented); advanced reset dialog shows devices/limits/history; success popup with auto-close
+- Key device reset audit: every reset logs devices removed/summary/count to history table (activity="Key Reset")
+- Key registrator editing: Owner-only via PATCH /api/keys/:id with registrator field; validated against real users via storage.getUserByUsername; frontend searchable select from GET /api/users/usernames
 - Key edit audit: every PATCH /api/keys/:id logs before/after values to history table (activity="Key Edit")
 - User device reset: limit 2 per 24 hours (PHP parity with deviceResetLimit=2)
 - Key extend: POST /api/keys/:id/extend with format "30D" or "12H"; per-key extend counter (extend_count), non-owners limited by user.max_key_extends (default 5), owner unlimited
