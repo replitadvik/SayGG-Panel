@@ -762,11 +762,17 @@ export default function KeysPage() {
               <Edit className="h-4 w-4" />
               Edit Key #{editKey?.id}
             </DialogTitle>
-            {editKey && !isOwner && (
+            {editKey && (
               <p className="text-xs text-muted-foreground mt-1" data-testid="text-edit-count">
-                Edits: {editKey.editCount ?? 0}/{user?.maxKeyEdits ?? 3} used
-                {(editKey.editCount ?? 0) >= (user?.maxKeyEdits ?? 3) && (
-                  <span className="text-destructive ml-1 font-medium">— Limit reached</span>
+                {isOwner ? (
+                  <>Edits: <span className="text-primary font-medium">∞</span></>
+                ) : (
+                  <>
+                    Edits: {editKey.editCount ?? 0}/{user?.maxKeyEdits ?? 3} used
+                    {(editKey.editCount ?? 0) >= (user?.maxKeyEdits ?? 3) && (
+                      <span className="text-destructive ml-1 font-medium">— Limit reached</span>
+                    )}
+                  </>
                 )}
               </p>
             )}
@@ -1021,24 +1027,22 @@ export default function KeysPage() {
               )}
             </div>
 
-            {!isOwner && (
-              <div className="p-3 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Extend attempts used</span>
-                  <span className="font-medium">{extendKey?.extendCount ?? 0} / {user?.maxKeyExtends ?? 5}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Remaining</span>
-                  <span className="font-medium">{Math.max(0, (user?.maxKeyExtends ?? 5) - (extendKey?.extendCount ?? 0))}</span>
-                </div>
-                {(extendKey?.extendCount ?? 0) >= (user?.maxKeyExtends ?? 5) && (
-                  <p className="text-red-500 text-[10px] pt-1 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Extend limit reached. Contact Owner.
-                  </p>
-                )}
+            <div className={`p-3 rounded text-xs space-y-1 ${isOwner ? "bg-primary/10 border border-primary/30" : "bg-amber-500/10 border border-amber-500/30"}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Extend attempts used</span>
+                <span className="font-medium">{isOwner ? <span className="text-primary">∞</span> : `${extendKey?.extendCount ?? 0} / ${user?.maxKeyExtends ?? 5}`}</span>
               </div>
-            )}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Remaining</span>
+                <span className="font-medium">{isOwner ? <span className="text-primary">∞</span> : Math.max(0, (user?.maxKeyExtends ?? 5) - (extendKey?.extendCount ?? 0))}</span>
+              </div>
+              {!isOwner && (extendKey?.extendCount ?? 0) >= (user?.maxKeyExtends ?? 5) && (
+                <p className="text-red-500 text-[10px] pt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Extend limit reached. Contact Owner.
+                </p>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Extension to Add</Label>
@@ -1127,19 +1131,15 @@ export default function KeysPage() {
                 <span className="text-muted-foreground text-xs">Total Duration</span>
                 <span className="font-medium text-xs">{extendSuccess ? formatDuration(extendSuccess.totalDuration) : ""}</span>
               </div>
-              {extendSuccess?.extendLimit !== null && extendSuccess?.extendLimit !== undefined && (
-                <>
-                  <div className="border-t border-border/40 my-1" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-xs">Extends Used</span>
-                    <span className="font-medium text-xs">{extendSuccess.extendCount} / {extendSuccess.extendLimit}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-xs">Remaining</span>
-                    <span className="font-medium text-xs">{extendSuccess.remaining}</span>
-                  </div>
-                </>
-              )}
+              <div className="border-t border-border/40 my-1" />
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Extends Used</span>
+                <span className="font-medium text-xs">{extendSuccess?.extendLimit === null ? <span className="text-primary">∞</span> : `${extendSuccess?.extendCount} / ${extendSuccess?.extendLimit}`}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Remaining</span>
+                <span className="font-medium text-xs">{extendSuccess?.remaining === null ? <span className="text-primary">∞</span> : extendSuccess?.remaining}</span>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -1195,19 +1195,17 @@ export default function KeysPage() {
                   )}
                 </div>
 
-                {!isOwner && (
-                  <div className={`p-3 rounded border space-y-1 ${atLimit ? "bg-destructive/10 border-destructive/30" : "bg-muted/50 border-border/40"}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Resets Used</span>
-                      <span className={`text-xs font-medium ${atLimit ? "text-destructive" : ""}`}>{resetUsed} / {resetLimit}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Remaining</span>
-                      <span className={`text-xs font-medium ${atLimit ? "text-destructive" : ""}`}>{Math.max(0, resetLimit - resetUsed)}</span>
-                    </div>
-                    {atLimit && <p className="text-[10px] text-destructive font-medium">Reset limit reached</p>}
+                <div className={`p-3 rounded border space-y-1 ${isOwner ? "bg-primary/10 border-primary/30" : atLimit ? "bg-destructive/10 border-destructive/30" : "bg-muted/50 border-border/40"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Resets Used</span>
+                    <span className={`text-xs font-medium ${isOwner ? "" : atLimit ? "text-destructive" : ""}`}>{isOwner ? <span className="text-primary">∞</span> : `${resetUsed} / ${resetLimit}`}</span>
                   </div>
-                )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Remaining</span>
+                    <span className={`text-xs font-medium ${isOwner ? "" : atLimit ? "text-destructive" : ""}`}>{isOwner ? <span className="text-primary">∞</span> : Math.max(0, resetLimit - resetUsed)}</span>
+                  </div>
+                  {!isOwner && atLimit && <p className="text-[10px] text-destructive font-medium">Reset limit reached</p>}
+                </div>
 
                 <button
                   onClick={() => setShowResetHistory(!showResetHistory)}
@@ -1272,19 +1270,15 @@ export default function KeysPage() {
                 <span className="text-muted-foreground text-xs">Devices Removed</span>
                 <span className="font-medium text-xs text-destructive">{resetSuccess?.devicesRemoved}</span>
               </div>
-              {resetSuccess?.resetLimit !== null && resetSuccess?.resetLimit !== undefined && (
-                <>
-                  <div className="border-t border-border/40 my-1" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-xs">Resets Used</span>
-                    <span className="font-medium text-xs">{resetSuccess?.resetUsed} / {resetSuccess?.resetLimit}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-xs">Remaining</span>
-                    <span className="font-medium text-xs">{resetSuccess?.resetLeft}</span>
-                  </div>
-                </>
-              )}
+              <div className="border-t border-border/40 my-1" />
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Resets Used</span>
+                <span className="font-medium text-xs">{resetSuccess?.resetLimit === null ? <span className="text-primary">∞</span> : `${resetSuccess?.resetUsed} / ${resetSuccess?.resetLimit}`}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Remaining</span>
+                <span className="font-medium text-xs">{resetSuccess?.resetLeft === null ? <span className="text-primary">∞</span> : resetSuccess?.resetLeft}</span>
+              </div>
             </div>
           </div>
           <DialogFooter>

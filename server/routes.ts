@@ -653,7 +653,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const updated = await storage.updateKey(keyId, updates);
 
       const roleName = isOwner ? "Owner" : isAdmin ? "Admin" : "Reseller";
-      const editNum = isOwner ? "N/A" : `${updates.editCount}/${user.maxKeyEdits ?? 3}`;
+      const editNum = isOwner ? "∞ (unlimited)" : `${updates.editCount}/${user.maxKeyEdits ?? 3}`;
       await storage.createHistory({
         keysId: keyId,
         userId: user.id,
@@ -742,7 +742,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const newExtendCount = (key.extendCount ?? 0) + (isOwner ? 0 : 1);
       const extendLimit = isOwner ? null : (user.maxKeyExtends ?? 5);
       const remaining = extendLimit !== null ? Math.max(0, extendLimit - newExtendCount) : null;
-      const extendNum = isOwner ? "N/A" : `${newExtendCount}/${extendLimit}`;
+      const extendNum = isOwner ? "∞ (unlimited)" : `${newExtendCount}/${extendLimit}`;
 
       const fmtDate = (d: Date | null) => d ? d.toISOString().replace("T", " ").substring(0, 19) + " UTC" : "N/A";
       const descParts = [
@@ -878,7 +878,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
     const remaining = resetLimit !== null ? Math.max(0, resetLimit - newCount) : null;
-    const resetNum = isOwner ? "N/A" : `${newCount}/${resetLimit}`;
+    const resetNum = isOwner ? "∞ (unlimited)" : `${newCount}/${resetLimit}`;
 
     const devicesSummary = devicesArray.length <= 5
       ? devicesArray.join(", ")
