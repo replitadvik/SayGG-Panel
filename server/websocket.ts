@@ -4,7 +4,7 @@ import type { IncomingMessage } from "http";
 import { storage } from "./storage";
 
 export type WsEventType =
-  | "keys:created" | "keys:updated" | "keys:deleted" | "keys:bulk-deleted" | "keys:extended" | "keys:device-reset"
+  | "keys:created" | "keys:updated" | "keys:deleted" | "keys:bulk-deleted" | "keys:bulk-reset" | "keys:extended" | "keys:device-reset"
   | "users:created" | "users:approved" | "users:declined" | "users:updated" | "users:deleted" | "users:device-reset"
   | "balance:topup"
   | "referrals:created" | "referrals:used"

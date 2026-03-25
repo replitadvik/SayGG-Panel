@@ -467,7 +467,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.get("/api/keys/:id", requireAuth, async (req, res) => {
-    const key = await storage.getKey(parseInt(req.params.id));
+    const key = await storage.getKey(parseInt(req.params.id as string));
     if (!key) return res.status(404).json({ message: "Key not found" });
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
@@ -480,7 +480,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.get("/api/keys/:id/history", requireAuth, async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const key = await storage.getKey(parseInt(req.params.id));
+    const key = await storage.getKey(parseInt(req.params.id as string));
     if (!key) return res.status(404).json({ message: "Key not found" });
     if (user.level !== 1 && key.registrator !== user.username) {
       return res.status(403).json({ message: "Access denied" });
@@ -645,7 +645,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-      const keyId = parseInt(req.params.id);
+      const keyId = parseInt(req.params.id as string);
       const key = await storage.getKey(keyId);
       if (!key) return res.status(404).json({ message: "Key not found" });
 
@@ -751,7 +751,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-      const keyId = parseInt(req.params.id);
+      const keyId = parseInt(req.params.id as string);
       const key = await storage.getKey(keyId);
       if (!key) return res.status(404).json({ message: "Key not found" });
 
@@ -859,7 +859,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.delete("/api/keys/:id", requireAuth, async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const key = await storage.getKey(parseInt(req.params.id));
+    const key = await storage.getKey(parseInt(req.params.id as string));
     if (!key) return res.status(404).json({ message: "Key not found" });
     if (user.level !== 1 && key.registrator !== user.username) {
       return res.status(403).json({ message: "Access denied" });
@@ -918,7 +918,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    const key = await storage.getKey(parseInt(req.params.id));
+    const key = await storage.getKey(parseInt(req.params.id as string));
     if (!key) return res.status(404).json({ message: "Key not found" });
     if (user.level !== 1 && key.registrator !== user.username) {
       return res.status(403).json({ message: "Access denied" });
@@ -1009,7 +1009,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.get("/api/users/:id", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const target = await storage.getUser(parseInt(req.params.id));
+    const target = await storage.getUser(parseInt(req.params.id as string));
     if (!target) return res.status(404).json({ message: "User not found" });
 
     if (me.level !== 1 && target.id !== me.id && target.uplink !== me.username) {
@@ -1023,7 +1023,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.post("/api/users/:id/approve", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const target = await storage.getUser(parseInt(req.params.id));
+    const target = await storage.getUser(parseInt(req.params.id as string));
     if (!target) return res.status(404).json({ message: "User not found" });
     if (me.level === 2 && target.uplink !== me.username) {
       return res.status(403).json({ message: "Can only approve users you referred." });
@@ -1038,7 +1038,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.post("/api/users/:id/decline", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const target = await storage.getUser(parseInt(req.params.id));
+    const target = await storage.getUser(parseInt(req.params.id as string));
     if (!target) return res.status(404).json({ message: "User not found" });
     if (me.level === 2 && target.uplink !== me.username) {
       return res.status(403).json({ message: "Can only decline users you referred." });
@@ -1054,7 +1054,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.patch("/api/users/:id", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const target = await storage.getUser(parseInt(req.params.id));
+    const target = await storage.getUser(parseInt(req.params.id as string));
     if (!target) return res.status(404).json({ message: "User not found" });
 
     if (me.level === 2) {
@@ -1099,7 +1099,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.delete("/api/users/:id", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const targetId = parseInt(req.params.id);
+    const targetId = parseInt(req.params.id as string);
     if (targetId === req.session.userId) return res.status(400).json({ message: "Cannot delete yourself." });
 
     const target = await storage.getUser(targetId);
@@ -1121,7 +1121,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.post("/api/users/:id/reset-device", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
-    const target = await storage.getUser(parseInt(req.params.id));
+    const target = await storage.getUser(parseInt(req.params.id as string));
     if (!target) return res.status(404).json({ message: "User not found" });
 
     if (me.level === 2) {
@@ -1278,7 +1278,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.delete("/api/prices/:duration", requireLevel(1), async (req, res) => {
-    await storage.deactivatePrice(parseInt(req.params.duration));
+    await storage.deactivatePrice(parseInt(req.params.duration as string));
     res.json({ message: "Duration removed." });
   });
 
@@ -1390,7 +1390,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.get("/api/games/:id", requireAuth, async (req, res) => {
-    const game = await storage.getGame(parseInt(req.params.id));
+    const game = await storage.getGame(parseInt(req.params.id as string));
     if (!game) return res.status(404).json({ message: "Game not found" });
     res.json(game);
   });
@@ -1424,7 +1424,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const game = await storage.getGame(parseInt(req.params.id));
+      const game = await storage.getGame(parseInt(req.params.id as string));
       if (!game) return res.status(404).json({ message: "Game not found" });
       const { name, slug, displayName, description, isActive } = req.body;
       const updates: any = {};
@@ -1461,7 +1461,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const game = await storage.getGame(parseInt(req.params.id));
+      const game = await storage.getGame(parseInt(req.params.id as string));
       if (!game) return res.status(404).json({ message: "Game not found" });
       const keyCount = await storage.getKeyCountByGameId(game.id);
       if (keyCount > 0) {
@@ -1484,7 +1484,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.get("/api/games/:id/durations", requireAuth, async (req, res) => {
-    const gameId = parseInt(req.params.id);
+    const gameId = parseInt(req.params.id as string);
     const game = await storage.getGame(gameId);
     if (!game) return res.status(404).json({ message: "Game not found" });
     const user = await storage.getUser(req.session.userId!);
@@ -1499,7 +1499,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const gameId = parseInt(req.params.id);
+      const gameId = parseInt(req.params.id as string);
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
       const data = insertGameDurationSchema.parse({ ...req.body, gameId });
@@ -1523,9 +1523,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const dur = await storage.getGameDuration(parseInt(req.params.id));
+      const dur = await storage.getGameDuration(parseInt(req.params.id as string));
       if (!dur) return res.status(404).json({ message: "Duration not found" });
-      if (dur.gameId !== parseInt(req.params.gameId)) return res.status(400).json({ message: "Duration does not belong to this game" });
+      if (dur.gameId !== parseInt(req.params.gameId as string)) return res.status(400).json({ message: "Duration does not belong to this game" });
       const { durationHours, label, price, isActive } = req.body;
       const updates: any = {};
       if (durationHours !== undefined) updates.durationHours = durationHours;
@@ -1546,9 +1546,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     try {
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const dur = await storage.getGameDuration(parseInt(req.params.id));
+      const dur = await storage.getGameDuration(parseInt(req.params.id as string));
       if (!dur) return res.status(404).json({ message: "Duration not found" });
-      if (dur.gameId !== parseInt(req.params.gameId)) return res.status(400).json({ message: "Duration does not belong to this game" });
+      if (dur.gameId !== parseInt(req.params.gameId as string)) return res.status(400).json({ message: "Duration does not belong to this game" });
       await storage.deleteGameDuration(dur.id);
 
       emitToAll(wsEvent("durations:deleted", { gameId: dur.gameId, durationId: dur.id }));
