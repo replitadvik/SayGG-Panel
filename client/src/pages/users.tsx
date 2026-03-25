@@ -85,6 +85,8 @@ export default function UsersPage() {
       status: u.status,
       saldo: u.saldo,
       expirationDate: u.expirationDate ? new Date(u.expirationDate).toISOString().split("T")[0] : "",
+      maxKeyEdits: u.maxKeyEdits ?? 3,
+      maxDevicesLimit: u.maxDevicesLimit ?? 1000,
     });
   };
 
@@ -216,6 +218,23 @@ export default function UsersPage() {
                 <Input type="date" value={editForm.expirationDate || ""} onChange={e => setEditForm({ ...editForm, expirationDate: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-expiration" />
               </div>
             </div>
+            {user?.level === 1 && editUser?.level !== 1 && (
+              <div className="space-y-3 pt-2 border-t border-border/40">
+                <p className="text-xs font-medium text-muted-foreground">Key Management Restrictions</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Max Key Edits</Label>
+                    <Input type="number" min="1" value={editForm.maxKeyEdits ?? 3} onChange={e => setEditForm({ ...editForm, maxKeyEdits: parseInt(e.target.value) || 3 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-key-edits" />
+                    <p className="text-[10px] text-muted-foreground">Max edits per key for this user</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Max Devices Limit</Label>
+                    <Input type="number" min="1" value={editForm.maxDevicesLimit ?? 1000} onChange={e => setEditForm({ ...editForm, maxDevicesLimit: parseInt(e.target.value) || 1000 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-devices-limit" />
+                    <p className="text-[10px] text-muted-foreground">Max devices this user can set per key</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditUser(null)} className="rounded h-10">Cancel</Button>

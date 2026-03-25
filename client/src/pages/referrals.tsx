@@ -18,7 +18,7 @@ export default function ReferralsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "" });
+  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000" });
 
   const { data: referrals = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/referrals"],
@@ -32,7 +32,7 @@ export default function ReferralsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
       setShowCreate(false);
-      setCreateForm({ level: "3", setSaldo: "0", accExpiration: "" });
+      setCreateForm({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000" });
       toast({ title: "Referral code created" });
     },
     onError: (e: any) => {
@@ -51,6 +51,8 @@ export default function ReferralsPage() {
       level: parseInt(createForm.level),
       setSaldo: parseInt(createForm.setSaldo) || 0,
       accExpiration: createForm.accExpiration || undefined,
+      maxKeyEdits: parseInt(createForm.maxKeyEdits) || 3,
+      maxDevicesLimit: parseInt(createForm.maxDevicesLimit) || 1000,
     });
   };
 
@@ -133,6 +135,21 @@ export default function ReferralsPage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Expiration Date (optional)</Label>
               <Input type="date" value={createForm.accExpiration} onChange={e => setCreateForm({ ...createForm, accExpiration: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-expiration" />
+            </div>
+            <div className="space-y-3 pt-2 border-t border-border/40">
+              <p className="text-xs font-medium text-muted-foreground">Key Management Restrictions</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Max Key Edits</Label>
+                  <Input type="number" min="1" value={createForm.maxKeyEdits} onChange={e => setCreateForm({ ...createForm, maxKeyEdits: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-max-key-edits" />
+                  <p className="text-[10px] text-muted-foreground">Edit limit per key for this account</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Max Devices Limit</Label>
+                  <Input type="number" min="1" value={createForm.maxDevicesLimit} onChange={e => setCreateForm({ ...createForm, maxDevicesLimit: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-max-devices-limit" />
+                  <p className="text-[10px] text-muted-foreground">Max devices this account can set per key</p>
+                </div>
+              </div>
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" type="button" onClick={() => setShowCreate(false)} className="rounded h-10">Cancel</Button>

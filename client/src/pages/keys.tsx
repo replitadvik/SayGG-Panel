@@ -18,6 +18,7 @@ import {
   Loader2, Search, Trash2, RotateCcw, Edit, Copy, Clock, Key,
   Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Smartphone, AlertTriangle, Filter, MoreHorizontal, Shield, Ban, Zap,
+  ChevronDown, ChevronUp, History,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -146,6 +147,8 @@ export default function KeysPage() {
   const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
   const [editKey, setEditKey] = useState<any>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [showDevices, setShowDevices] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [extendKey, setExtendKey] = useState<any>(null);
   const [extendDuration, setExtendDuration] = useState("");
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; action: () => void } | null>(null);
@@ -292,6 +295,9 @@ export default function KeysPage() {
     }
   };
 
+  const isAdmin = user?.level === 2;
+  const isReseller = user?.level === 3;
+
   const openEdit = (key: any) => {
     setEditKey(key);
     setEditForm({
@@ -300,9 +306,21 @@ export default function KeysPage() {
       duration: key.duration,
       maxDevices: key.maxDevices,
       status: key.status,
-      registrator: key.registrator,
     });
+    setShowDevices(false);
+    setShowHistory(false);
   };
+
+  const editKeyHistory = useQuery<any[]>({
+    queryKey: ["/api/keys", editKey?.id, "history"],
+    queryFn: async () => {
+      if (!editKey) return [];
+      const res = await fetch(`/api/keys/${editKey.id}/history`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!editKey && showHistory,
+  });
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -642,49 +660,173 @@ export default function KeysPage() {
       />
 
       <Dialog open={!!editKey} onOpenChange={() => setEditKey(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Edit Key</DialogTitle>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              Edit Key #{editKey?.id}
+            </DialogTitle>
+            {editKey && !isOwner && (
+              <p className="text-xs text-muted-foreground mt-1" data-testid="text-edit-count">
+                Edits: {editKey.editCount ?? 0}/{user?.maxKeyEdits ?? 3} used
+                {(editKey.editCount ?? 0) >= (user?.maxKeyEdits ?? 3) && (
+                  <span className="text-destructive ml-1 font-medium">— Limit reached</span>
+                )}
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-4">
-            {(user?.level === 1 || user?.level === 2) && (
-              <>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Game</Label>
-                  <Input value={editForm.game || ""} onChange={e => setEditForm({...editForm, game: e.target.value})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-game" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Key</Label>
-                  <Input value={editForm.userKey || ""} onChange={e => setEditForm({...editForm, userKey: e.target.value})} className="h-11 rounded bg-muted/50 border-border/60 font-mono" data-testid="input-edit-key" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Duration (hrs)</Label>
-                    <Input type="number" value={editForm.duration || ""} onChange={e => setEditForm({...editForm, duration: parseInt(e.target.value)})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-duration" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Max Devices</Label>
-                    <Input type="number" value={editForm.maxDevices || ""} onChange={e => setEditForm({...editForm, maxDevices: parseInt(e.target.value)})} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-devices" />
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Game</Label>
+              <Input
+                value={editForm.game || ""}
+                onChange={e => setEditForm({...editForm, game: e.target.value})}
+                disabled={!isOwner}
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-edit-game"
+              />
+              {!isOwner && <p className="text-[10px] text-muted-foreground">Only Owner can change game</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Key</Label>
+              <Input
+                value={editForm.userKey || ""}
+                onChange={e => setEditForm({...editForm, userKey: e.target.value})}
+                disabled={isReseller}
+                className="h-11 rounded bg-muted/50 border-border/60 font-mono"
+                data-testid="input-edit-key"
+              />
+              {isReseller && <p className="text-[10px] text-muted-foreground">Resellers cannot edit key</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Duration (hrs)</Label>
+                <Input
+                  type="number"
+                  value={editForm.duration || ""}
+                  onChange={e => setEditForm({...editForm, duration: parseInt(e.target.value) || 0})}
+                  disabled={isReseller}
+                  className="h-11 rounded bg-muted/50 border-border/60"
+                  data-testid="input-edit-duration"
+                />
+                {isReseller && <p className="text-[10px] text-muted-foreground">Resellers cannot edit duration</p>}
+                {isAdmin && <p className="text-[10px] text-muted-foreground">Limited by your account validity</p>}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Max Devices</Label>
+                <Input
+                  type="number"
+                  value={editForm.maxDevices || ""}
+                  onChange={e => setEditForm({...editForm, maxDevices: parseInt(e.target.value) || 1})}
+                  disabled={isReseller}
+                  max={isAdmin ? (user?.maxDevicesLimit ?? 1000) : undefined}
+                  className="h-11 rounded bg-muted/50 border-border/60"
+                  data-testid="input-edit-max-devices"
+                />
+                {isReseller && <p className="text-[10px] text-muted-foreground">Resellers cannot edit devices</p>}
+                {isAdmin && <p className="text-[10px] text-muted-foreground">Max: {user?.maxDevicesLimit ?? 1000}</p>}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-sm font-medium">Status</Label>
-              <Select value={String(editForm.status)} onValueChange={v => setEditForm({...editForm, status: parseInt(v)})}>
+              <Select value={String(editForm.status ?? 1)} onValueChange={v => setEditForm({...editForm, status: parseInt(v)})}>
                 <SelectTrigger data-testid="select-edit-status" className="h-11 rounded bg-muted/50 border-border/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
+                  <SelectItem value="0">Block</SelectItem>
                 </SelectContent>
               </Select>
+              {editForm.status === 0 && (
+                <p className="text-[10px] text-destructive">Blocked keys are rejected immediately on connect</p>
+              )}
             </div>
+
+            {editKey && (() => {
+              const deviceList = parseDevices(editKey.devices);
+              return (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-sm font-medium w-full"
+                    onClick={() => setShowDevices(!showDevices)}
+                    data-testid="button-toggle-devices"
+                  >
+                    <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                    Devices ({deviceList.length}/{editKey.maxDevices})
+                    {showDevices ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
+                  </button>
+                  {showDevices && (
+                    <div className="rounded border border-border/60 bg-muted/20 p-3 space-y-1.5 max-h-48 overflow-y-auto">
+                      {deviceList.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">No devices registered</p>
+                      ) : deviceList.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded bg-card border border-border/40">
+                          <code className="text-[11px] font-mono flex-1 break-all text-muted-foreground">{d}</code>
+                          <button onClick={() => handleCopy(d)} className="text-muted-foreground hover:text-primary flex-shrink-0" type="button">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {editKey && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-sm font-medium w-full"
+                  onClick={() => setShowHistory(!showHistory)}
+                  data-testid="button-toggle-history"
+                >
+                  <History className="h-3.5 w-3.5 text-muted-foreground" />
+                  Edit History
+                  {showHistory ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
+                </button>
+                {showHistory && (
+                  <div className="rounded border border-border/60 bg-muted/20 p-3 space-y-2 max-h-48 overflow-y-auto">
+                    {editKeyHistory.isLoading ? (
+                      <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                    ) : !editKeyHistory.data?.length ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">No edit history</p>
+                    ) : editKeyHistory.data.map((log: any) => (
+                      <div key={log.id} className="px-2 py-1.5 rounded bg-card border border-border/40 space-y-0.5">
+                        <div className="flex items-center gap-2 text-[11px]">
+                          <span className="font-medium">{log.userDo}</span>
+                          <span className="text-muted-foreground">{log.activity}</span>
+                          <span className="text-muted-foreground ml-auto">{log.createdAt ? formatDate(log.createdAt) : ""}</span>
+                        </div>
+                        {log.description && <p className="text-[10px] text-muted-foreground">{log.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditKey(null)} className="rounded h-10">Cancel</Button>
             <Button
-              onClick={() => updateMutation.mutate({ id: editKey.id, data: editForm })}
-              disabled={updateMutation.isPending}
+              onClick={() => {
+                const payload: any = { status: editForm.status };
+                if (isOwner) {
+                  payload.game = editForm.game;
+                  payload.userKey = editForm.userKey;
+                  payload.duration = editForm.duration;
+                  payload.maxDevices = editForm.maxDevices;
+                } else if (isAdmin) {
+                  payload.userKey = editForm.userKey;
+                  payload.duration = editForm.duration;
+                  payload.maxDevices = editForm.maxDevices;
+                }
+                updateMutation.mutate({ id: editKey.id, data: payload });
+              }}
+              disabled={updateMutation.isPending || (!isOwner && (editKey?.editCount ?? 0) >= (user?.maxKeyEdits ?? 3))}
               className="rounded h-10"
               data-testid="button-save-edit"
             >

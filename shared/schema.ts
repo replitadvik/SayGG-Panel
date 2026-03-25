@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   lastResetAt: timestamp("last_reset_at"),
   telegramChatId: varchar("telegram_chat_id", { length: 30 }),
   twofaEnabled: integer("twofa_enabled").default(0).notNull(),
+  maxKeyEdits: integer("max_key_edits").default(3).notNull(),
+  maxDevicesLimit: integer("max_devices_limit").default(1000).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -73,6 +75,7 @@ export const keysCode = pgTable("keys_code", {
   adminId: integer("admin_id"),
   keyResetTime: text("key_reset_time"),
   keyResetToken: varchar("key_reset_token", { length: 255 }),
+  editCount: integer("edit_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -91,6 +94,8 @@ export const referralCode = pgTable("referral_code", {
   usedBy: varchar("used_by", { length: 100 }),
   createdBy: varchar("created_by", { length: 100 }),
   accExpiration: varchar("acc_expiration", { length: 100 }),
+  maxKeyEdits: integer("max_key_edits").default(3),
+  maxDevicesLimit: integer("max_devices_limit").default(1000),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -60,6 +60,7 @@ export interface IStorage {
   updateMaintenance(status: string, myinput?: string): Promise<void>;
 
   createHistory(data: Partial<History>): Promise<void>;
+  getHistoryByKeyId(keyId: number): Promise<History[]>;
 
   blockKeysByRegistrator(registrator: string): Promise<void>;
 
@@ -387,6 +388,10 @@ export class DatabaseStorage implements IStorage {
 
   async createHistory(data: Partial<History>): Promise<void> {
     await db.insert(history).values(data as any);
+  }
+
+  async getHistoryByKeyId(keyId: number): Promise<History[]> {
+    return db.select().from(history).where(eq(history.keysId, keyId)).orderBy(desc(history.id));
   }
 
   async blockKeysByRegistrator(registrator: string): Promise<void> {

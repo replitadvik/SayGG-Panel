@@ -67,9 +67,9 @@ docs/
 ```
 
 ## Database Tables
-- `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding
-- `keys_code` — license keys with game, duration, device tracking, key_reset_time (integer counter as text)
-- `referral_code` — registration codes with level/balance presets
+- `users` — accounts with level (1=Owner, 2=Admin, 3=Reseller), balance, device binding, max_key_edits/max_devices_limit (owner-configurable restrictions)
+- `keys_code` — license keys with game, duration, device tracking, key_reset_time (integer counter as text), edit_count (per-key edit counter)
+- `referral_code` — registration codes with level/balance presets, max_key_edits/max_devices_limit (inherited restrictions)
 - `price_config` — duration->price mapping
 - `feature` — game feature toggles (ESP, AIM, etc.)
 - `site_config` — site name (dynamic branding displayed in header, login, browser title)
@@ -85,8 +85,11 @@ docs/
 
 ## Key Business Logic
 - Key format: `SayGG_[DurationLabel]_[5-char-random]`
-- Reseller restrictions: max 2 devices, no custom keys
+- Reseller restrictions: max 2 devices, no custom keys, cannot edit game/key/duration/maxDevices (only status)
+- Key edit restrictions: per-key edit counter (edit_count), admin/reseller limited by user.max_key_edits (default 3), owner unlimited
+- Key edit permissions: Owner=all fields; Admin=key/duration/maxDevices/status (duration limited by own account expiry, maxDevices capped by user.max_devices_limit/1000); Reseller=status only
 - Key device reset: non-owners limited to 3 resets (tracked via key_reset_time counter)
+- Key edit audit: every PATCH /api/keys/:id logs before/after values to history table (activity="Key Edit")
 - User device reset: limit 2 per 24 hours (PHP parity with deviceResetLimit=2)
 - Extend duration: POST /api/keys/:id/extend with format "30D" or "12H"
 - Ban user (status=2): blocks all their keys (keys_code.status=0 where registrator=username)
