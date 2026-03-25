@@ -142,7 +142,7 @@ docs/
   - Avatar: rounded-lg (6px), square/boxy style
   - Switch/slider: rounded (4px) track, rounded-sm (2px) thumb
   - Radio: rounded-sm (2px)
-- Navigation: right-side Sheet with user avatar, level badge, balance display
+- Navigation: custom instant side panel (no Sheet/animation), grouped by section, scroll-locked overlay with ESC close, isRouteActive() prevents double-highlight (checks for more-specific nav path matches)
 - All pages use consistent card-based layout (no Table components on mobile)
 - data-testid attributes on all interactive and meaningful display elements
 
