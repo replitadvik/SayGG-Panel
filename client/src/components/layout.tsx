@@ -52,7 +52,7 @@ function getActiveNavPath(currentPath: string, items: NavItem[]): string | null 
         bestLength = 1;
       }
     } else if (item.path !== "/") {
-      if (pathname === item.path || pathname.startsWith(item.path + "/") || pathname.startsWith(item.path + "?")) {
+      if (pathname === item.path || pathname.startsWith(item.path + "/")) {
         if (item.path.length > bestLength) {
           bestMatch = item.path;
           bestLength = item.path.length;
