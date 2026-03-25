@@ -100,7 +100,7 @@ function wsEvent(type: WsEventType, payload?: any): WsEvent {
   return { type, payload, timestamp: Date.now() };
 }
 
-export async function registerRoutes(httpServer: Server, app: Express): Promise<RequestHandler> {
+export async function registerRoutes(httpServer: Server | null, app: Express): Promise<RequestHandler> {
   const PgSession = connectPgSimple(session);
   const sessionMiddleware = session({
     store: new PgSession({ pool, createTableIfMissing: true }),

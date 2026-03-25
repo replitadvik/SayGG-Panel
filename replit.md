@@ -179,6 +179,17 @@ docs/
 - **Key count**: `getKeyCountByGameId()` uses `COUNT(*)` aggregate instead of full row select
 - **Owner key generation**: Owner (level=1) bypasses balance check entirely, cost shown as "Free (Owner)" in UI
 
+## Vercel Deployment
+- **Entry point**: `api/index.ts` — serverless function wrapping Express app from `server/app.ts`
+- **Static files**: Vite build output at `dist/public`, served by Vercel CDN
+- **Config**: `vercel.json` — rewrites `/api/*` to serverless function, SPA fallback for frontend
+- **WebSocket**: Not available on Vercel (serverless); client auto-retries up to 10 times then stops
+- **Vite config**: Replit-specific plugins conditionally loaded only when `REPL_ID` env var is present
+- **Trust proxy**: Set in `server/app.ts` for secure cookies behind Vercel proxy
+- **Required env vars**: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`
+- **Optional env vars**: `VITE_DEFAULT_CURRENCY_SYMBOL`, `CONNECT_BOOTSTRAP_SECRET`, `CONNECT_GAME_NAME`
+- **Build**: `npx vite build` (frontend only; Vercel compiles `api/` functions automatically)
+
 ## Running
 - Workflow "Start application" runs `npm run dev` on port 5000
 - Seed: `npx tsx seed.ts`

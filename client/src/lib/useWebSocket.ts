@@ -88,6 +88,7 @@ export function useWebSocket() {
     ws.onclose = () => {
       wsRef.current = null;
       if (unmountedRef.current || !user) return;
+      if (reconnectAttempt.current >= 10) return;
       const delay = Math.min(1000 * Math.pow(2, reconnectAttempt.current), maxReconnectDelay);
       reconnectAttempt.current++;
       reconnectTimer.current = setTimeout(connect, delay);

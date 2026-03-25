@@ -1,17 +1,27 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
 import { createServer } from "http";
+import { registerRoutes } from "./routes";
 import { setupWebSocket } from "./websocket";
-
-const app = express();
-const httpServer = createServer(app);
+import { serveStatic } from "./static";
+import express, { type Request, Response, NextFunction } from "express";
 
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
   }
 }
+
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+const app = express();
+const httpServer = createServer(app);
 
 app.use(
   express.json({
@@ -22,17 +32,6 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
-
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -52,7 +51,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       log(logLine);
     }
   });
@@ -68,13 +66,8 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     console.error("Internal Server Error:", err);
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
+    if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
 
