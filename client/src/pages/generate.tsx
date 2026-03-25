@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Key, Wallet, Copy, Check, Download,
-  AlertTriangle, Sparkles, Shield, Clock, Monitor, Gamepad2, ChevronRight
+  AlertTriangle, Sparkles, Clock, Monitor, Gamepad2, ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import type { Game, GameDuration } from "@shared/schema";
@@ -32,10 +35,15 @@ function formatCreatedAt(dateStr: string) {
   });
 }
 
+function formatCreatedAtFile(dateStr: string) {
+  const d = new Date(dateStr);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function GeneratePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const resultRef = useRef<HTMLDivElement>(null);
   const [selectedGameId, setSelectedGameId] = useState("");
   const [duration, setDuration] = useState("");
   const [maxDevices, setMaxDevices] = useState("1");
@@ -44,8 +52,7 @@ export default function GeneratePage() {
   const [generatedKey, setGeneratedKey] = useState<any>(null);
   const [genMeta, setGenMeta] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [autoCopied, setAutoCopied] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(false);
 
   const isOwner = user?.level === 1;
 
@@ -87,6 +94,17 @@ export default function GeneratePage() {
     },
   });
 
+  function buildStructuredText(key: any, meta: any) {
+    return [
+      `Game: ${meta.gameDisplay}`,
+      `Key: ${key.userKey}`,
+      `Duration: ${formatDuration(meta.duration)}`,
+      `Device: ${meta.maxDevices}`,
+      `Created at: ${formatCreatedAt(meta.createdAt)}`,
+      `Key will start on first use`,
+    ].join("\n");
+  }
+
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/keys/generate", data);
@@ -94,26 +112,23 @@ export default function GeneratePage() {
     },
     onSuccess: async (data) => {
       const key = data.key;
-      setGeneratedKey(key);
-      setGenMeta({
+      const meta = {
         game: key.game,
         gameDisplay: selectedGame?.displayName || key.game,
         duration: key.duration,
         maxDevices: key.maxDevices,
         cost: data.cost,
         balanceAfter: data.balanceAfter,
-        keyType: customInput === "custom" ? "Custom" : "Random",
         createdAt: key.createdAt,
-      });
+      };
+      setGeneratedKey(key);
+      setGenMeta(meta);
       setCopied(false);
-      setAutoCopied(false);
-      setShowResult(true);
+      setPopupOpen(true);
 
       try {
-        await navigator.clipboard.writeText(key.userKey);
-        setAutoCopied(true);
-        setTimeout(() => setAutoCopied(false), 3000);
-        toast({ title: "Key generated & copied to clipboard" });
+        await navigator.clipboard.writeText(buildStructuredText(key, meta));
+        toast({ title: "Key generated & details copied to clipboard" });
       } catch {
         toast({ title: "Key generated successfully" });
       }
@@ -121,10 +136,6 @@ export default function GeneratePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-
-      setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
     },
     onError: (e: any) => {
       toast({ title: "Generation Failed", description: e.message, variant: "destructive" });
@@ -150,11 +161,11 @@ export default function GeneratePage() {
   };
 
   const handleCopy = () => {
-    if (!generatedKey) return;
-    navigator.clipboard.writeText(generatedKey.userKey);
+    if (!generatedKey || !genMeta) return;
+    navigator.clipboard.writeText(buildStructuredText(generatedKey, genMeta));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Copied to clipboard" });
+    toast({ title: "Key details copied to clipboard" });
     logActionMutation.mutate({
       action: "Key Copied",
       keyIds: [generatedKey.id],
@@ -167,19 +178,16 @@ export default function GeneratePage() {
       `Game: ${genMeta.gameDisplay}`,
       `Key: ${generatedKey.userKey}`,
       `Duration: ${formatDuration(genMeta.duration)}`,
-      `Devices: ${genMeta.maxDevices}`,
-      `Created At: ${formatCreatedAt(genMeta.createdAt)}`,
-      ``,
+      `Device: ${genMeta.maxDevices}`,
+      `Created At: ${formatCreatedAtFile(genMeta.createdAt)}`,
       `Note: Key will start on first use`,
     ].join("\n");
 
-    const now = new Date();
-    const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${generatedKey.userKey}-${ts}.txt`;
+    a.download = `${generatedKey.userKey}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -201,7 +209,7 @@ export default function GeneratePage() {
             </div>
             Generate Key
           </h1>
-          <p className="text-xs text-muted-foreground mt-1 ml-9">Create a new premium license key</p>
+          <p className="text-xs text-muted-foreground mt-1 ml-9">Create a new license key</p>
         </div>
         <Link href="/keys">
           <Button
@@ -217,13 +225,13 @@ export default function GeneratePage() {
         </Link>
       </div>
 
-      <div className="rounded-lg border border-border/50 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent dark:from-primary/8 dark:via-primary/4 dark:to-transparent p-4 mb-5">
+      <div className="rounded-lg border border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-transparent dark:from-primary/8 dark:via-transparent p-4 mb-5">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-primary/10 dark:bg-primary/15 border border-primary/10">
-            <Wallet className="h-4.5 w-4.5 text-primary" />
+            <Wallet className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Available Balance</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Balance</p>
             <p className="text-xl font-bold font-mono text-foreground leading-tight mt-0.5" data-testid="text-balance">
               {isOwner ? <span className="text-primary">∞</span> : formatCurrency(user?.saldo ?? 0)}
             </p>
@@ -236,136 +244,6 @@ export default function GeneratePage() {
         </div>
       </div>
 
-      {showResult && generatedKey && genMeta && (
-        <div
-          ref={resultRef}
-          className="mb-5 rounded-lg border border-emerald-500/30 dark:border-emerald-500/20 overflow-hidden shadow-sm animate-fade-in"
-          data-testid="panel-generated-result"
-        >
-          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 px-5 py-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-full bg-white/20">
-                  <Check className="h-3.5 w-3.5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">Key Generated Successfully</p>
-                  {autoCopied && (
-                    <p className="text-[10px] text-emerald-100 mt-0.5 flex items-center gap-1">
-                      <Check className="h-2.5 w-2.5" />
-                      Auto-copied to clipboard
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Shield className="h-4 w-4 text-white/40" />
-            </div>
-          </div>
-
-          <div className="bg-card dark:bg-card">
-            <div className="px-5 py-4">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">License Key</p>
-              <div className="flex items-center gap-2 p-3 rounded-md bg-muted/60 dark:bg-muted/40 border border-border/50">
-                <code
-                  className="text-sm sm:text-base font-mono font-bold text-foreground flex-1 break-all select-all leading-relaxed"
-                  data-testid="text-generated-key-0"
-                >
-                  {generatedKey.userKey}
-                </code>
-                <button
-                  onClick={handleCopy}
-                  className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
-                  data-testid="button-inline-copy"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="mx-5 border-t border-border/40" />
-
-            <div className="px-5 py-4 space-y-2.5">
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-md bg-muted/60 dark:bg-muted/40">
-                  <Gamepad2 className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Game</p>
-                  <p className="text-sm font-medium text-foreground truncate" data-testid="text-result-game">{genMeta.gameDisplay}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-md bg-muted/60 dark:bg-muted/40">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Duration</p>
-                  <p className="text-sm font-medium text-foreground" data-testid="text-result-duration">{formatDuration(genMeta.duration)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-md bg-muted/60 dark:bg-muted/40">
-                  <Monitor className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Devices</p>
-                  <p className="text-sm font-medium text-foreground" data-testid="text-result-devices">{genMeta.maxDevices}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-md bg-muted/60 dark:bg-muted/40">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Created At</p>
-                  <p className="text-sm font-medium text-foreground" data-testid="text-result-created">{formatCreatedAt(genMeta.createdAt)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mx-5 px-3 py-2 rounded-md bg-primary/5 dark:bg-primary/8 border border-primary/10 mb-4">
-              <p className="text-[11px] text-primary font-medium flex items-center gap-1.5" data-testid="text-first-use-note">
-                <Clock className="h-3 w-3" />
-                Key will start on first use
-              </p>
-            </div>
-
-            <div className="px-5 pb-4 flex gap-2">
-              <Button
-                onClick={handleCopy}
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9 text-xs font-medium gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/40 transition-all"
-                data-testid="button-copy-key"
-              >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied!" : "Copy Key"}
-              </Button>
-              <Button
-                onClick={handleDownload}
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9 text-xs font-medium gap-1.5 border-border/60 hover:bg-muted/80 transition-all"
-                data-testid="button-download-key"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download
-              </Button>
-            </div>
-
-            {!isOwner && genMeta.cost > 0 && (
-              <>
-                <div className="mx-5 border-t border-border/40" />
-                <div className="px-5 py-3 flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Cost</span>
-                  <span className="text-xs font-mono font-semibold text-foreground">{formatCurrency(genMeta.cost)}</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="rounded-lg border border-border/50 bg-card shadow-sm overflow-hidden">
         <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
           <Key className="h-4 w-4 text-panel-header-foreground/70" />
@@ -373,8 +251,8 @@ export default function GeneratePage() {
         </div>
 
         <div className="p-5">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Game</Label>
               <Select value={selectedGameId} onValueChange={handleGameChange}>
                 <SelectTrigger
@@ -392,8 +270,8 @@ export default function GeneratePage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration & Price</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</Label>
               <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
                 <SelectTrigger
                   data-testid="select-duration"
@@ -412,7 +290,7 @@ export default function GeneratePage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Devices</Label>
                 {!isOwner && (
@@ -439,7 +317,7 @@ export default function GeneratePage() {
             </div>
 
             {user?.level !== 3 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Key Type</Label>
                 <Select value={customInput} onValueChange={setCustomInput}>
                   <SelectTrigger
@@ -477,7 +355,7 @@ export default function GeneratePage() {
                     </span>
                   </div>
                   {!isOwner && cost > 0 && (
-                    <div className="flex items-center justify-between pt-1 border-t border-border/30">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-border/30">
                       <span className="text-[11px] text-muted-foreground">Balance After</span>
                       <span className={`text-xs font-mono font-medium ${balanceInsufficient ? "text-destructive" : "text-foreground"}`}>
                         {formatCurrency((user?.saldo ?? 0) - cost)}
@@ -516,6 +394,104 @@ export default function GeneratePage() {
           </form>
         </div>
       </div>
+
+      <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
+        <DialogContent
+          className="sm:max-w-md max-w-[calc(100vw-2rem)] p-0 gap-0 rounded-lg overflow-hidden border-border/50"
+          data-testid="panel-generated-result"
+        >
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 px-5 py-4">
+            <DialogHeader className="space-y-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-full bg-white/20">
+                  <Check className="h-3.5 w-3.5 text-white" />
+                </div>
+                <DialogTitle className="text-sm font-semibold text-white">
+                  Key Generated Successfully
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+          </div>
+
+          {generatedKey && genMeta && (
+            <div className="bg-card">
+              <div className="px-5 pt-4 pb-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">License Key</p>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/40">
+                  <code
+                    className="text-sm font-mono font-bold text-foreground flex-1 break-all select-all leading-relaxed"
+                    data-testid="text-generated-key-0"
+                  >
+                    {generatedKey.userKey}
+                  </code>
+                </div>
+              </div>
+
+              <div className="mx-5 border-t border-border/30" />
+
+              <div className="px-5 py-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                <div className="flex items-center gap-2">
+                  <Gamepad2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">Game</p>
+                    <p className="text-xs font-medium text-foreground truncate mt-0.5" data-testid="text-result-game">{genMeta.gameDisplay}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">Duration</p>
+                    <p className="text-xs font-medium text-foreground mt-0.5" data-testid="text-result-duration">{formatDuration(genMeta.duration)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">Device</p>
+                    <p className="text-xs font-medium text-foreground mt-0.5" data-testid="text-result-devices">{genMeta.maxDevices}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">Created at</p>
+                    <p className="text-xs font-medium text-foreground mt-0.5" data-testid="text-result-created">{formatCreatedAt(genMeta.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mx-5 mb-3 px-3 py-2 rounded-md bg-primary/5 dark:bg-primary/8 border border-primary/10">
+                <p className="text-[11px] text-primary font-medium flex items-center gap-1.5" data-testid="text-first-use-note">
+                  <Clock className="h-3 w-3" />
+                  Key will start on first use
+                </p>
+              </div>
+
+              <div className="px-5 pb-4 flex gap-2">
+                <Button
+                  onClick={handleCopy}
+                  size="sm"
+                  className="flex-1 h-9 text-xs font-medium gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-all"
+                  data-testid="button-copy-key"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Copy Details"}
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9 text-xs font-medium gap-1.5 border-border/60 hover:bg-muted/80 transition-all"
+                  data-testid="button-download-key"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
