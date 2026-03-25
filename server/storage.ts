@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc, asc, count, sql } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, like, or, isNull, isNotNull, lt } from "drizzle-orm";
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
@@ -26,6 +26,16 @@ export interface IStorage {
   updateKey(id: number, data: Partial<Key>): Promise<Key | undefined>;
   deleteKey(id: number): Promise<void>;
   deleteKeys(ids: number[]): Promise<void>;
+  resetKeysDevices(ids: number[]): Promise<number>;
+  deleteExpiredKeys(registrator?: string): Promise<number>;
+  deleteUnactivatedKeys(registrator?: string): Promise<number>;
+  getPaginatedKeys(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    filter?: string;
+    registrator?: string;
+  }): Promise<{ keys: Key[]; total: number }>;
 
   getReferralCodes(): Promise<ReferralCode[]>;
   getReferralCodesByCreator(createdBy: string): Promise<ReferralCode[]>;
@@ -167,6 +177,97 @@ export class DatabaseStorage implements IStorage {
   async deleteKeys(ids: number[]): Promise<void> {
     if (ids.length === 0) return;
     await db.delete(keysCode).where(sql`${keysCode.id} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`);
+  }
+
+  async resetKeysDevices(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(keysCode)
+      .set({ devices: null, updatedAt: new Date() } as any)
+      .where(sql`${keysCode.id} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`)
+      .returning();
+    return result.length;
+  }
+
+  async deleteExpiredKeys(registrator?: string): Promise<number> {
+    const conditions = [
+      isNotNull(keysCode.expiredDate),
+      lt(keysCode.expiredDate, new Date()),
+    ];
+    if (registrator) conditions.push(eq(keysCode.registrator, registrator));
+    const result = await db.delete(keysCode).where(and(...conditions)).returning();
+    return result.length;
+  }
+
+  async deleteUnactivatedKeys(registrator?: string): Promise<number> {
+    const conditions = [
+      isNull(keysCode.expiredDate),
+      or(isNull(keysCode.devices), eq(keysCode.devices, "")),
+    ];
+    if (registrator) conditions.push(eq(keysCode.registrator, registrator as any));
+    const result = await db.delete(keysCode).where(and(...(conditions.filter(Boolean) as any))).returning();
+    return result.length;
+  }
+
+  async getPaginatedKeys(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    filter?: string;
+    registrator?: string;
+  }): Promise<{ keys: Key[]; total: number }> {
+    const { page, limit, search, filter, registrator } = options;
+    const conditions: any[] = [];
+
+    if (registrator) {
+      conditions.push(eq(keysCode.registrator, registrator));
+    }
+
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(
+        or(
+          like(keysCode.userKey, term),
+          like(keysCode.game, term),
+          like(keysCode.registrator, term),
+        )
+      );
+    }
+
+    if (filter && filter !== "all") {
+      switch (filter) {
+        case "active":
+          conditions.push(eq(keysCode.status, 1));
+          conditions.push(
+            sql`(${keysCode.expiredDate} IS NULL OR ${keysCode.expiredDate} >= NOW())`
+          );
+          break;
+        case "blocked":
+          conditions.push(eq(keysCode.status, 0));
+          break;
+        case "expired":
+          conditions.push(and(isNotNull(keysCode.expiredDate), lt(keysCode.expiredDate, new Date())));
+          break;
+        case "activated":
+          conditions.push(isNotNull(keysCode.expiredDate));
+          break;
+        case "not-activated":
+          conditions.push(isNull(keysCode.expiredDate));
+          break;
+      }
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [countResult] = await db.select({ total: count() }).from(keysCode).where(where);
+    const total = countResult?.total ?? 0;
+
+    const keys = await db.select().from(keysCode)
+      .where(where)
+      .orderBy(desc(keysCode.id))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    return { keys, total };
   }
 
   async getReferralCodes(): Promise<ReferralCode[]> {

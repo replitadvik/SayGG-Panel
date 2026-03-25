@@ -24,7 +24,7 @@ client/src/
     forgot-password.tsx — Forgot/reset password via OTP
     device-reset.tsx — Device binding reset (username+password)
     dashboard.tsx   — Role-aware premium dashboard (welcome, info, stats, quick actions)
-    keys.tsx        — Key list with CRUD, bulk delete, search, extend duration
+    keys.tsx        — Advanced data table with pagination, filters, bulk actions, device viewer
     generate.tsx    — Game-aware key generation (select game → load durations)
     users.tsx       — User management, approve/decline
     balance.tsx     — Balance topup for users
@@ -143,7 +143,8 @@ docs/
   - Switch/slider: rounded (4px) track, rounded-sm (2px) thumb
   - Radio: rounded-sm (2px)
 - Navigation: right-side Sheet with user avatar, level badge, balance display
-- All pages use consistent card-based layout (no Table components on mobile)
+- Keys page: horizontal-scroll data table with sticky actions column, server-side pagination
+- All other pages use consistent card-based layout
 - data-testid attributes on all interactive and meaningful display elements
 
 ## Default Credentials
@@ -164,6 +165,9 @@ docs/
 - **Database indexes**: `idx_users_uplink`, `idx_users_status`, `idx_users_level`, `idx_keys_registrator`, `idx_keys_game_userkey`, `idx_keys_game_id`, `idx_keys_status`, `idx_game_durations_game_id`
 - **Dashboard stats**: `getDashboardStats()` / `getDashboardStatsByUser()` — single SQL query with `COUNT(*) FILTER` instead of fetching all rows and counting in JS
 - **Bulk delete**: `deleteKeys()` uses `IN (...)` single query instead of N+1 loop
+- **Paginated keys**: `getPaginatedKeys()` — server-side pagination with search/filter, `COUNT(*)` for totals
+- **Bulk reset**: `resetKeysDevices()` — bulk device reset via single UPDATE
+- **Bulk cleanup**: `deleteExpiredKeys()`, `deleteUnactivatedKeys()` — owner-only bulk cleanup operations
 - **Key count**: `getKeyCountByGameId()` uses `COUNT(*)` aggregate instead of full row select
 - **Owner key generation**: Owner (level=1) bypasses balance check entirely, cost shown as "Free (Owner)" in UI
 

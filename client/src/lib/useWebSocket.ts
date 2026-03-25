@@ -17,6 +17,7 @@ const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
   "keys:bulk-deleted": [["/api/keys"], ["/api/dashboard/stats"]],
   "keys:extended": [["/api/keys"]],
   "keys:device-reset": [["/api/keys"]],
+  "keys:bulk-reset": [["/api/keys"], ["/api/dashboard/stats"]],
   "users:created": [["/api/users"], ["/api/dashboard/stats"]],
   "users:approved": [["/api/users"], ["/api/dashboard/stats"]],
   "users:declined": [["/api/users"], ["/api/dashboard/stats"]],

@@ -439,10 +439,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/keys", requireAuth, async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const keys = user.level === 1
-      ? await storage.getAllKeys()
-      : await storage.getKeysByRegistrator(user.username);
-    res.json(keys);
+
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 15));
+    const search = (req.query.search as string) || undefined;
+    const filter = (req.query.filter as string) || undefined;
+
+    const result = await storage.getPaginatedKeys({
+      page,
+      limit,
+      search,
+      filter,
+      registrator: user.level === 1 ? undefined : user.username,
+    });
+
+    res.json({
+      keys: result.keys,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
+    });
   });
 
   app.get("/api/keys/:id", requireAuth, async (req, res) => {
@@ -657,6 +674,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     emitToAll(wsEvent("keys:bulk-deleted", { count: ids.length }));
 
     res.json({ message: `${ids.length} keys deleted.` });
+  });
+
+  app.post("/api/keys/bulk-reset", requireLevel(1), async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ message: "Invalid ids." });
+
+    const count = await storage.resetKeysDevices(ids);
+    emitToAll(wsEvent("keys:bulk-reset", { count }));
+    res.json({ message: `${count} keys reset.` });
+  });
+
+  app.post("/api/keys/delete-expired", requireLevel(1), async (req, res) => {
+    const count = await storage.deleteExpiredKeys();
+    emitToAll(wsEvent("keys:bulk-deleted", { count }));
+    res.json({ message: `${count} expired keys deleted.` });
+  });
+
+  app.post("/api/keys/delete-unactivated", requireLevel(1), async (req, res) => {
+    const count = await storage.deleteUnactivatedKeys();
+    emitToAll(wsEvent("keys:bulk-deleted", { count }));
+    res.json({ message: `${count} unactivated keys deleted.` });
   });
 
   app.post("/api/keys/:id/reset-device", requireAuth, async (req, res) => {
