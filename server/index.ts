@@ -1,5 +1,6 @@
 import { createServer } from "http";
 import { runMigrations } from "./migrate";
+import { runEnvBootstrap } from "./bootstrap";
 import { registerRoutes } from "./routes";
 import { setupWebSocket } from "./websocket";
 import { serveStatic } from "./static";
@@ -61,6 +62,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await runMigrations();
+  await runEnvBootstrap();
   const sessionMiddleware = await registerRoutes(httpServer, app);
 
   setupWebSocket(httpServer, sessionMiddleware);

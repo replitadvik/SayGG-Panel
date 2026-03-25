@@ -22,6 +22,7 @@ import GameDurationsPage from "@/pages/game-durations";
 import ConnectConfigPage from "@/pages/connect-config";
 import SettingsPage from "@/pages/settings";
 import ProfilePage from "@/pages/profile";
+import SetupPage from "@/pages/setup";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -86,6 +87,7 @@ function WebSocketManager() {
 function Router() {
   return (
     <Switch>
+      <Route path="/setup">{() => <SetupPage />}</Route>
       <Route path="/login">{() => <AuthRoute component={LoginPage} />}</Route>
       <Route path="/register">{() => <AuthRoute component={RegisterPage} />}</Route>
       <Route path="/forgot-password">{() => <AuthRoute component={ForgotPasswordPage} />}</Route>

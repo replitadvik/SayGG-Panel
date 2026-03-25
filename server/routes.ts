@@ -1858,5 +1858,51 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     res.json({ secret });
   });
 
+  app.get("/api/setup/status", async (_req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.json({ needsSetup: allUsers.length === 0 });
+    } catch {
+      res.json({ needsSetup: false });
+    }
+  });
+
+  app.post("/api/setup/owner", async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      if (allUsers.length > 0) {
+        return res.status(403).json({ message: "Setup already completed. System already has users." });
+      }
+      const { username, password, fullname } = req.body;
+      if (!username || typeof username !== "string" || username.trim().length < 4 || username.trim().length > 25) {
+        return res.status(400).json({ message: "Username must be 4–25 characters" });
+      }
+      if (!/^[a-zA-Z0-9]+$/.test(username.trim())) {
+        return res.status(400).json({ message: "Username must be alphanumeric only" });
+      }
+      if (!password || typeof password !== "string" || password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+      const recheck = await storage.getAllUsers();
+      if (recheck.length > 0) {
+        return res.status(403).json({ message: "Setup already completed" });
+      }
+      const { hashPassword } = await import("./auth");
+      const owner = await storage.createUser({
+        username: username.trim(),
+        password: hashPassword(password),
+        fullname: ((fullname as string | undefined)?.trim() || username.trim()),
+        level: 1,
+        status: 1,
+        saldo: 0,
+      });
+      console.log(`[setup] First owner "${owner.username}" created via setup page`);
+      res.json({ message: "Owner account created successfully. You can now log in." });
+    } catch (err: any) {
+      console.error("[setup] Error creating owner:", err);
+      res.status(500).json({ message: err.message || "Failed to create owner" });
+    }
+  });
+
   return sessionMiddleware;
 }

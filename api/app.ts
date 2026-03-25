@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { runMigrations } from "../server/migrate";
+import { runEnvBootstrap } from "../server/bootstrap";
 import { registerRoutes } from "../server/routes";
 
 declare module "http" {
@@ -63,6 +64,7 @@ export async function initApp() {
   if (appReady) return appReady;
   appReady = (async () => {
     await runMigrations();
+    await runEnvBootstrap();
     await registerRoutes(null, app);
 
     app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
