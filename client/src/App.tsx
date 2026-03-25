@@ -93,7 +93,7 @@ function Router() {
       <Route path="/">{() => <ProtectedRoute component={DashboardPage} />}</Route>
       <Route path="/keys">{() => <ProtectedRoute component={KeysPage} />}</Route>
       <Route path="/keys/generate">{() => <ProtectedRoute component={GeneratePage} />}</Route>
-      <Route path="/users">{() => <ProtectedRoute component={UsersPage} />}</Route>
+      <Route path="/users">{() => <ProtectedRoute component={UsersPage} maxLevel={2} />}</Route>
       <Route path="/balance">{() => <ProtectedRoute component={BalancePage} maxLevel={2} />}</Route>
       <Route path="/referrals">{() => <ProtectedRoute component={ReferralsPage} maxLevel={2} />}</Route>
       <Route path="/prices">{() => <Redirect to="/games" />}</Route>

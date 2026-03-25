@@ -989,7 +989,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(allUsers.map(u => ({ username: u.username, level: u.level })));
   });
 
-  app.get("/api/users", requireAuth, async (req, res) => {
+  app.get("/api/users", requireLevel(2), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
@@ -1006,7 +1006,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }));
   });
 
-  app.get("/api/users/:id", requireAuth, async (req, res) => {
+  app.get("/api/users/:id", requireLevel(2), async (req, res) => {
     const me = await storage.getUser(req.session.userId!);
     if (!me) return res.status(401).json({ message: "Unauthorized" });
     const target = await storage.getUser(parseInt(req.params.id));

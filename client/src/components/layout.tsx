@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, minLevel: 1, group: "main" },
   { path: "/keys", label: "Keys", icon: Key, minLevel: 1, group: "main" },
   { path: "/keys/generate", label: "Generate Key", icon: Zap, minLevel: 1, group: "main" },
-  { path: "/users", label: "Users", icon: Users, minLevel: 1, group: "manage" },
+  { path: "/users", label: "Users", icon: Users, minLevel: 1, maxLevel: 2, group: "manage" },
   { path: "/balance", label: "Balance", icon: Wallet, minLevel: 1, maxLevel: 2, group: "manage" },
   { path: "/referrals", label: "Referrals", icon: Link2, minLevel: 1, maxLevel: 2, group: "manage" },
   { path: "/games", label: "Games", icon: Gamepad2, minLevel: 1, maxLevel: 1, group: "system" },

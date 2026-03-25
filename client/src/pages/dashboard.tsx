@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import {
   Key, Users, Shield, Wallet, Clock, Gamepad2, Link2,
   AlertTriangle, Ban, UserCheck, UserPlus, Settings,
-  ArrowRight, Plus, Eye,
+  ArrowRight, Plus, Eye, User,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/currency";
@@ -183,7 +183,7 @@ export default function DashboardPage() {
             <>
               <QuickAction href="/keys/generate" icon={Plus} label="Generate Key" testId="action-generate-key" />
               <QuickAction href="/keys" icon={Eye} label="View Keys" testId="action-view-keys" />
-              <QuickAction href="/balance" icon={Wallet} label="View Balance" testId="action-view-balance" />
+              <QuickAction href="/profile" icon={User} label="My Profile" testId="action-profile" />
             </>
           )}
         </div>
