@@ -285,6 +285,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         expirationDate: expDate,
         maxKeyEdits: refCode.maxKeyEdits ?? 3,
         maxDevicesLimit: refCode.maxDevicesLimit ?? 1000,
+        maxKeyExtends: refCode.maxKeyExtends ?? 5,
       } as any);
 
       await storage.useReferral(refCode.id, data.username);
@@ -483,7 +484,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (user.level !== 1 && key.registrator !== user.username) {
       return res.status(403).json({ message: "Access denied" });
     }
-    const logs = await storage.getHistoryByKeyId(key.id);
+    let logs = await storage.getHistoryByKeyId(key.id);
+    const activityType = req.query.type as string | undefined;
+    if (activityType) {
+      logs = logs.filter((l: any) => l.activity === activityType);
+    }
     res.json(logs);
   });
 
@@ -670,6 +675,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(403).json({ message: "Permission denied" });
       }
 
+      const isOwner = user.level === 1;
+      const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
+
+      if (!isOwner) {
+        const extendLimit = user.maxKeyExtends ?? 5;
+        const currentExtendCount = key.extendCount ?? 0;
+        if (currentExtendCount >= extendLimit) {
+          return res.status(403).json({
+            message: `Extend limit reached (${currentExtendCount}/${extendLimit}). Contact Owner for more.`,
+          });
+        }
+      }
+
       const { duration } = req.body;
       if (!duration || typeof duration !== "string") {
         return res.status(400).json({ message: "Missing duration parameter." });
@@ -684,29 +702,71 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const value = parseInt(match[1]);
       const type = match[2];
       const addHours = type === "D" ? value * 24 : value;
+      const extensionLabel = type === "D" ? `${value} Day${value > 1 ? "s" : ""}` : `${value} Hour${value > 1 ? "s" : ""}`;
 
       if (addHours <= 0) {
         return res.status(400).json({ message: "Invalid duration value." });
       }
 
-      const currentExpiry = key.expiredDate;
+      const previousExpiry = key.expiredDate;
+      const previousDuration = key.duration;
       const newDuration = key.duration + addHours;
 
-      if (!currentExpiry) {
-        await storage.updateKey(key.id, { duration: newDuration });
-        emitScopedKeyEvent(wsEvent("keys:extended", { keyId }), key.registrator || user.username);
-        return res.json({ success: true, newExpiry: null, totalDuration: newDuration });
+      let newExpiry: Date | null = null;
+
+      if (!previousExpiry) {
+        await storage.updateKey(key.id, {
+          duration: newDuration,
+          extendCount: (key.extendCount ?? 0) + (isOwner ? 0 : 1),
+        });
+      } else {
+        const now = new Date();
+        const baseTime = previousExpiry > now ? previousExpiry : now;
+        newExpiry = new Date(baseTime.getTime() + addHours * 3600000);
+        await storage.updateKey(key.id, {
+          expiredDate: newExpiry,
+          duration: newDuration,
+          extendCount: (key.extendCount ?? 0) + (isOwner ? 0 : 1),
+        });
       }
 
-      const now = new Date();
-      const baseTime = currentExpiry > now ? currentExpiry : now;
-      const newExpiry = new Date(baseTime.getTime() + addHours * 3600000);
+      const newExtendCount = (key.extendCount ?? 0) + (isOwner ? 0 : 1);
+      const extendLimit = isOwner ? null : (user.maxKeyExtends ?? 5);
+      const remaining = extendLimit !== null ? Math.max(0, extendLimit - newExtendCount) : null;
+      const extendNum = isOwner ? "N/A" : `${newExtendCount}/${extendLimit}`;
 
-      await storage.updateKey(key.id, { expiredDate: newExpiry, duration: newDuration });
+      const fmtDate = (d: Date | null) => d ? d.toISOString().replace("T", " ").substring(0, 19) + " UTC" : "N/A";
+      const descParts = [
+        `Extension: +${extensionLabel} (+${addHours}h)`,
+        `Previous expiry: ${fmtDate(previousExpiry)}`,
+        `New expiry: ${fmtDate(newExpiry)}`,
+        `Previous duration: ${previousDuration}h → ${newDuration}h`,
+        `Extend count: ${extendNum}`,
+      ];
+
+      await storage.createHistory({
+        keysId: key.id,
+        userId: user.id,
+        userDo: user.username,
+        activity: "Key Extend",
+        info: `[${roleName}] Extended key #${keyId}`,
+        description: descParts.join(". ") + ".",
+      });
 
       emitScopedKeyEvent(wsEvent("keys:extended", { keyId }), key.registrator || user.username);
 
-      res.json({ success: true, newExpiry: newExpiry.toISOString(), totalDuration: newDuration });
+      res.json({
+        success: true,
+        newExpiry: newExpiry?.toISOString() || null,
+        previousExpiry: previousExpiry?.toISOString() || null,
+        totalDuration: newDuration,
+        previousDuration,
+        addedHours: addHours,
+        extensionLabel,
+        extendCount: newExtendCount,
+        extendLimit: extendLimit,
+        remaining: remaining,
+      });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Extend failed." });
     }
@@ -887,7 +947,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (target.uplink !== me.username) return res.status(403).json({ message: "Can only edit users you referred." });
     }
 
-    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit } = req.body;
+    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit, maxKeyExtends } = req.body;
     const updates: any = {};
     if (level !== undefined) updates.level = level;
     if (status !== undefined) {
@@ -902,6 +962,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (me.level === 1) {
       if (maxKeyEdits !== undefined) updates.maxKeyEdits = Math.max(1, parseInt(maxKeyEdits) || 3);
       if (maxDevicesLimit !== undefined) updates.maxDevicesLimit = Math.max(1, parseInt(maxDevicesLimit) || 1000);
+      if (maxKeyExtends !== undefined) updates.maxKeyExtends = Math.max(1, parseInt(maxKeyExtends) || 5);
     }
 
     const updated = await storage.updateUser(target.id, updates);
@@ -1055,7 +1116,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/referrals", requireLevel(2), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit } = req.body;
+    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit, maxKeyExtends } = req.body;
 
     const refLevel = level || 3;
     if (user.level === 2 && refLevel !== 3) {
@@ -1072,6 +1133,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       accExpiration: accExpiration || undefined,
       maxKeyEdits: maxKeyEdits !== undefined ? Math.max(1, parseInt(maxKeyEdits) || 3) : 3,
       maxDevicesLimit: maxDevicesLimit !== undefined ? Math.max(1, parseInt(maxDevicesLimit) || 1000) : 1000,
+      maxKeyExtends: maxKeyExtends !== undefined ? Math.max(1, parseInt(maxKeyExtends) || 5) : 5,
     } as any);
 
     emitScopedUserEvent(wsEvent("referrals:created", { refId: ref.id }), user.username);

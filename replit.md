@@ -91,7 +91,10 @@ docs/
 - Key device reset: non-owners limited to 3 resets (tracked via key_reset_time counter)
 - Key edit audit: every PATCH /api/keys/:id logs before/after values to history table (activity="Key Edit")
 - User device reset: limit 2 per 24 hours (PHP parity with deviceResetLimit=2)
-- Extend duration: POST /api/keys/:id/extend with format "30D" or "12H"
+- Key extend: POST /api/keys/:id/extend with format "30D" or "12H"; per-key extend counter (extend_count), non-owners limited by user.max_key_extends (default 5), owner unlimited
+- Key extend permissions: Owner+Admin can extend (level 1-2); Reseller cannot; extend count tracked per-key
+- Key extend audit: every extend logs before/after expiry, extension amount, extend count to history table (activity="Key Extend")
+- Key extend success response: includes extensionLabel, previousExpiry, newExpiry, extendCount, extendLimit, remaining
 - Ban user (status=2): blocks all their keys (keys_code.status=0 where registrator=username)
 - Admin delete: can only delete referred Resellers (uplink=admin.username AND level=3)
 - Admin referral: restricted to Reseller-only (level=3)

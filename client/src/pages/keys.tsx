@@ -151,6 +151,8 @@ export default function KeysPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [extendKey, setExtendKey] = useState<any>(null);
   const [extendDuration, setExtendDuration] = useState("");
+  const [showExtendHistory, setShowExtendHistory] = useState(false);
+  const [extendSuccess, setExtendSuccess] = useState<any>(null);
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; action: () => void } | null>(null);
 
   const isOwner = user?.level === 1;
@@ -268,13 +270,16 @@ export default function KeysPage() {
 
   const extendMutation = useMutation({
     mutationFn: async ({ id, duration }: { id: number; duration: string }) => {
-      await apiRequest("POST", `/api/keys/${id}/extend`, { duration });
+      const resp = await apiRequest("POST", `/api/keys/${id}/extend`, { duration });
+      return resp.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
       setExtendKey(null);
       setExtendDuration("");
-      toast({ title: "Duration extended" });
+      setShowExtendHistory(false);
+      setExtendSuccess(data);
+      setTimeout(() => setExtendSuccess(null), 4000);
     },
     onError: (e: any) => {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -320,6 +325,17 @@ export default function KeysPage() {
       return res.json();
     },
     enabled: !!editKey && showHistory,
+  });
+
+  const extendKeyHistory = useQuery<any[]>({
+    queryKey: ["/api/keys", extendKey?.id, "extend-history"],
+    queryFn: async () => {
+      if (!extendKey) return [];
+      const res = await fetch(`/api/keys/${extendKey.id}/history?type=Key Extend`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!extendKey && showExtendHistory,
   });
 
   const handleCopy = (text: string) => {
@@ -555,7 +571,7 @@ export default function KeysPage() {
                             <Edit className="h-3.5 w-3.5" />
                           </button>
                           {(user?.level === 1 || user?.level === 2) && (
-                            <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground" onClick={() => { setExtendKey(key); setExtendDuration(""); }} data-testid={`button-extend-key-${key.id}`}>
+                            <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground" onClick={() => { setExtendKey(key); setExtendDuration(""); setShowExtendHistory(false); }} data-testid={`button-extend-key-${key.id}`}>
                               <Clock className="h-3.5 w-3.5" />
                             </button>
                           )}
@@ -838,18 +854,62 @@ export default function KeysPage() {
       </Dialog>
 
       <Dialog open={!!extendKey} onOpenChange={() => setExtendKey(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Extend Duration</DialogTitle>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Extend Duration
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm space-y-1.5">
-              <div className="text-muted-foreground">Key: <code className="font-mono text-foreground">{extendKey?.userKey}</code></div>
-              <div className="text-muted-foreground">Current: <span className="text-foreground">{extendKey ? formatDuration(extendKey.duration) : ""}</span></div>
-              <div className="text-muted-foreground">Expiry: <span className="text-foreground">{extendKey ? formatDate(extendKey.expiredDate) : ""}</span></div>
+            <div className="p-4 rounded bg-muted/60 border border-border/60 text-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Key</span>
+                <code className="font-mono text-foreground text-xs">{extendKey?.userKey}</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Current Duration</span>
+                <span className="text-foreground text-xs font-medium">{extendKey ? formatDuration(extendKey.duration) : ""}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Current Expiry</span>
+                <span className="text-foreground text-xs font-medium">{extendKey ? formatDate(extendKey.expiredDate) : ""}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Status</span>
+                <Badge variant="outline" className={`text-[10px] rounded px-1.5 py-0.5 ${extendKey?.status === 1 ? "border-green-500/50 text-green-600 dark:text-green-400" : "border-red-500/50 text-red-600 dark:text-red-400"}`}>
+                  {extendKey?.status === 1 ? "Active" : "Blocked"}
+                </Badge>
+              </div>
+              {extendKey?.registrator && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">Registrator</span>
+                  <span className="text-foreground text-xs">{extendKey.registrator}</span>
+                </div>
+              )}
             </div>
+
+            {!isOwner && (
+              <div className="p-3 rounded bg-amber-500/10 border border-amber-500/30 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Extend attempts used</span>
+                  <span className="font-medium">{extendKey?.extendCount ?? 0} / {user?.maxKeyExtends ?? 5}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="font-medium">{Math.max(0, (user?.maxKeyExtends ?? 5) - (extendKey?.extendCount ?? 0))}</span>
+                </div>
+                {(extendKey?.extendCount ?? 0) >= (user?.maxKeyExtends ?? 5) && (
+                  <p className="text-red-500 text-[10px] pt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Extend limit reached. Contact Owner.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Extension Duration</Label>
+              <Label className="text-sm font-medium">Extension to Add</Label>
               <Input
                 value={extendDuration}
                 onChange={e => setExtendDuration(e.target.value.toUpperCase())}
@@ -857,19 +917,102 @@ export default function KeysPage() {
                 className="h-11 rounded bg-muted/50 border-border/60 font-mono"
                 data-testid="input-extend-duration"
               />
-              <p className="text-xs text-muted-foreground">Format: number + D (days) or H (hours)</p>
+              <p className="text-[10px] text-muted-foreground">Use number + D (days) or H (hours). Examples: 30D = 30 days, 12H = 12 hours</p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium w-full"
+                onClick={() => setShowExtendHistory(!showExtendHistory)}
+                data-testid="button-toggle-extend-history"
+              >
+                <History className="h-3.5 w-3.5 text-muted-foreground" />
+                Extend History
+                {showExtendHistory ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
+              </button>
+              {showExtendHistory && (
+                <div className="rounded border border-border/60 bg-muted/20 p-3 space-y-2 max-h-48 overflow-y-auto">
+                  {extendKeyHistory.isLoading ? (
+                    <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                  ) : !extendKeyHistory.data?.length ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">No extend history</p>
+                  ) : extendKeyHistory.data.map((log: any) => (
+                    <div key={log.id} className="px-2 py-1.5 rounded bg-card border border-border/40 space-y-0.5">
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <span className="font-medium">{log.userDo}</span>
+                        <span className="text-muted-foreground ml-auto">{log.createdAt ? formatDate(log.createdAt) : ""}</span>
+                      </div>
+                      {log.description && <p className="text-[10px] text-muted-foreground break-all">{log.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setExtendKey(null)} className="rounded h-10">Cancel</Button>
             <Button
               onClick={() => extendMutation.mutate({ id: extendKey.id, duration: extendDuration })}
-              disabled={extendMutation.isPending || !extendDuration}
+              disabled={extendMutation.isPending || !extendDuration || (!isOwner && (extendKey?.extendCount ?? 0) >= (user?.maxKeyExtends ?? 5))}
               className="rounded h-10"
               data-testid="button-extend-save"
             >
               {extendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
               Extend
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!extendSuccess} onOpenChange={() => setExtendSuccess(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2 text-green-600 dark:text-green-400">
+              <Zap className="h-4 w-4" />
+              Key Extended
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-4 rounded bg-green-500/10 border border-green-500/30 text-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Added</span>
+                <span className="font-medium text-xs text-green-600 dark:text-green-400">+{extendSuccess?.extensionLabel}</span>
+              </div>
+              {extendSuccess?.previousExpiry && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">Previous Expiry</span>
+                  <span className="text-xs">{formatDate(extendSuccess.previousExpiry)}</span>
+                </div>
+              )}
+              {extendSuccess?.newExpiry && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">New Expiry</span>
+                  <span className="font-medium text-xs">{formatDate(extendSuccess.newExpiry)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Total Duration</span>
+                <span className="font-medium text-xs">{extendSuccess ? formatDuration(extendSuccess.totalDuration) : ""}</span>
+              </div>
+              {extendSuccess?.extendLimit !== null && extendSuccess?.extendLimit !== undefined && (
+                <>
+                  <div className="border-t border-border/40 my-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">Extends Used</span>
+                    <span className="font-medium text-xs">{extendSuccess.extendCount} / {extendSuccess.extendLimit}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">Remaining</span>
+                    <span className="font-medium text-xs">{extendSuccess.remaining}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExtendSuccess(null)} className="rounded h-10 w-full" data-testid="button-extend-success-close">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

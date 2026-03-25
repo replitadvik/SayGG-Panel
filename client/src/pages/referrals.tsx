@@ -18,7 +18,7 @@ export default function ReferralsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000" });
+  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000", maxKeyExtends: "5" });
 
   const { data: referrals = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/referrals"],
@@ -32,7 +32,7 @@ export default function ReferralsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
       setShowCreate(false);
-      setCreateForm({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000" });
+      setCreateForm({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000", maxKeyExtends: "5" });
       toast({ title: "Referral code created" });
     },
     onError: (e: any) => {
@@ -53,6 +53,7 @@ export default function ReferralsPage() {
       accExpiration: createForm.accExpiration || undefined,
       maxKeyEdits: parseInt(createForm.maxKeyEdits) || 3,
       maxDevicesLimit: parseInt(createForm.maxDevicesLimit) || 1000,
+      maxKeyExtends: parseInt(createForm.maxKeyExtends) || 5,
     });
   };
 
@@ -148,6 +149,11 @@ export default function ReferralsPage() {
                   <Label className="text-sm font-medium">Max Devices Limit</Label>
                   <Input type="number" min="1" value={createForm.maxDevicesLimit} onChange={e => setCreateForm({ ...createForm, maxDevicesLimit: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-max-devices-limit" />
                   <p className="text-[10px] text-muted-foreground">Max devices this account can set per key</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Max Key Extends</Label>
+                  <Input type="number" min="1" value={createForm.maxKeyExtends} onChange={e => setCreateForm({ ...createForm, maxKeyExtends: e.target.value })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-ref-max-key-extends" />
+                  <p className="text-[10px] text-muted-foreground">Max extend actions per key for this account</p>
                 </div>
               </div>
             </div>

@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   twofaEnabled: integer("twofa_enabled").default(0).notNull(),
   maxKeyEdits: integer("max_key_edits").default(3).notNull(),
   maxDevicesLimit: integer("max_devices_limit").default(1000).notNull(),
+  maxKeyExtends: integer("max_key_extends").default(5).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -76,6 +77,7 @@ export const keysCode = pgTable("keys_code", {
   keyResetTime: text("key_reset_time"),
   keyResetToken: varchar("key_reset_token", { length: 255 }),
   editCount: integer("edit_count").default(0).notNull(),
+  extendCount: integer("extend_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -96,6 +98,7 @@ export const referralCode = pgTable("referral_code", {
   accExpiration: varchar("acc_expiration", { length: 100 }),
   maxKeyEdits: integer("max_key_edits").default(3),
   maxDevicesLimit: integer("max_devices_limit").default(1000),
+  maxKeyExtends: integer("max_key_extends").default(5),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -87,6 +87,7 @@ export default function UsersPage() {
       expirationDate: u.expirationDate ? new Date(u.expirationDate).toISOString().split("T")[0] : "",
       maxKeyEdits: u.maxKeyEdits ?? 3,
       maxDevicesLimit: u.maxDevicesLimit ?? 1000,
+      maxKeyExtends: u.maxKeyExtends ?? 5,
     });
   };
 
@@ -231,6 +232,11 @@ export default function UsersPage() {
                     <Label className="text-sm font-medium">Max Devices Limit</Label>
                     <Input type="number" min="1" value={editForm.maxDevicesLimit ?? 1000} onChange={e => setEditForm({ ...editForm, maxDevicesLimit: parseInt(e.target.value) || 1000 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-devices-limit" />
                     <p className="text-[10px] text-muted-foreground">Max devices this user can set per key</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Max Key Extends</Label>
+                    <Input type="number" min="1" value={editForm.maxKeyExtends ?? 5} onChange={e => setEditForm({ ...editForm, maxKeyExtends: parseInt(e.target.value) || 5 })} className="h-11 rounded bg-muted/50 border-border/60" data-testid="input-edit-max-key-extends" />
+                    <p className="text-[10px] text-muted-foreground">Max extend actions per key for this user</p>
                   </div>
                 </div>
               </div>
