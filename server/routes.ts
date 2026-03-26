@@ -1560,7 +1560,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.get("/connect", (_req, res) => {
-    res.json({ status: true, message: "Connect endpoint is active. Use POST." });
+    res.json({ status: false, reason: "Use POST" });
   });
 
   app.post("/connect", async (req, res) => {
@@ -1624,6 +1624,8 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         status: true,
         data: {
           token,
+          rng: Math.floor(Date.now() / 1000),
+          EXP: expired.toISOString(),
           secret_version: connectCfg?.secretVersion || 1,
           modname: modData || "",
           mod_status: textData?._status || "",
@@ -1636,9 +1638,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
           Floating: featureData?.Floating || "off",
           Memory: featureData?.Memory || "off",
           Setting: featureData?.Setting || "off",
-          EXP: expired.toISOString(),
           device: findKey.maxDevices,
-          rng: Date.now(),
           game: gameRecord.name,
           gameDisplayName: gameRecord.displayName,
           keyStatus: findKey.status === 1 ? "active" : "blocked",
