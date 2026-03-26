@@ -103,7 +103,7 @@ function wsEvent(type: WsEventType, payload?: any): WsEvent {
 export async function registerRoutes(httpServer: Server | null, app: Express): Promise<RequestHandler> {
   const PgSession = connectPgSimple(session);
   const sessionMiddleware = session({
-    store: new PgSession({ pool, createTableIfMissing: true }),
+    store: new PgSession({ pool }),
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
