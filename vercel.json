@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx tsx script/build-vercel.ts",
+  "buildCommand": "node_modules/.bin/tsx script/build-vercel.ts",
   "installCommand": "npm install",
   "framework": null,
   "headers": [
