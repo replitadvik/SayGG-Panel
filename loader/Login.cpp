@@ -206,14 +206,17 @@ bool Login_HttpPost(const std::string& url, const std::string& body,
 #endif
 
     struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
     headers = curl_slist_append(headers, "Accept: application/json");
+    headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode res = curl_easy_perform(curl);
 
     long httpCode = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+
+    LOGD("HTTP status: %ld", httpCode);
+    LOGD("raw response: %.512s", wd.body.c_str());
 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -238,7 +241,7 @@ bool Login_HttpPost(const std::string& url, const std::string& body,
     }
 
     if (httpCode < 200 || httpCode >= 300) {
-        LOGE("HTTP %ld", httpCode);
+        LOGE("HTTP error %ld, body: %.256s", httpCode, wd.body.c_str());
         char codeBuf[32];
         snprintf(codeBuf, sizeof(codeBuf), "HTTP_%ld", httpCode);
         responseOut = codeBuf;
@@ -287,11 +290,21 @@ bool Login_Connect(const std::string& userKey, const std::string& serial,
         return false;
     }
 
+    /* Guard: response must begin with '{' to be valid JSON object.
+     * If the server returned plain text or an HTML error page,
+     * fail cleanly instead of crashing inside json::parse. */
+    if (rawResponse.empty() || rawResponse[0] != '{') {
+        LOGE("non-JSON response: %.256s", rawResponse.c_str());
+        out.status = false;
+        out.reason = "INVALID_RESPONSE";
+        return false;
+    }
+
     nlohmann::json root;
     try {
         root = nlohmann::json::parse(rawResponse);
-    } catch (const std::exception&) {
-        LOGE("invalid JSON response");
+    } catch (const std::exception& e) {
+        LOGE("JSON parse error: %s | body: %.256s", e.what(), rawResponse.c_str());
         out.status = false;
         out.reason = "INVALID_RESPONSE";
         return false;
