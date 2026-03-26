@@ -1559,6 +1559,10 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     }
   });
 
+  app.get("/connect", (_req, res) => {
+    res.json({ status: true, message: "Connect endpoint is active. Use POST." });
+  });
+
   app.post("/connect", async (req, res) => {
     try {
       const maintenance = await storage.getMaintenanceStatus();
