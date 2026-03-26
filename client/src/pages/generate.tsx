@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -56,6 +56,11 @@ export default function GeneratePage() {
 
   const isOwner = user?.level === 1;
 
+  // Track whether auto-selection has already fired this session.
+  // Using refs (not state) so they survive re-renders without causing extra renders.
+  const hasAutoSelected = useRef(false);
+  const hasAutoDuration = useRef(false);
+
   const { data: activeGames = [], isLoading: gamesLoading } = useQuery<Game[]>({
     queryKey: ["/api/games/active"],
   });
@@ -70,6 +75,33 @@ export default function GeneratePage() {
     },
     enabled: !!selectedGameId,
   });
+
+  // Auto-select the game with the most keys on page load.
+  // Falls back to the first active game when no key history exists.
+  // Fires exactly once per page session — never overrides user's manual choice.
+  useEffect(() => {
+    if (hasAutoSelected.current) return;
+    if (gamesLoading || activeGames.length === 0) return;
+
+    const sorted = [...activeGames].sort(
+      (a: any, b: any) => (b.keyCount ?? 0) - (a.keyCount ?? 0)
+    );
+    const best = sorted[0];
+    if (best) {
+      setSelectedGameId(String(best.id));
+      hasAutoSelected.current = true;
+    }
+  }, [activeGames, gamesLoading]);
+
+  // Auto-select the first available duration for the auto-selected game.
+  // Fires exactly once — never fires again after user changes game manually.
+  useEffect(() => {
+    if (hasAutoDuration.current) return;
+    if (!selectedGameId || durationsLoading || durations.length === 0) return;
+
+    setDuration(String(durations[0].durationHours));
+    hasAutoDuration.current = true;
+  }, [durations, durationsLoading, selectedGameId]);
 
   const selectedDuration = durations.find((d: GameDuration) => String(d.durationHours) === duration);
   const unitPrice = selectedDuration?.price ?? 0;

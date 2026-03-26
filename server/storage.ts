@@ -80,6 +80,7 @@ export interface IStorage {
 
   getAllGames(): Promise<Game[]>;
   getActiveGames(): Promise<Game[]>;
+  getKeyCountsPerGame(): Promise<{ gameId: number; count: number }[]>;
   getGame(id: number): Promise<Game | undefined>;
   getGameDurationCount(gameId: number): Promise<number>;
   getGameBySlug(slug: string): Promise<Game | undefined>;
@@ -496,6 +497,15 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveGames(): Promise<Game[]> {
     return db.select().from(games).where(eq(games.isActive, 1)).orderBy(asc(games.name));
+  }
+
+  async getKeyCountsPerGame(): Promise<{ gameId: number; count: number }[]> {
+    const result = await db
+      .select({ gameId: keysCode.gameId, count: count() })
+      .from(keysCode)
+      .where(isNotNull(keysCode.gameId))
+      .groupBy(keysCode.gameId);
+    return result.map(r => ({ gameId: r.gameId!, count: r.count }));
   }
 
   async getGame(id: number): Promise<Game | undefined> {

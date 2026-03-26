@@ -1386,7 +1386,10 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
 
   app.get("/api/games/active", requireAuth, async (req, res) => {
     const activeGames = await storage.getActiveGames();
-    res.json(activeGames);
+    const counts = await storage.getKeyCountsPerGame();
+    const countMap = new Map(counts.map(c => [c.gameId, c.count]));
+    const enriched = activeGames.map(g => ({ ...g, keyCount: countMap.get(g.id) ?? 0 }));
+    res.json(enriched);
   });
 
   app.get("/api/games/:id", requireAuth, async (req, res) => {
