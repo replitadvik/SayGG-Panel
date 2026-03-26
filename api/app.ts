@@ -31,6 +31,13 @@ app.use(
   }),
 );
 
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err && (err.type === "entity.parse.failed" || err.status === 400)) {
+    return res.status(400).json({ status: false, reason: "INVALID REQUEST BODY" });
+  }
+  next(err);
+});
+
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {

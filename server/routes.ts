@@ -1566,7 +1566,10 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         return res.json({ status: false, reason: maintenance.myinput || "Maintenance Mode" });
       }
 
-      const { game, user_key, serial } = req.body;
+      const body = req.body || {};
+      const game = body.game;
+      const user_key = body.user_key;
+      const serial = body.serial;
       if (!game || !user_key || !serial) {
         return res.json({ status: false, reason: "INVALID PARAMETER" });
       }
