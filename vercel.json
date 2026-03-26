@@ -1,6 +1,6 @@
 {
   "buildCommand": "node_modules/.bin/tsx script/build-vercel.ts",
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=dev",
   "framework": null,
   "headers": [
     {
