@@ -1,60 +1,49 @@
-# Key-Panel (TypeScript Migration)
+# SayGG Panel
 
 Admin panel for managing license keys, users, referrals, and game feature flags.
-Migrated from PHP CodeIgniter 4 to TypeScript full-stack.
 
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite, TanStack Query, Wouter, Tailwind CSS, shadcn/ui
 - **Backend**: Node.js, Express 5, TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: PostgreSQL (Neon for Vercel / Replit Postgres for Replit)
 - **Auth**: Session-based (express-session + connect-pg-simple)
-
-## Quick Start on Replit
-
-1. The PostgreSQL database is already provisioned via Replit.
-2. Click **Run** or use the workflow "Start application" to launch.
-3. The app will push the schema automatically via `drizzle-kit push`.
-4. Run the seed script to create the default admin account:
-
-```bash
-npx tsx seed.ts
-```
-
-5. Login with `admin` / `admin123`.
 
 ## Environment Variables
 
 | Variable | Description | Required |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | Yes (auto-set on Replit) |
-| `SESSION_SECRET` | Secret for session signing | Yes |
-| `PORT` | Server port (default 5000) | No |
-| `NODE_ENV` | `development` or `production` | No |
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `SESSION_SECRET` | Secret for session signing (64+ char random string) | Yes |
+| `NODE_ENV` | `development` or `production` | Yes (production on Vercel) |
+| `CONNECT_BOOTSTRAP_SECRET` | Shared secret for /connect token formula | No (hardcoded default) |
+| `CONNECT_GAME_NAME` | Game name validated by /connect (default: PUBG) | No |
+| `BOOTSTRAP_OWNER_USERNAME` | Creates first owner account on empty DB | No |
+| `BOOTSTRAP_OWNER_PASSWORD` | Password for first owner account | No |
 
 ## Scripts
 
 | Command | Description |
 |---|---|
 | `npm run dev` | Start dev server (Express + Vite HMR) |
-| `npm run build` | Build for production |
+| `npm run build` | Build for Replit production |
 | `npm start` | Run production build |
 | `npm run db:push` | Push schema to database |
-| `npx tsx seed.ts` | Seed default admin + prices |
 
-## Default Admin Credentials
+## Deployment
 
-- **Username**: `admin`
-- **Password**: `admin123`
-- **Role**: Owner (level 1, full access)
+### Replit
+1. Set `DATABASE_URL` and `SESSION_SECRET` in Replit Secrets
+2. Click **Run** — migrations run automatically on startup
+3. Create your first owner account via the panel's register page
 
-## Role System
-
-| Level | Name | Access |
-|---|---|---|
-| 1 | Owner | Full access to all features |
-| 2 | Admin | User management, key management, referrals, balance |
-| 3 | Reseller | Own keys only, max 2 devices per key, no custom keys |
+### Vercel
+1. Create a free [Neon](https://neon.tech) database and copy the connection string
+2. Push this repo to GitHub
+3. Import the GitHub repo on [Vercel](https://vercel.com)
+4. Add environment variables (see table above) in Vercel → Settings → Environment Variables
+5. Deploy — migrations run automatically on first request
+6. Set up the Cloudflare Worker (see `proxy/cloudflare-worker.js`) to handle the game loader's malformed headers
 
 ## Project Structure
 
@@ -64,15 +53,28 @@ npx tsx seed.ts
 │   ├── components/      # UI components (shadcn/ui)
 │   ├── lib/             # Auth context, query client
 │   └── hooks/           # Custom hooks
-├── server/              # Express backend
-│   ├── index.ts         # App entry point
-│   ├── routes.ts        # All API routes
+├── server/              # Express backend (Replit / direct Node.js)
+│   ├── index.ts         # Entry point with TCP header-sanitising proxy
+│   ├── routes.ts        # All API routes including /connect
 │   ├── storage.ts       # Database access layer
 │   ├── auth.ts          # Password hashing, key generation
 │   └── db.ts            # Database connection
+├── api/                 # Vercel serverless function entry point
+│   ├── index.ts         # Vercel handler
+│   └── app.ts           # Express app bootstrap for Vercel
+├── proxy/
+│   ├── cloudflare-worker.js  # Strips malformed headers, proxies to backend
+│   └── nginx.conf            # Alternative: nginx with ignore_invalid_headers
 ├── shared/
 │   └── schema.ts        # Drizzle schema + Zod validation
-├── seed.ts              # Database seeder
-├── .env.example         # Environment template
-└── MIGRATION_MAPPING.md # PHP-to-TS route/model mapping
+├── script/
+│   ├── build.ts         # Production build for Replit
+│   └── build-vercel.ts  # Production build for Vercel
+└── .env.example         # Environment variable template
 ```
+
+## The /connect Endpoint
+
+The game loader sends a malformed HTTP header `"Charse t: UTF-8"` (space in the name). Standards-compliant reverse proxies reject this before application code runs. The fix is a **Cloudflare Worker** (`proxy/cloudflare-worker.js`) that sits in front of the backend, accepts the raw connection, strips the invalid header, and forwards a clean request.
+
+Flow: `Game Loader → Cloudflare Worker (strips bad header) → Backend → JSON response`
