@@ -198,13 +198,13 @@ export default function ApiGeneratorPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold" data-testid="text-page-title">API Generator</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage external key generation API</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage external key generation API</p>
         </div>
-        <Button onClick={handleSave} disabled={saveMutation.isPending} data-testid="button-save-config">
-          {saveMutation.isPending ? "Saving..." : "Save All Settings"}
+        <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="shrink-0 text-xs px-3" data-testid="button-save-config">
+          {saveMutation.isPending ? "Saving..." : "Save"}
         </Button>
       </div>
 
