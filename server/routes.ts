@@ -1882,7 +1882,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const {
         enabled, token, segment1, segment2, segment3, segment4, segment5,
         maxQuantity, registrator, rateLimitEnabled, rateLimitWindow, rateLimitMaxRequests,
-        ipAllowlist,
+        ipAllowlist, customDurationEnabled, customDurationMaxHours,
       } = req.body;
 
       const updates: any = { changedBy: user.username };
@@ -1920,6 +1920,8 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       if (rateLimitWindow !== undefined) updates.rateLimitWindow = Math.max(1, Math.min(3600, parseInt(rateLimitWindow) || 60));
       if (rateLimitMaxRequests !== undefined) updates.rateLimitMaxRequests = Math.max(1, Math.min(1000, parseInt(rateLimitMaxRequests) || 10));
       if (ipAllowlist !== undefined) updates.ipAllowlist = ipAllowlist || null;
+      if (customDurationEnabled !== undefined) updates.customDurationEnabled = customDurationEnabled ? 1 : 0;
+      if (customDurationMaxHours !== undefined) updates.customDurationMaxHours = Math.max(1, Math.min(87600, parseInt(customDurationMaxHours) || 8760));
 
       const cfg = await storage.upsertApiGeneratorConfig(updates);
       res.json(cfg);
