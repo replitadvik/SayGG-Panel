@@ -2104,13 +2104,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         return res.json({ success: false, message: "Invalid duration format. Use: 1d, 7d, 1w, 1m, 24h, 5h" });
       }
 
-      const gameDurs = await storage.getActiveGameDurations(gameRecord.id);
-      const durEntry = gameDurs.find(d => d.durationHours === durationHours);
       let durationSource: string;
 
-      if (durEntry) {
-        durationSource = "configured";
-      } else if (cfg.customDurationEnabled === 1) {
+      if (cfg.customDurationEnabled === 1) {
         const maxCustom = cfg.customDurationMaxHours || 8760;
         if (durationHours > maxCustom) {
           logBase.reason = `Custom duration ${durationHours}h exceeds limit of ${maxCustom}h`;
@@ -2121,11 +2117,16 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         }
         durationSource = "custom";
       } else {
-        logBase.reason = `Duration ${durationHours}h not available for ${game}`;
-        logBase.resolvedDurationHours = durationHours;
-        logBase.durationSource = "rejected";
-        await storage.createApiGeneratorLog(logBase);
-        return res.json({ success: false, message: `Duration not available for ${game}` });
+        const gameDurs = await storage.getActiveGameDurations(gameRecord.id);
+        const durEntry = gameDurs.find(d => d.durationHours === durationHours);
+        if (!durEntry) {
+          logBase.reason = `Duration ${durationHours}h not available for ${game}`;
+          logBase.resolvedDurationHours = durationHours;
+          logBase.durationSource = "rejected";
+          await storage.createApiGeneratorLog(logBase);
+          return res.json({ success: false, message: `Duration not available for ${game}` });
+        }
+        durationSource = "configured";
       }
 
       logBase.resolvedDurationHours = durationHours;

@@ -437,7 +437,7 @@ export default function ApiGeneratorPage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm font-medium">Custom API Duration</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Allow durations not configured in game settings</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Generate keys from any valid duration in the request, without needing configured game durations</p>
               </div>
               <Switch checked={customDurationEnabled} onCheckedChange={setCustomDurationEnabled} data-testid="switch-custom-duration" />
             </div>
@@ -455,9 +455,10 @@ export default function ApiGeneratorPage() {
                 <div className="bg-muted/50 rounded-md p-2.5 border">
                   <p className="text-[11px] font-medium text-foreground mb-1.5">How it works:</p>
                   <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
-                    <li>If the requested duration matches a configured game duration, that is used first</li>
-                    <li>If not configured but custom duration is ON, the duration is parsed and allowed</li>
-                    <li>If custom duration is OFF and not configured, the request fails</li>
+                    <li><strong>ON:</strong> Any valid duration from the request is used directly — no configured game durations needed</li>
+                    <li><strong>OFF:</strong> Only durations configured in the game settings are allowed</li>
+                    <li>No new duration records are created in the game durations table</li>
+                    <li>Game must still exist and be active</li>
                   </ul>
                   <p className="text-[11px] font-medium text-foreground mt-2 mb-1">Accepted formats:</p>
                   <div className="flex flex-wrap gap-1.5">
