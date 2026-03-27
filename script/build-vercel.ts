@@ -47,6 +47,7 @@ async function main() {
         routes: [
           { src: "^/api(/.*)?$", dest: "/api" },
           { src: "^/connect$", dest: "/api" },
+          { src: "^/g(/.*)?$", dest: "/api" },
           { handle: "filesystem" },
           { src: "^/.*$", dest: "/index.html" },
         ],

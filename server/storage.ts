@@ -3,10 +3,10 @@ import { eq, and, desc, asc, count, sql, like, or, isNull, isNotNull, lt } from 
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
-  games, gameDurations, siteConfig,
+  games, gameDurations, siteConfig, apiGeneratorConfig, apiGeneratorLog,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
-  type Game, type GameDuration,
+  type Game, type GameDuration, type ApiGeneratorConfig, type ApiGeneratorLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -96,6 +96,17 @@ export interface IStorage {
   updateGameDuration(id: number, data: Partial<GameDuration>): Promise<GameDuration | undefined>;
   deleteGameDuration(id: number): Promise<void>;
   getKeyCountByGameId(gameId: number): Promise<number>;
+
+  getApiGeneratorConfig(): Promise<ApiGeneratorConfig | undefined>;
+  upsertApiGeneratorConfig(data: Partial<ApiGeneratorConfig>): Promise<ApiGeneratorConfig>;
+  createApiGeneratorLog(data: Partial<ApiGeneratorLog>): Promise<ApiGeneratorLog>;
+  getApiGeneratorLogs(options: {
+    page: number;
+    limit: number;
+    success?: number;
+    search?: string;
+  }): Promise<{ logs: ApiGeneratorLog[]; total: number }>;
+  clearApiGeneratorLogs(beforeDate?: Date): Promise<number>;
 
   getDashboardStats(): Promise<{
     totalKeys: number; activeKeys: number; expiredKeys: number;
@@ -631,6 +642,76 @@ export class DatabaseStorage implements IStorage {
       pendingUsers: Number(userStats?.pendingUsers ?? 0),
       totalReferrals: refStats?.totalReferrals ?? 0,
     };
+  }
+  async getApiGeneratorConfig(): Promise<ApiGeneratorConfig | undefined> {
+    const [cfg] = await db.select().from(apiGeneratorConfig);
+    return cfg;
+  }
+
+  async upsertApiGeneratorConfig(data: Partial<ApiGeneratorConfig>): Promise<ApiGeneratorConfig> {
+    const existing = await this.getApiGeneratorConfig();
+    if (existing) {
+      const [updated] = await db.update(apiGeneratorConfig)
+        .set({ ...data, changedAt: new Date() } as any)
+        .where(eq(apiGeneratorConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(apiGeneratorConfig).values(data as any).returning();
+      return created;
+    }
+  }
+
+  async createApiGeneratorLog(data: Partial<ApiGeneratorLog>): Promise<ApiGeneratorLog> {
+    const [log] = await db.insert(apiGeneratorLog).values(data as any).returning();
+    return log;
+  }
+
+  async getApiGeneratorLogs(options: {
+    page: number;
+    limit: number;
+    success?: number;
+    search?: string;
+  }): Promise<{ logs: ApiGeneratorLog[]; total: number }> {
+    const { page, limit, success, search } = options;
+    const conditions: any[] = [];
+
+    if (success !== undefined) {
+      conditions.push(eq(apiGeneratorLog.success, success));
+    }
+
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(
+        or(
+          like(apiGeneratorLog.ip, term),
+          like(apiGeneratorLog.game, term),
+          like(apiGeneratorLog.reason, term),
+          like(apiGeneratorLog.generatedKeyValues, term),
+        )
+      );
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const [countResult] = await db.select({ total: count() }).from(apiGeneratorLog).where(where);
+    const total = countResult?.total ?? 0;
+
+    const logs = await db.select().from(apiGeneratorLog)
+      .where(where)
+      .orderBy(desc(apiGeneratorLog.id))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    return { logs, total };
+  }
+
+  async clearApiGeneratorLogs(beforeDate?: Date): Promise<number> {
+    if (beforeDate) {
+      const result = await db.delete(apiGeneratorLog).where(lt(apiGeneratorLog.createdAt, beforeDate)).returning();
+      return result.length;
+    }
+    const result = await db.delete(apiGeneratorLog).returning();
+    return result.length;
   }
 }
 

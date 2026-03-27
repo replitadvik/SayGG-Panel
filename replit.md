@@ -32,6 +32,7 @@ client/src/
     games.tsx       — Game Management hub with duration counts (owner only)
     game-durations.tsx — Per-game duration/pricing with breadcrumb nav (owner only)
     connect-config.tsx — Dedicated Connect Config page: full secret view, copy, edit, rotate, audit log (owner only)
+    api-generator.tsx — API Generator management: enable/disable, token, secure route segments, generation rules, rate limits, logs (owner only)
     settings.tsx    — Site name, features, mod name, ftext, maintenance, session config
     profile.tsx     — Username/password/telegram/2FA changes
 
@@ -82,6 +83,8 @@ docs/
 - `session_settings` — configurable session TTL durations (normalTtl, rememberMeTtl, changedBy, changedAt)
 - `games` — multi-game definitions (name, slug, displayName, description, isActive)
 - `game_durations` — per-game pricing tiers (gameId FK, durationHours, label, price, isActive)
+- `api_generator_config` — API Generator settings (enabled, token, 5 route segments, maxQuantity, registrator, rate limit, IP allowlist, timestamps)
+- `api_generator_log` — API Generator request logs (ip, userAgent, game, duration, quantity, success/failure, reason, generated keys, timestamps)
 
 ## Key Business Logic
 - Key format: `SayGG_[DurationLabel]_[5-char-random]`
@@ -110,6 +113,11 @@ docs/
 - Multi-game: games table with per-game durations; key gen selects game → loads durations → prices from game_durations
 - Connect endpoint: validates game against DB, enriched response (gameDisplayName, durationLabel, timeLeft, device usage)
 - Password hash: md5(plain) -> sha256(md5)
+- API Generator: owner-only external key generation API at `/g/<seg1>/<seg2>/<seg3>/<seg4>/<seg5>?token=...&game=...&duration=...&max_devices=...&quantity=...&currency=`
+  - Database-backed config (no env vars needed for runtime): enable/disable, token, 5 route segments, max quantity, registrator name, rate limiting, IP allowlist
+  - All settings changeable online from owner panel without restart
+  - Request logging: IP, user-agent, game, duration, quantity, success/failure, reason, generated keys
+  - Vercel: `/g/*` routes to API function via `vercel.json` config
 
 ## Session Management
 - Configurable session TTL: normal (default 30m) and Remember Me (default 24h)

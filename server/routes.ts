@@ -1868,6 +1868,275 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     res.json({ secret });
   });
 
+  app.get("/api/api-generator/config", requireAuth, requireLevel(1), async (req, res) => {
+    const cfg = await storage.getApiGeneratorConfig();
+    if (!cfg) return res.json(null);
+    res.json(cfg);
+  });
+
+  app.put("/api/api-generator/config", requireAuth, requireLevel(1), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+      const {
+        enabled, token, segment1, segment2, segment3, segment4, segment5,
+        maxQuantity, registrator, rateLimitEnabled, rateLimitWindow, rateLimitMaxRequests,
+        ipAllowlist,
+      } = req.body;
+
+      const updates: any = { changedBy: user.username };
+      if (enabled !== undefined) updates.enabled = enabled ? 1 : 0;
+      if (token !== undefined) {
+        if (typeof token !== "string" || token.trim().length < 16) {
+          return res.status(400).json({ message: "Token must be at least 16 characters." });
+        }
+        updates.token = token.trim();
+      }
+
+      const segmentFields = { segment1, segment2, segment3, segment4, segment5 };
+      const segRegex = /^[a-zA-Z0-9_-]{3,40}$/;
+      const reservedPrefixes = ["api", "connect", "login", "register", "setup", "keys", "users", "profile", "settings", "games", "balance", "referrals", "prices"];
+      for (const [key, val] of Object.entries(segmentFields)) {
+        if (val !== undefined) {
+          if (typeof val !== "string" || !segRegex.test(val)) {
+            return res.status(400).json({ message: `Segment ${key.replace("segment", "")} must be 3-40 URL-safe characters (a-z, 0-9, _, -).` });
+          }
+          if (key === "segment1" && reservedPrefixes.includes(val.toLowerCase())) {
+            return res.status(400).json({ message: `Segment 1 cannot be a reserved path like "${val}".` });
+          }
+          (updates as any)[key] = val;
+        }
+      }
+
+      if (maxQuantity !== undefined) updates.maxQuantity = Math.max(1, Math.min(100, parseInt(maxQuantity) || 10));
+      if (registrator !== undefined) {
+        if (typeof registrator !== "string" || registrator.trim().length === 0 || registrator.trim().length > 100) {
+          return res.status(400).json({ message: "Registrator must be 1-100 characters." });
+        }
+        updates.registrator = registrator.trim();
+      }
+      if (rateLimitEnabled !== undefined) updates.rateLimitEnabled = rateLimitEnabled ? 1 : 0;
+      if (rateLimitWindow !== undefined) updates.rateLimitWindow = Math.max(1, Math.min(3600, parseInt(rateLimitWindow) || 60));
+      if (rateLimitMaxRequests !== undefined) updates.rateLimitMaxRequests = Math.max(1, Math.min(1000, parseInt(rateLimitMaxRequests) || 10));
+      if (ipAllowlist !== undefined) updates.ipAllowlist = ipAllowlist || null;
+
+      const cfg = await storage.upsertApiGeneratorConfig(updates);
+      res.json(cfg);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message || "Failed to update config." });
+    }
+  });
+
+  app.post("/api/api-generator/regenerate-token", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const token = crypto.randomBytes(36).toString("base64url");
+    const cfg = await storage.upsertApiGeneratorConfig({ token, lastRotatedAt: new Date(), changedBy: user.username });
+    res.json({ token: cfg.token });
+  });
+
+  app.post("/api/api-generator/regenerate-segments", requireAuth, requireLevel(1), async (req, res) => {
+    const user = await storage.getUser(req.session.userId!);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    function genSeg() {
+      return crypto.randomBytes(5).toString("hex");
+    }
+    const cfg = await storage.upsertApiGeneratorConfig({
+      segment1: genSeg(), segment2: genSeg(), segment3: genSeg(),
+      segment4: genSeg(), segment5: genSeg(),
+      changedBy: user.username,
+    });
+    res.json({
+      segment1: cfg.segment1, segment2: cfg.segment2, segment3: cfg.segment3,
+      segment4: cfg.segment4, segment5: cfg.segment5,
+    });
+  });
+
+  app.get("/api/api-generator/logs", requireAuth, requireLevel(1), async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const success = req.query.success !== undefined ? parseInt(req.query.success as string) : undefined;
+    const search = (req.query.search as string) || undefined;
+    const result = await storage.getApiGeneratorLogs({ page, limit, success, search });
+    res.json({ ...result, page, limit, totalPages: Math.ceil(result.total / limit) });
+  });
+
+  app.delete("/api/api-generator/logs", requireAuth, requireLevel(1), async (req, res) => {
+    const before = req.query.before ? new Date(req.query.before as string) : undefined;
+    const cleared = await storage.clearApiGeneratorLogs(before);
+    res.json({ message: `Cleared ${cleared} log entries.`, cleared });
+  });
+
+  const apiGenRateMap = new Map<string, { count: number; resetAt: number }>();
+  app.use("/g", async (req, res, next) => {
+    try {
+      const cfg = await storage.getApiGeneratorConfig();
+      if (!cfg) return res.status(404).json({ success: false, message: "API not configured" });
+
+      const pathSegments = req.path.split("/").filter(Boolean);
+      const expectedPath = [cfg.segment1, cfg.segment2, cfg.segment3, cfg.segment4, cfg.segment5];
+
+      const ip = req.ip || req.socket.remoteAddress || "unknown";
+      const ua = req.headers["user-agent"] || "";
+      const { token, game, max_devices, duration, quantity: qtyStr, currency } = req.query as Record<string, string>;
+
+      const logBase: any = {
+        ip,
+        userAgent: ua,
+        game: game || null,
+        duration: duration || null,
+        maxDevices: max_devices ? parseInt(max_devices) : null,
+        quantity: qtyStr ? parseInt(qtyStr) : null,
+        currency: currency || null,
+        tokenUsed: token ? 1 : 0,
+        routeMatched: 0,
+        success: 0,
+      };
+
+      if (pathSegments.length !== 5 || pathSegments.some((s, i) => s !== expectedPath[i])) {
+        logBase.reason = "Route mismatch";
+        await storage.createApiGeneratorLog(logBase);
+        return res.status(404).json({ success: false, message: "Not found" });
+      }
+
+      logBase.routeMatched = 1;
+
+      if (cfg.enabled !== 1) {
+        logBase.reason = "API disabled";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "API is currently disabled" });
+      }
+
+      if (!token || token !== cfg.token) {
+        logBase.reason = "Invalid token";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Unauthorized" });
+      }
+
+      if (cfg.ipAllowlist) {
+        const allowed = cfg.ipAllowlist.split(",").map(s => s.trim()).filter(Boolean);
+        if (allowed.length > 0 && !allowed.includes(ip)) {
+          logBase.reason = "IP not in allowlist";
+          await storage.createApiGeneratorLog(logBase);
+          return res.json({ success: false, message: "Unauthorized" });
+        }
+      }
+
+      if (cfg.rateLimitEnabled === 1) {
+        const rKey = `apigen:${ip}`;
+        const now = Date.now();
+        const windowMs = (cfg.rateLimitWindow || 60) * 1000;
+        const entry = apiGenRateMap.get(rKey);
+        if (!entry || now > entry.resetAt) {
+          apiGenRateMap.set(rKey, { count: 1, resetAt: now + windowMs });
+        } else if (entry.count >= (cfg.rateLimitMaxRequests || 10)) {
+          logBase.reason = "Rate limit exceeded";
+          await storage.createApiGeneratorLog(logBase);
+          return res.status(429).json({ success: false, message: "Rate limit exceeded" });
+        } else {
+          entry.count++;
+        }
+      }
+
+      if (!game) {
+        logBase.reason = "Missing game parameter";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Missing required parameter: game" });
+      }
+
+      const gameRecord = await storage.getGameByName(game);
+      if (!gameRecord) {
+        logBase.reason = "Game not found";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Game not found" });
+      }
+      if (gameRecord.isActive !== 1) {
+        logBase.reason = "Game inactive";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Game is not active" });
+      }
+
+      if (!duration) {
+        logBase.reason = "Missing duration parameter";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Missing required parameter: duration" });
+      }
+
+      const durStr = String(duration).toLowerCase();
+      let durationHours: number;
+      if (durStr.endsWith("d")) durationHours = parseInt(durStr) * 24;
+      else if (durStr.endsWith("w")) durationHours = parseInt(durStr) * 168;
+      else if (durStr.endsWith("m")) durationHours = parseInt(durStr) * 720;
+      else if (durStr.endsWith("h")) durationHours = parseInt(durStr);
+      else durationHours = parseInt(durStr);
+
+      if (!durationHours || durationHours <= 0) {
+        logBase.reason = "Invalid duration value";
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: "Invalid duration format. Use: 1d, 7d, 1w, 1m, 24 (hours)" });
+      }
+
+      const gameDurs = await storage.getActiveGameDurations(gameRecord.id);
+      const durEntry = gameDurs.find(d => d.durationHours === durationHours);
+      if (!durEntry) {
+        logBase.reason = `Duration ${durationHours}h not available for ${game}`;
+        await storage.createApiGeneratorLog(logBase);
+        return res.json({ success: false, message: `Duration not available for ${game}` });
+      }
+
+      const maxDev = Math.max(1, parseInt(max_devices || "1") || 1);
+      const qty = Math.max(1, Math.min(cfg.maxQuantity, parseInt(qtyStr || "1") || 1));
+
+      const keys: any[] = [];
+      const keyIds: number[] = [];
+      const keyValues: string[] = [];
+
+      for (let i = 0; i < qty; i++) {
+        const license = generateKeyLicense(durationHours);
+        const newKey = await storage.createKey({
+          game: gameRecord.name,
+          gameId: gameRecord.id,
+          userKey: license,
+          duration: durationHours,
+          maxDevices: maxDev,
+          registrator: cfg.registrator || "SayGG",
+          status: 1,
+        } as any);
+
+        keyIds.push(newKey.id);
+        keyValues.push(license);
+        keys.push({
+          game: gameRecord.name,
+          user_key: license,
+          duration: durationHours,
+          max_devices: maxDev,
+          status: 1,
+          registrator: cfg.registrator || "SayGG",
+          created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
+        });
+      }
+
+      await storage.upsertApiGeneratorConfig({ lastUsedAt: new Date() } as any);
+
+      logBase.success = 1;
+      logBase.generatedKeyIds = JSON.stringify(keyIds);
+      logBase.generatedKeyValues = JSON.stringify(keyValues);
+      logBase.reason = null;
+      await storage.createApiGeneratorLog(logBase);
+
+      res.json({
+        success: true,
+        currency: currency || "",
+        quantity: qty,
+        keys,
+      });
+    } catch (e: any) {
+      console.error("[api-generator] Error:", e.message);
+      res.json({ success: false, message: "Internal error" });
+    }
+  });
+
   app.get("/api/setup/status", async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();

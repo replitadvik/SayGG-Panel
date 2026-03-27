@@ -198,6 +198,48 @@ export const loginThrottle = pgTable("login_throttle", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const apiGeneratorConfig = pgTable("api_generator_config", {
+  id: serial("id").primaryKey(),
+  enabled: integer("enabled").default(0).notNull(),
+  token: text("token").notNull(),
+  segment1: varchar("segment_1", { length: 100 }).notNull(),
+  segment2: varchar("segment_2", { length: 100 }).notNull(),
+  segment3: varchar("segment_3", { length: 100 }).notNull(),
+  segment4: varchar("segment_4", { length: 100 }).notNull(),
+  segment5: varchar("segment_5", { length: 100 }).notNull(),
+  maxQuantity: integer("max_quantity").default(10).notNull(),
+  registrator: varchar("registrator", { length: 100 }).default("SayGG").notNull(),
+  rateLimitEnabled: integer("rate_limit_enabled").default(1).notNull(),
+  rateLimitWindow: integer("rate_limit_window").default(60).notNull(),
+  rateLimitMaxRequests: integer("rate_limit_max_requests").default(10).notNull(),
+  ipAllowlist: text("ip_allowlist"),
+  lastRotatedAt: timestamp("last_rotated_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  changedBy: varchar("changed_by", { length: 50 }),
+  changedAt: timestamp("changed_at").defaultNow(),
+});
+
+export const apiGeneratorLog = pgTable("api_generator_log", {
+  id: serial("id").primaryKey(),
+  ip: varchar("ip", { length: 45 }),
+  userAgent: text("user_agent"),
+  game: varchar("game", { length: 100 }),
+  duration: varchar("duration", { length: 50 }),
+  maxDevices: integer("max_devices"),
+  quantity: integer("quantity"),
+  currency: varchar("currency", { length: 50 }),
+  success: integer("success").default(0).notNull(),
+  reason: text("reason"),
+  generatedKeyIds: text("generated_key_ids"),
+  generatedKeyValues: text("generated_key_values"),
+  tokenUsed: integer("token_used").default(0).notNull(),
+  routeMatched: integer("route_matched").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_api_gen_log_created").on(table.createdAt),
+  index("idx_api_gen_log_success").on(table.success),
+]);
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -273,3 +315,5 @@ export type ConnectAuditLog = typeof connectAuditLog.$inferSelect;
 export type SessionSettings = typeof sessionSettings.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type GameDuration = typeof gameDurations.$inferSelect;
+export type ApiGeneratorConfig = typeof apiGeneratorConfig.$inferSelect;
+export type ApiGeneratorLog = typeof apiGeneratorLog.$inferSelect;
