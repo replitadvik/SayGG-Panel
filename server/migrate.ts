@@ -283,6 +283,8 @@ export async function runMigrations(): Promise<void> {
         "rate_limit_enabled" integer DEFAULT 1 NOT NULL,
         "rate_limit_window" integer DEFAULT 60 NOT NULL,
         "rate_limit_max_requests" integer DEFAULT 10 NOT NULL,
+        "custom_duration_enabled" integer DEFAULT 0 NOT NULL,
+        "custom_duration_max_hours" integer DEFAULT 8760 NOT NULL,
         "ip_allowlist" text,
         "last_rotated_at" timestamp,
         "last_used_at" timestamp,
@@ -305,6 +307,8 @@ export async function runMigrations(): Promise<void> {
         "reason" text,
         "generated_key_ids" text,
         "generated_key_values" text,
+        "resolved_duration_hours" integer,
+        "duration_source" varchar(20),
         "token_used" integer DEFAULT 0 NOT NULL,
         "route_matched" integer DEFAULT 0 NOT NULL,
         "created_at" timestamp DEFAULT now()
@@ -315,6 +319,23 @@ export async function runMigrations(): Promise<void> {
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS "idx_api_gen_log_success" ON "api_generator_log"("success")
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_generator_config' AND column_name='custom_duration_enabled') THEN
+          ALTER TABLE "api_generator_config" ADD COLUMN "custom_duration_enabled" integer DEFAULT 0 NOT NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_generator_config' AND column_name='custom_duration_max_hours') THEN
+          ALTER TABLE "api_generator_config" ADD COLUMN "custom_duration_max_hours" integer DEFAULT 8760 NOT NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_generator_log' AND column_name='resolved_duration_hours') THEN
+          ALTER TABLE "api_generator_log" ADD COLUMN "resolved_duration_hours" integer;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_generator_log' AND column_name='duration_source') THEN
+          ALTER TABLE "api_generator_log" ADD COLUMN "duration_source" varchar(20);
+        END IF;
+      END $$;
     `);
 
     await client.query("COMMIT");

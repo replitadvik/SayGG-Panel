@@ -53,6 +53,8 @@ export default function ApiGeneratorPage() {
   const [rateLimitWindow, setRateLimitWindow] = useState("60");
   const [rateLimitMaxReq, setRateLimitMaxReq] = useState("10");
   const [ipAllowlist, setIpAllowlist] = useState("");
+  const [customDurationEnabled, setCustomDurationEnabled] = useState(false);
+  const [customDurationMaxHours, setCustomDurationMaxHours] = useState("8760");
 
   const [logPage, setLogPage] = useState(1);
   const [logFilter, setLogFilter] = useState("all");
@@ -90,6 +92,8 @@ export default function ApiGeneratorPage() {
       setRateLimitWindow(String(config.rateLimitWindow || 60));
       setRateLimitMaxReq(String(config.rateLimitMaxRequests || 10));
       setIpAllowlist(config.ipAllowlist || "");
+      setCustomDurationEnabled(config.customDurationEnabled === 1);
+      setCustomDurationMaxHours(String(config.customDurationMaxHours || 8760));
     } else if (config === null) {
       setToken(genDefaultToken());
       setSeg1(genDefaultSegment());
@@ -129,6 +133,8 @@ export default function ApiGeneratorPage() {
     setRateLimitWindow(String(data.rateLimitWindow || 60));
     setRateLimitMaxReq(String(data.rateLimitMaxRequests || 10));
     setIpAllowlist(data.ipAllowlist || "");
+    setCustomDurationEnabled(data.customDurationEnabled === 1);
+    setCustomDurationMaxHours(String(data.customDurationMaxHours || 8760));
   }
 
   const regenTokenMutation = useMutation({
@@ -177,9 +183,9 @@ export default function ApiGeneratorPage() {
       enabled, token, segment1: seg1, segment2: seg2, segment3: seg3, segment4: seg4, segment5: seg5,
       maxQuantity: parseInt(maxQuantity), registrator, rateLimitEnabled,
       rateLimitWindow: parseInt(rateLimitWindow), rateLimitMaxRequests: parseInt(rateLimitMaxReq),
-      ipAllowlist,
+      ipAllowlist, customDurationEnabled, customDurationMaxHours: parseInt(customDurationMaxHours),
     });
-  }, [enabled, token, seg1, seg2, seg3, seg4, seg5, maxQuantity, registrator, rateLimitEnabled, rateLimitWindow, rateLimitMaxReq, ipAllowlist]);
+  }, [enabled, token, seg1, seg2, seg3, seg4, seg5, maxQuantity, registrator, rateLimitEnabled, rateLimitWindow, rateLimitMaxReq, ipAllowlist, customDurationEnabled, customDurationMaxHours]);
 
   const copyToClipboard = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -426,6 +432,43 @@ export default function ApiGeneratorPage() {
               className="mt-1 font-mono text-xs" data-testid="input-ip-allowlist"
             />
           </div>
+
+          <div className="border-t border-border/40 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">Custom API Duration</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Allow durations not configured in game settings</p>
+              </div>
+              <Switch checked={customDurationEnabled} onCheckedChange={setCustomDurationEnabled} data-testid="switch-custom-duration" />
+            </div>
+            {customDurationEnabled && (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Max Custom Duration (hours)</Label>
+                  <Input
+                    type="number" min="1" max="87600"
+                    value={customDurationMaxHours} onChange={e => setCustomDurationMaxHours(e.target.value)}
+                    className="mt-1" data-testid="input-custom-duration-max"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Requests exceeding this limit will be rejected (default: 8760 = 1 year)</p>
+                </div>
+                <div className="bg-muted/50 rounded-md p-2.5 border">
+                  <p className="text-[11px] font-medium text-foreground mb-1.5">How it works:</p>
+                  <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
+                    <li>If the requested duration matches a configured game duration, that is used first</li>
+                    <li>If not configured but custom duration is ON, the duration is parsed and allowed</li>
+                    <li>If custom duration is OFF and not configured, the request fails</li>
+                  </ul>
+                  <p className="text-[11px] font-medium text-foreground mt-2 mb-1">Accepted formats:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["5h", "12h", "24h", "1d", "2d", "7d", "15d", "30d"].map(ex => (
+                      <span key={ex} className="bg-background border rounded px-1.5 py-0.5 font-mono text-[10px]">{ex}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -538,7 +581,12 @@ export default function ApiGeneratorPage() {
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
                     {log.game && <span>Game: <span className="text-foreground">{log.game}</span></span>}
-                    {log.duration && <span>Duration: <span className="text-foreground">{log.duration}</span></span>}
+                    {log.duration && <span>Duration: <span className="text-foreground">{log.duration}</span>{log.resolvedDurationHours ? ` (${log.resolvedDurationHours}h)` : ""}</span>}
+                    {log.durationSource && (
+                      <Badge variant="outline" className={`text-[9px] px-1 py-0 ${log.durationSource === "custom" ? "border-amber-500 text-amber-500" : log.durationSource === "configured" ? "border-green-500 text-green-500" : "border-red-500 text-red-500"}`}>
+                        {log.durationSource}
+                      </Badge>
+                    )}
                     {log.maxDevices && <span>Devices: <span className="text-foreground">{log.maxDevices}</span></span>}
                     {log.quantity && <span>Qty: <span className="text-foreground">{log.quantity}</span></span>}
                     {log.currency && <span>Currency: <span className="text-foreground">{log.currency}</span></span>}
@@ -754,7 +802,7 @@ export default function ApiGeneratorPage() {
                     <span><code className="bg-muted px-1 rounded font-mono">1m</code> = 1 month</span>
                     <span><code className="bg-muted px-1 rounded font-mono">24</code> = 24 hours</span>
                   </div>
-                  <p className="mt-1.5 text-amber-500"><AlertTriangle className="h-3 w-3 inline mr-1" />Duration must match an active duration configured in your game settings.</p>
+                  <p className="mt-1.5 text-amber-500"><AlertTriangle className="h-3 w-3 inline mr-1" />{customDurationEnabled ? "Configured game durations are checked first. If not found, custom duration parsing is used automatically." : "Duration must match an active duration configured in your game settings. Enable Custom API Duration in Generation Rules to allow any duration."}</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
