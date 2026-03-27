@@ -14,8 +14,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Power, RefreshCw, Copy, Eye, EyeOff, Shield, Clock, Activity,
   Search, Trash2, ChevronLeft, ChevronRight, Code, ExternalLink, Download,
+  BookOpen, CheckCircle2, AlertTriangle, Lock, Terminal, Globe, Clipboard, RotateCcw,
+  List, ShieldCheck, TestTube,
 } from "lucide-react";
 
 function genDefaultToken() {
@@ -569,6 +574,352 @@ export default function ApiGeneratorPage() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-setup-guide">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base">Setup Guide</CardTitle>
+          </div>
+          <p className="text-xs text-muted-foreground">Step-by-step instructions for using the API Generator</p>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Accordion type="multiple" className="w-full">
+
+            <AccordionItem value="what-api-does" data-testid="guide-what-api-does">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><Globe className="h-3.5 w-3.5 shrink-0 text-blue-500" /> What This API Does</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>The API Generator lets you create license keys automatically through a secure URL, without logging into the panel.</p>
+                <p>It uses your panel's real games, durations, and pricing settings to generate keys, and returns the result as a JSON response that any app, tool, or website can read.</p>
+                <p>Use it to connect your panel with external apps, bots, websites, or any automated system that needs to generate keys on demand.</p>
+                <div className="bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                  <p className="font-medium text-foreground mb-1">Key facts:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Generates real keys saved to your panel database</li>
+                    <li>Uses your current games and duration settings</li>
+                    <li>Returns structured JSON that any system can parse</li>
+                    <li>Protected by token authentication and secure route segments</li>
+                  </ul>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="enable-api" data-testid="guide-enable-api">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><Power className="h-3.5 w-3.5 shrink-0 text-green-500" /> Step 1: Enable the API</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>Before the API will accept any requests, you need to turn it on.</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Go to the <strong className="text-foreground">API Status</strong> section at the top of this page</li>
+                  <li>Toggle the switch to <strong className="text-foreground">ON</strong></li>
+                  <li>Click <strong className="text-foreground">Save</strong> at the top right</li>
+                </ol>
+                <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                  <span>Current status:</span>
+                  {enabled
+                    ? <Badge variant="default" className="bg-green-500/10 text-green-500 text-[10px] px-1.5 py-0">Enabled</Badge>
+                    : <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Disabled</Badge>
+                  }
+                </div>
+                <p className="text-amber-500 text-[11px]"><AlertTriangle className="h-3 w-3 inline mr-1" />If the API is disabled, all requests will receive an error response.</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="copy-url" data-testid="guide-copy-url">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><Clipboard className="h-3.5 w-3.5 shrink-0 text-violet-500" /> Step 2: Copy the Secure API URL</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>Your API uses a unique 5-segment URL path that acts as an extra layer of security. Only someone with the exact URL can reach the endpoint.</p>
+                <p>The full base URL is:</p>
+                <div className="relative">
+                  <pre className="bg-muted rounded-md p-2.5 border text-[10px] break-all whitespace-pre-wrap font-mono">{domain}/g/{seg1 || "***"}/{seg2 || "***"}/{seg3 || "***"}/{seg4 || "***"}/{seg5 || "***"}</pre>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="absolute top-1 right-1 h-6 w-6 p-0"
+                    onClick={() => copyToClipboard(`${domain}/g/${seg1}/${seg2}/${seg3}/${seg4}/${seg5}`, "Base URL")}
+                    data-testid="button-guide-copy-url"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-amber-500 text-[11px]"><AlertTriangle className="h-3 w-3 inline mr-1" />Do not share this URL publicly. Treat it like a password.</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="token-usage" data-testid="guide-token-usage">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" /> Step 3: Use the Token</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>Every request must include your secret token as a query parameter. Without it, the API will return an "Unauthorized" error.</p>
+                <p>Add <code className="bg-muted px-1 py-0.5 rounded text-[10px] font-mono">?token=YOUR_TOKEN</code> to your URL.</p>
+                <div className="bg-muted/50 rounded-md p-2.5 border text-[11px] space-y-1">
+                  <p className="font-medium text-foreground">Important:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>If you send a wrong or missing token, you get a 401 Unauthorized error</li>
+                    <li>After you tap "Regenerate Token," the old token stops working immediately</li>
+                    <li>You must update the token in all your apps/tools after rotating</li>
+                  </ul>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="first-request" data-testid="guide-first-request">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><Terminal className="h-3.5 w-3.5 shrink-0 text-cyan-500" /> Step 4: Make Your First Request</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-3 text-muted-foreground">
+                <p>Use any of these methods to send a GET request to your API:</p>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1 text-[11px]">Browser — paste this URL in your address bar:</p>
+                  <div className="relative">
+                    <pre className="bg-muted rounded-md p-2.5 border text-[10px] break-all whitespace-pre-wrap font-mono">{fullUrl}</pre>
+                    <Button
+                      variant="ghost" size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0"
+                      onClick={() => copyToClipboard(fullUrl, "Full URL")}
+                      data-testid="button-guide-copy-full-url"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1 text-[11px]">cURL — run this in terminal:</p>
+                  <div className="relative">
+                    <pre className="bg-muted rounded-md p-2.5 border text-[10px] break-all whitespace-pre-wrap font-mono">{`curl "${fullUrl}"`}</pre>
+                    <Button
+                      variant="ghost" size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0"
+                      onClick={() => copyToClipboard(`curl "${fullUrl}"`, "cURL command")}
+                      data-testid="button-guide-copy-curl"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1 text-[11px]">Postman / API tool:</p>
+                  <div className="bg-muted/50 rounded-md p-2.5 border text-[11px] space-y-0.5">
+                    <p><strong>Method:</strong> GET</p>
+                    <p className="break-all"><strong>URL:</strong> {domain}/g/{seg1}/{seg2}/{seg3}/{seg4}/{seg5}</p>
+                    <p><strong>Params:</strong> token, game, max_devices, duration, quantity, currency</p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="query-params" data-testid="guide-query-params">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><List className="h-3.5 w-3.5 shrink-0 text-indigo-500" /> Query Parameters Explained</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-2 font-medium text-foreground">Parameter</th>
+                        <th className="text-left p-2 font-medium text-foreground">Required</th>
+                        <th className="text-left p-2 font-medium text-foreground hidden sm:table-cell">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr><td className="p-2 font-mono">token</td><td className="p-2">Yes</td><td className="p-2 hidden sm:table-cell">Your secret API token</td></tr>
+                      <tr><td className="p-2 font-mono">game</td><td className="p-2">Yes</td><td className="p-2 hidden sm:table-cell">Game name (must match a game in your panel)</td></tr>
+                      <tr><td className="p-2 font-mono">duration</td><td className="p-2">Yes</td><td className="p-2 hidden sm:table-cell">Key duration (e.g. 1d, 3d, 7d, 12h, 24h)</td></tr>
+                      <tr><td className="p-2 font-mono">max_devices</td><td className="p-2">No</td><td className="p-2 hidden sm:table-cell">Max devices per key (default: 1)</td></tr>
+                      <tr><td className="p-2 font-mono">quantity</td><td className="p-2">No</td><td className="p-2 hidden sm:table-cell">Number of keys to generate (default: 1, max: {maxQuantity})</td></tr>
+                      <tr><td className="p-2 font-mono">currency</td><td className="p-2">No</td><td className="p-2 hidden sm:table-cell">Currency label (optional, passed through in response)</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                  <p className="font-medium text-foreground mb-1">Duration examples:</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span><code className="bg-muted px-1 rounded font-mono">1d</code> = 1 day (24h)</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">3d</code> = 3 days</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">7d</code> = 7 days</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">1w</code> = 1 week</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">12h</code> = 12 hours</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">24h</code> = 24 hours</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">1m</code> = 1 month</span>
+                    <span><code className="bg-muted px-1 rounded font-mono">24</code> = 24 hours</span>
+                  </div>
+                  <p className="mt-1.5 text-amber-500"><AlertTriangle className="h-3 w-3 inline mr-1" />Duration must match an active duration configured in your game settings.</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="success-response" data-testid="guide-success-response">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" /> Success Response Example</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>When everything is correct, the API returns a JSON object like this:</p>
+                <div className="relative">
+                  <pre className="bg-muted rounded-md p-2.5 border text-[10px] whitespace-pre-wrap font-mono">{sampleResponse}</pre>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="absolute top-1 right-1 h-6 w-6 p-0"
+                    onClick={() => copyToClipboard(sampleResponse, "Sample response")}
+                    data-testid="button-guide-copy-response"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                  <p className="font-medium text-foreground mb-1">Fields explained:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li><code className="font-mono">success</code> — true if keys were generated</li>
+                    <li><code className="font-mono">keys</code> — array of generated key objects</li>
+                    <li><code className="font-mono">user_key</code> — the license key string</li>
+                    <li><code className="font-mono">duration</code> — key validity in hours</li>
+                    <li><code className="font-mono">registrator</code> — who created the key ({registrator || "SayGG"})</li>
+                  </ul>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="error-responses" data-testid="guide-error-responses">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> Failure Response Examples</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>When something goes wrong, the API returns an error with a clear message:</p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Missing or wrong token", json: '{ "success": false, "message": "Unauthorized" }' },
+                    { label: "API is disabled", json: '{ "success": false, "message": "API generator is disabled" }' },
+                    { label: "Invalid game name", json: '{ "success": false, "message": "Game not found: WRONGNAME" }' },
+                    { label: "Invalid duration", json: '{ "success": false, "message": "Invalid or inactive duration: 999d" }' },
+                    { label: "Wrong route / not found", json: '{ "success": false, "message": "Not found" }' },
+                    { label: "Rate limit exceeded", json: '{ "success": false, "message": "Rate limit exceeded. Try again later." }' },
+                  ].map((err) => (
+                    <div key={err.label} className="bg-muted/50 rounded-md p-2 border">
+                      <p className="font-medium text-foreground text-[11px] mb-1">{err.label}:</p>
+                      <pre className="text-[10px] font-mono text-red-400">{err.json}</pre>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="common-mistakes" data-testid="guide-common-mistakes">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><AlertTriangle className="h-3.5 w-3.5 shrink-0 text-orange-500" /> Common Mistakes</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed text-muted-foreground">
+                <div className="space-y-1.5">
+                  {[
+                    { mistake: "Forgot to add ?token= to the URL", fix: "Add your token as a query parameter" },
+                    { mistake: "Using the wrong token (old or mistyped)", fix: "Copy the current token from this page" },
+                    { mistake: "Game name doesn't match exactly", fix: "Use the exact name from your Games page (case-sensitive)" },
+                    { mistake: "Duration format is wrong (e.g. '1 day' instead of '1d')", fix: "Use short format: 1d, 7d, 12h, 24h, 1w, 1m" },
+                    { mistake: "Duration not configured for that game", fix: "Add the duration in Game Durations settings first" },
+                    { mistake: "Route changed after regeneration", fix: "Copy the new URL and update all your integrations" },
+                    { mistake: "API is disabled", fix: "Turn it on from the API Status toggle and save" },
+                    { mistake: "Quantity exceeds maximum ({maxQuantity})", fix: "Use a smaller number or increase max quantity in settings" },
+                  ].map((item) => (
+                    <div key={item.mistake} className="flex gap-2 bg-muted/50 rounded-md p-2 border text-[11px]">
+                      <span className="text-red-400 shrink-0">&#10005;</span>
+                      <div>
+                        <p className="text-foreground font-medium">{item.mistake}</p>
+                        <p className="text-muted-foreground">{item.fix}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="security-tips" data-testid="guide-security-tips">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" /> Security Tips</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed text-muted-foreground">
+                <div className="space-y-1.5">
+                  {[
+                    "Never share the full API URL publicly — it includes your secure route",
+                    "Never expose your token in client-side code, public repos, or screenshots",
+                    "If your token is leaked, regenerate it immediately from this page",
+                    "If your route URL is leaked, regenerate all segments immediately",
+                    "Use the IP allowlist feature to restrict which servers can call the API",
+                    "Check the Request Logs section regularly for suspicious activity",
+                    "Enable rate limiting to prevent abuse",
+                  ].map((tip) => (
+                    <div key={tip} className="flex items-start gap-2 bg-muted/50 rounded-md p-2 border text-[11px]">
+                      <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500 mt-0.5" />
+                      <span>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="after-rotation" data-testid="guide-after-rotation">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><RotateCcw className="h-3.5 w-3.5 shrink-0 text-purple-500" /> After Rotating Token or Route</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+                <p>When you regenerate your token or route segments, the old values stop working instantly. Here's what to do:</p>
+                <div className="space-y-1.5">
+                  <div className="bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                    <p className="font-medium text-foreground mb-1">After token rotation:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Copy the new token from the Authentication section</li>
+                      <li>Update the token in every app, bot, or tool that uses this API</li>
+                      <li>Old requests with the previous token will return "Unauthorized"</li>
+                    </ol>
+                  </div>
+                  <div className="bg-muted/50 rounded-md p-2.5 border text-[11px]">
+                    <p className="font-medium text-foreground mb-1">After route regeneration:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Copy the new full URL from the Example Request section or Step 2 above</li>
+                      <li>Update the URL in every integration</li>
+                      <li>Old URLs will return "Not found"</li>
+                    </ol>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="testing-checklist" className="border-b-0" data-testid="guide-testing-checklist">
+              <AccordionTrigger className="text-sm py-3 gap-2">
+                <span className="flex items-center gap-2 text-left"><TestTube className="h-3.5 w-3.5 shrink-0 text-pink-500" /> Testing Checklist</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-2">Before going live, verify each item:</p>
+                <div className="space-y-1">
+                  {[
+                    { item: "API is enabled (toggle is ON and saved)", check: enabled },
+                    { item: "Token is copied and saved securely", check: !!token },
+                    { item: "Route URL is copied correctly", check: !!(seg1 && seg2 && seg3 && seg4 && seg5) },
+                    { item: "Game name matches exactly (case-sensitive)", check: true },
+                    { item: "Duration matches an active game duration", check: true },
+                    { item: "Test request returns a success JSON response", check: false },
+                    { item: "Request appears in the Logs section", check: false },
+                  ].map((c) => (
+                    <div key={c.item} className="flex items-center gap-2 bg-muted/50 rounded-md p-2 border text-[11px]">
+                      <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${c.check ? "bg-green-500/20 border-green-500" : "border-muted-foreground/30"}`}>
+                        {c.check && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                      </div>
+                      <span>{c.item}</span>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+          </Accordion>
         </CardContent>
       </Card>
 
