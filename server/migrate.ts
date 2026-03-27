@@ -268,6 +268,55 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS "idx_keys_status" ON "keys_code" ("status")
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "api_generator_config" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "enabled" integer DEFAULT 0 NOT NULL,
+        "token" text NOT NULL,
+        "segment_1" varchar(100) NOT NULL,
+        "segment_2" varchar(100) NOT NULL,
+        "segment_3" varchar(100) NOT NULL,
+        "segment_4" varchar(100) NOT NULL,
+        "segment_5" varchar(100) NOT NULL,
+        "max_quantity" integer DEFAULT 10 NOT NULL,
+        "registrator" varchar(100) DEFAULT 'SayGG' NOT NULL,
+        "rate_limit_enabled" integer DEFAULT 1 NOT NULL,
+        "rate_limit_window" integer DEFAULT 60 NOT NULL,
+        "rate_limit_max_requests" integer DEFAULT 10 NOT NULL,
+        "ip_allowlist" text,
+        "last_rotated_at" timestamp,
+        "last_used_at" timestamp,
+        "changed_by" varchar(50),
+        "changed_at" timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "api_generator_log" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "ip" varchar(45),
+        "user_agent" text,
+        "game" varchar(100),
+        "duration" varchar(50),
+        "max_devices" integer,
+        "quantity" integer,
+        "currency" varchar(50),
+        "success" integer DEFAULT 0 NOT NULL,
+        "reason" text,
+        "generated_key_ids" text,
+        "generated_key_values" text,
+        "token_used" integer DEFAULT 0 NOT NULL,
+        "route_matched" integer DEFAULT 0 NOT NULL,
+        "created_at" timestamp DEFAULT now()
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "idx_api_gen_log_created" ON "api_generator_log"("created_at")
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "idx_api_gen_log_success" ON "api_generator_log"("success")
+    `);
+
     await client.query("COMMIT");
     console.log("[migrate] Schema sync complete");
   } catch (err) {
