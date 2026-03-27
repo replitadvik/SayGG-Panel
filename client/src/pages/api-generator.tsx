@@ -109,15 +109,35 @@ export default function ApiGeneratorPage() {
     },
   });
 
+  function applyFullConfig(data: any) {
+    if (!data) return;
+    setEnabled(data.enabled === 1);
+    setToken(data.token || "");
+    setSeg1(data.segment1 || "");
+    setSeg2(data.segment2 || "");
+    setSeg3(data.segment3 || "");
+    setSeg4(data.segment4 || "");
+    setSeg5(data.segment5 || "");
+    setMaxQuantity(String(data.maxQuantity || 10));
+    setRegistrator(data.registrator || "SayGG");
+    setRateLimitEnabled(data.rateLimitEnabled === 1);
+    setRateLimitWindow(String(data.rateLimitWindow || 60));
+    setRateLimitMaxReq(String(data.rateLimitMaxRequests || 10));
+    setIpAllowlist(data.ipAllowlist || "");
+  }
+
   const regenTokenMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/api-generator/regenerate-token");
       return res.json();
     },
     onSuccess: (data: any) => {
-      setToken(data.token);
+      applyFullConfig(data);
       queryClient.invalidateQueries({ queryKey: ["/api/api-generator/config"] });
       toast({ title: "Token regenerated", description: "New API token is now active." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 
@@ -127,13 +147,12 @@ export default function ApiGeneratorPage() {
       return res.json();
     },
     onSuccess: (data: any) => {
-      setSeg1(data.segment1);
-      setSeg2(data.segment2);
-      setSeg3(data.segment3);
-      setSeg4(data.segment4);
-      setSeg5(data.segment5);
+      applyFullConfig(data);
       queryClient.invalidateQueries({ queryKey: ["/api/api-generator/config"] });
       toast({ title: "Segments regenerated", description: "New route segments are now active." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 

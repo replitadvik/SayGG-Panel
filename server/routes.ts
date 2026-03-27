@@ -1928,29 +1928,51 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     }
   });
 
+  function apiGenDefaults() {
+    return {
+      enabled: 0,
+      token: crypto.randomBytes(36).toString("base64url"),
+      segment1: crypto.randomBytes(5).toString("hex"),
+      segment2: crypto.randomBytes(5).toString("hex"),
+      segment3: crypto.randomBytes(5).toString("hex"),
+      segment4: crypto.randomBytes(5).toString("hex"),
+      segment5: crypto.randomBytes(5).toString("hex"),
+      maxQuantity: 10,
+      registrator: "SayGG",
+      rateLimitEnabled: 1,
+      rateLimitWindow: 60,
+      rateLimitMaxRequests: 10,
+    };
+  }
+
   app.post("/api/api-generator/regenerate-token", requireAuth, requireLevel(1), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const existing = await storage.getApiGeneratorConfig();
     const token = crypto.randomBytes(36).toString("base64url");
-    const cfg = await storage.upsertApiGeneratorConfig({ token, lastRotatedAt: new Date(), changedBy: user.username });
-    res.json({ token: cfg.token });
+    const data = existing
+      ? { token, lastRotatedAt: new Date(), changedBy: user.username }
+      : { ...apiGenDefaults(), token, lastRotatedAt: new Date(), changedBy: user.username };
+    const cfg = await storage.upsertApiGeneratorConfig(data);
+    res.json(cfg);
   });
 
   app.post("/api/api-generator/regenerate-segments", requireAuth, requireLevel(1), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    function genSeg() {
-      return crypto.randomBytes(5).toString("hex");
-    }
-    const cfg = await storage.upsertApiGeneratorConfig({
-      segment1: genSeg(), segment2: genSeg(), segment3: genSeg(),
-      segment4: genSeg(), segment5: genSeg(),
-      changedBy: user.username,
-    });
-    res.json({
-      segment1: cfg.segment1, segment2: cfg.segment2, segment3: cfg.segment3,
-      segment4: cfg.segment4, segment5: cfg.segment5,
-    });
+    const existing = await storage.getApiGeneratorConfig();
+    const segs = {
+      segment1: crypto.randomBytes(5).toString("hex"),
+      segment2: crypto.randomBytes(5).toString("hex"),
+      segment3: crypto.randomBytes(5).toString("hex"),
+      segment4: crypto.randomBytes(5).toString("hex"),
+      segment5: crypto.randomBytes(5).toString("hex"),
+    };
+    const data = existing
+      ? { ...segs, changedBy: user.username }
+      : { ...apiGenDefaults(), ...segs, changedBy: user.username };
+    const cfg = await storage.upsertApiGeneratorConfig(data);
+    res.json(cfg);
   });
 
   app.get("/api/api-generator/logs", requireAuth, requireLevel(1), async (req, res) => {
