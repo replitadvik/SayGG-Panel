@@ -1928,7 +1928,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     }
   });
 
-  function apiGenDefaults() {
+  function apiGenDefaults(): Record<string, any> {
     return {
       enabled: 0,
       token: crypto.randomBytes(36).toString("base64url"),
