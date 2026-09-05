@@ -721,6 +721,22 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         return res.json(key);
       }
 
+      if (updates.duration !== undefined) {
+        const newDuration = Number(updates.duration);
+        if (!Number.isInteger(newDuration) || newDuration <= 0) {
+          return res.status(400).json({ message: "Duration must be a positive whole number of hours." });
+        }
+
+        updates.duration = newDuration;
+
+        // An activated key already has an absolute expiry timestamp. When
+        // its duration changes, move that timestamp with the edit instead of
+        // leaving /connect to serve the old duration window.
+        if (key.expiredDate) {
+          updates.expiredDate = new Date(Date.now() + newDuration * 60 * 60 * 1000);
+        }
+      }
+
       if (!isOwner) {
         updates.editCount = (key.editCount || 0) + 1;
       }
