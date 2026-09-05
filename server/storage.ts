@@ -54,6 +54,8 @@ export interface IStorage {
   updateModname(name: string): Promise<void>;
   getSiteName(): Promise<string>;
   updateSiteName(name: string): Promise<void>;
+  getKeyPrefix(): Promise<string>;
+  updateKeyPrefix(prefix: string): Promise<void>;
   getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined>;
   updateFtext(data: { _status?: string; _ftext?: string }): Promise<void>;
   getMaintenanceStatus(): Promise<{ status: string; myinput: string | null } | undefined>;
@@ -367,6 +369,20 @@ export class DatabaseStorage implements IStorage {
       await db.insert(siteConfig).values({ siteName: name } as any);
     } else {
       await db.update(siteConfig).set({ siteName: name } as any).where(eq(siteConfig.id, existing[0].id));
+    }
+  }
+
+  async getKeyPrefix(): Promise<string> {
+    const [row] = await db.select().from(siteConfig);
+    return row?.keyPrefix || "SayGG";
+  }
+
+  async updateKeyPrefix(prefix: string): Promise<void> {
+    const existing = await db.select().from(siteConfig);
+    if (existing.length === 0) {
+      await db.insert(siteConfig).values({ keyPrefix: prefix } as any);
+    } else {
+      await db.update(siteConfig).set({ keyPrefix: prefix } as any).where(eq(siteConfig.id, existing[0].id));
     }
   }
 

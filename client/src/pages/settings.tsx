@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Type, Wrench, Clock, Globe } from "lucide-react";
+import { Loader2, Settings, Shield, Type, Wrench, Clock, Globe, Key } from "lucide-react";
 
 const featureList = ["ESP", "Item", "AIM", "SilentAim", "BulletTrack", "Floating", "Memory", "Setting"] as const;
 
@@ -16,6 +16,10 @@ export default function SettingsPage() {
 
   const { data: siteNameData, isLoading: siteNameLoading } = useQuery<any>({
     queryKey: ["/api/settings/site-name"],
+  });
+
+  const { data: keyPrefixData, isLoading: keyPrefixLoading } = useQuery<any>({
+    queryKey: ["/api/settings/key-prefix"],
   });
 
   const { data: features, isLoading: featuresLoading } = useQuery<any>({
@@ -39,6 +43,7 @@ export default function SettingsPage() {
   });
 
   const [siteNameVal, setSiteNameVal] = useState("");
+  const [keyPrefixVal, setKeyPrefixVal] = useState("SayGG");
   const [featureState, setFeatureState] = useState<Record<string, string>>({});
   const [modname, setModname] = useState("");
   const [ftextStatus, setFtextStatus] = useState("");
@@ -49,6 +54,7 @@ export default function SettingsPage() {
   const [sessionRememberTtl, setSessionRememberTtl] = useState("");
 
   useEffect(() => { if (siteNameData) setSiteNameVal(siteNameData.siteName || ""); }, [siteNameData]);
+  useEffect(() => { if (keyPrefixData) setKeyPrefixVal(keyPrefixData.keyPrefix || "SayGG"); }, [keyPrefixData]);
 
   useEffect(() => {
     if (features) {
@@ -68,6 +74,12 @@ export default function SettingsPage() {
   const siteNameMutation = useMutation({
     mutationFn: async (name: string) => { await apiRequest("PATCH", "/api/settings/site-name", { siteName: name }); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/site-name"] }); toast({ title: "Site name updated" }); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
+  });
+
+  const keyPrefixMutation = useMutation({
+    mutationFn: async (prefix: string) => { await apiRequest("PATCH", "/api/settings/key-prefix", { keyPrefix: prefix }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/settings/key-prefix"] }); toast({ title: "Key prefix updated" }); },
     onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
@@ -107,7 +119,7 @@ export default function SettingsPage() {
     onError: (e: any) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
-  const isLoading = siteNameLoading || featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
+  const isLoading = siteNameLoading || keyPrefixLoading || featuresLoading || modLoading || ftextLoading || maintLoading || sessionLoading;
 
   if (isLoading) {
     return (
@@ -147,6 +159,36 @@ export default function SettingsPage() {
           >
             {siteNameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Save Site Name
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Key className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">Key Prefix</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <Input
+            value={keyPrefixVal}
+            onChange={e => setKeyPrefixVal(e.target.value)}
+            placeholder="e.g. SayGG"
+            maxLength={32}
+            className="h-11 rounded bg-muted/50 border-border/60"
+            data-testid="input-key-prefix"
+          />
+          <p className="text-xs text-muted-foreground">
+            New generated keys will use this prefix. Existing keys will not change.
+            Use only letters, numbers, hyphens, or underscores.
+          </p>
+          <Button
+            onClick={() => keyPrefixMutation.mutate(keyPrefixVal)}
+            disabled={keyPrefixMutation.isPending || !/^[A-Za-z0-9_-]+$/.test(keyPrefixVal.trim())}
+            className="w-full h-10 rounded text-sm"
+            data-testid="button-save-key-prefix"
+          >
+            {keyPrefixMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save Key Prefix
           </Button>
         </div>
       </div>

@@ -9,7 +9,7 @@ export function verifyPassword(plain: string, hashed: string): boolean {
   return hashPassword(plain) === hashed;
 }
 
-export function generateKeyLicense(durationHours: number): string {
+export function generateKeyLicense(durationHours: number, prefix = "SayGG"): string {
   let durationLabel: string;
   switch (durationHours) {
     case 24: durationLabel = "Day"; break;
@@ -35,7 +35,7 @@ export function generateKeyLicense(durationHours: number): string {
   for (let i = 0; i < 5; i++) {
     suffix += chars[Math.floor(Math.random() * chars.length)];
   }
-  return `SayGG_${durationLabel}_${suffix}`;
+  return `${prefix}_${durationLabel}_${suffix}`;
 }
 
 export function getDurationLabel(hours: number): string {

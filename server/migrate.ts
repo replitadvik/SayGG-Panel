@@ -148,9 +148,11 @@ export async function runMigrations(): Promise<void> {
     await client.query(`
       CREATE TABLE IF NOT EXISTS "site_config" (
         "id" serial PRIMARY KEY NOT NULL,
-        "site_name" varchar(255)
+        "site_name" varchar(255),
+        "key_prefix" varchar(32) DEFAULT 'SayGG' NOT NULL
       )
     `);
+    await client.query(`ALTER TABLE "site_config" ADD COLUMN IF NOT EXISTS "key_prefix" varchar(32) DEFAULT 'SayGG' NOT NULL`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS "_ftext" (

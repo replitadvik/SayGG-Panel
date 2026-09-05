@@ -545,7 +545,8 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         if (existingKey) return res.status(400).json({ message: "Key already exists." });
         license = data.customLicense;
       } else {
-        license = generateKeyLicense(data.duration);
+        const keyPrefix = await storage.getKeyPrefix();
+        license = generateKeyLicense(data.duration, keyPrefix);
       }
 
       const newKey = await storage.createKey({
@@ -1342,6 +1343,28 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     await storage.updateSiteName(siteName.trim());
     emitToAll(wsEvent("settings:updated", { section: "site-name" }));
     res.json({ message: "Site name updated." });
+  });
+
+  app.get("/api/settings/key-prefix", requireAuth, requireLevel(1), async (_req, res) => {
+    res.json({ keyPrefix: await storage.getKeyPrefix() });
+  });
+
+  app.patch("/api/settings/key-prefix", requireAuth, requireLevel(1), async (req, res) => {
+    const rawPrefix = req.body?.keyPrefix;
+    if (typeof rawPrefix !== "string" || rawPrefix.trim().length === 0) {
+      return res.status(400).json({ message: "Key prefix is required." });
+    }
+
+    const keyPrefix = rawPrefix.trim();
+    if (keyPrefix.length > 32 || !/^[A-Za-z0-9_-]+$/.test(keyPrefix)) {
+      return res.status(400).json({
+        message: "Key prefix must be 1-32 characters using only letters, numbers, hyphens, or underscores.",
+      });
+    }
+
+    await storage.updateKeyPrefix(keyPrefix);
+    emitToOwners(wsEvent("settings:updated", { section: "key-prefix" }));
+    res.json({ message: "Key prefix updated.", keyPrefix });
   });
 
   app.get("/api/settings/modname", requireLevel(1), async (req, res) => {
@@ -2172,13 +2195,14 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
 
       const maxDev = Math.max(1, parseInt(max_devices || "1") || 1);
       const qty = Math.max(1, Math.min(cfg.maxQuantity, parseInt(qtyStr || "1") || 1));
+      const keyPrefix = await storage.getKeyPrefix();
 
       const keys: any[] = [];
       const keyIds: number[] = [];
       const keyValues: string[] = [];
 
       for (let i = 0; i < qty; i++) {
-        const license = generateKeyLicense(durationHours);
+        const license = generateKeyLicense(durationHours, keyPrefix);
         const newKey = await storage.createKey({
           game: gameRecord.name,
           gameId: gameRecord.id,
