@@ -1589,13 +1589,16 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       if (!findKey) return res.json({ status: false, reason: "USER OR GAME NOT REGISTERED" });
       if (findKey.status !== 1) return res.json({ status: false, reason: "USER BLOCKED" });
 
+      // Use one clock reading for activation, expiry validation, and the
+      // response countdown so timeLeftMs/timeLeft cannot drift apart.
+      const nowMs = Date.now();
       let expired = findKey.expiredDate;
       if (!expired) {
-        expired = new Date(Date.now() + findKey.duration * 60 * 60 * 1000);
+        expired = new Date(nowMs + findKey.duration * 60 * 60 * 1000);
         await storage.updateKey(findKey.id, { expiredDate: expired });
       }
 
-      if (new Date() > expired) {
+      if (expired.getTime() <= nowMs) {
         return res.json({ status: false, reason: "EXPIRED KEY" });
       }
 
@@ -1617,7 +1620,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const real = `${game}-${user_key}-${serial}-${activeSecret}`;
       const token = crypto.createHash("md5").update(real).digest("hex");
 
-      const timeLeftMs = expired.getTime() - Date.now();
+      const timeLeftMs = Math.max(0, expired.getTime() - nowMs);
       const durationLabel = findKey.duration >= 720 ? `${Math.round(findKey.duration / 720)} Month` :
                             findKey.duration >= 168 ? `${Math.round(findKey.duration / 168)} Week` :
                             findKey.duration >= 24 ? `${Math.round(findKey.duration / 24)} Day` :
