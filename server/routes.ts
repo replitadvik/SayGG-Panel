@@ -737,6 +737,23 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         }
       }
 
+      if (updates.maxDevices !== undefined) {
+        const newMaxDevices = Number(updates.maxDevices);
+        if (!Number.isInteger(newMaxDevices) || newMaxDevices <= 0) {
+          return res.status(400).json({ message: "Max devices must be a positive whole number." });
+        }
+
+        updates.maxDevices = newMaxDevices;
+
+        // Device IDs registered under the old limit must not keep access
+        // after the panel changes the limit. Requiring a fresh registration
+        // also makes a reduction (for example 2 → 1) take effect immediately.
+        if (newMaxDevices !== key.maxDevices && key.devices) {
+          updates.devices = null;
+          changes.push("registered devices reset");
+        }
+      }
+
       if (!isOwner) {
         updates.editCount = (key.editCount || 0) + 1;
       }
