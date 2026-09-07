@@ -291,47 +291,6 @@ export default function OnlineUpdatesPage() {
             />
           </div>
 
-          <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold">ZIP Token Expiry</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Owner-only setting. Temporary ZIP download tokens expire after this many minutes.
-                Changing it immediately invalidates existing tokens.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="space-y-2 flex-1">
-                <Label htmlFor="online-updates-token-expiry">Expiry time in minutes</Label>
-                <Input
-                  id="online-updates-token-expiry"
-                  type="number"
-                  min={tokenSettings?.minMinutes || 1}
-                  max={tokenSettings?.maxMinutes || 1440}
-                  step={1}
-                  value={tokenExpiryMinutes}
-                  onChange={e => setTokenExpiryMinutes(e.target.value)}
-                  className="h-11 rounded bg-muted/50 border-border/60"
-                  data-testid="input-online-updates-token-expiry"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => tokenSettingsMutation.mutate()}
-                disabled={tokenSettingsMutation.isPending || !tokenExpiryMinutes}
-                className="h-11"
-                data-testid="button-save-online-updates-token-expiry"
-              >
-                {tokenSettingsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save Token Expiry
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Allowed range: {tokenSettings?.minMinutes || 1}–{tokenSettings?.maxMinutes || 1440} minutes
-              {tokenSettings?.changedAt ? ` · Last changed ${new Date(tokenSettings.changedAt).toLocaleString()}` : ""}
-            </p>
-          </div>
-
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
@@ -341,6 +300,50 @@ export default function OnlineUpdatesPage() {
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Save Online Updates
           </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
+          <Clock3 className="h-4 w-4 text-panel-header-foreground/70" />
+          <h2 className="text-sm font-semibold text-panel-header-foreground">ZIP Token Expiry</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Owner-only setting. Temporary ZIP download tokens expire after this many minutes.
+            Changing it immediately invalidates existing tokens.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="space-y-2 flex-1">
+              <Label htmlFor="online-updates-token-expiry">Expiry time in minutes</Label>
+              <Input
+                id="online-updates-token-expiry"
+                type="number"
+                min={tokenSettings?.minMinutes || 1}
+                max={tokenSettings?.maxMinutes || 1440}
+                step={1}
+                value={tokenExpiryMinutes}
+                onChange={e => setTokenExpiryMinutes(e.target.value)}
+                className="h-11 rounded bg-muted/50 border-border/60"
+                data-testid="input-online-updates-token-expiry"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => tokenSettingsMutation.mutate()}
+              disabled={tokenSettingsMutation.isPending || !tokenExpiryMinutes}
+              className="h-11"
+              data-testid="button-save-online-updates-token-expiry"
+            >
+              {tokenSettingsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Token Expiry
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Allowed range: {tokenSettings?.minMinutes || 1}–{tokenSettings?.maxMinutes || 1440} minutes
+            {tokenSettings?.changedAt ? ` · Last changed ${new Date(tokenSettings.changedAt).toLocaleString()}` : ""}
+          </p>
         </div>
       </div>
 
