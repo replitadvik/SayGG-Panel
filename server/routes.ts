@@ -108,6 +108,36 @@ function onlineUpdatesJson(config: {
   };
 }
 
+function isValidOnlineUpdatesConfig(config: any): config is {
+  version: string;
+  server: boolean;
+  apkUrl: string;
+  message: string;
+  serverResponse: string;
+} {
+  if (
+    !config ||
+    typeof config.version !== "string" ||
+    config.version.trim().length === 0 ||
+    typeof config.server !== "boolean" ||
+    typeof config.apkUrl !== "string" ||
+    config.apkUrl.trim().length === 0 ||
+    typeof config.message !== "string" ||
+    config.message.trim().length === 0 ||
+    typeof config.serverResponse !== "string" ||
+    config.serverResponse.trim().length === 0
+  ) {
+    return false;
+  }
+
+  try {
+    const apkUrl = new URL(config.apkUrl);
+    return apkUrl.protocol === "http:" || apkUrl.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function setOnlineUpdatesNoCache(res: Response) {
   res.set({
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -1859,9 +1889,23 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     res.json({ message: "Session settings reset to defaults" });
   });
 
-  app.get("/api/online-updates/config", requireOwner, async (_req, res) => {
-    const config = await storage.getOnlineUpdates();
-    res.json(config ? onlineUpdatesJson(config) : DEFAULT_ONLINE_UPDATES);
+  app.all("/api/online-updates/config", (req, res, next) => {
+    if (req.method === "GET" || req.method === "PUT") return next();
+    return res.status(405).json({ message: "Method Not Allowed" });
+  });
+
+  app.get("/api/online-updates/config", async (_req, res) => {
+    setOnlineUpdatesNoCache(res);
+    try {
+      const config = await storage.getOnlineUpdates();
+      if (!config) return res.status(200).json(DEFAULT_ONLINE_UPDATES);
+      if (!isValidOnlineUpdatesConfig(config)) {
+        return res.status(500).json({ message: "Invalid online update configuration." });
+      }
+      return res.status(200).json(onlineUpdatesJson(config));
+    } catch {
+      return res.status(500).json({ message: "Unable to read online update configuration." });
+    }
   });
 
   app.put("/api/online-updates/config", requireOwner, async (req, res) => {
