@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Upload } from "lucide-react";
 
 interface OnlineUpdatesConfig {
   version: string;
@@ -15,6 +15,7 @@ interface OnlineUpdatesConfig {
   apk_url: string;
   message: string;
   Server_Response: string;
+  LibVersion: string;
 }
 
 export default function OnlineUpdatesPage() {
@@ -27,6 +28,8 @@ export default function OnlineUpdatesPage() {
   const [apkUrl, setApkUrl] = useState("");
   const [message, setMessage] = useState("");
   const [serverResponse, setServerResponse] = useState("");
+  const [libVersion, setLibVersion] = useState("");
+  const [libraryFile, setLibraryFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!config) return;
@@ -35,6 +38,7 @@ export default function OnlineUpdatesPage() {
     setApkUrl(config.apk_url);
     setMessage(config.message);
     setServerResponse(config.Server_Response);
+    setLibVersion(config.LibVersion);
   }, [config]);
 
   const saveMutation = useMutation({
@@ -45,11 +49,41 @@ export default function OnlineUpdatesPage() {
         apk_url: apkUrl,
         message,
         Server_Response: serverResponse,
+        LibVersion: libVersion,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/online-updates/config"] });
       toast({ title: "Online updates saved" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!libraryFile) throw new Error("Choose a library ZIP file first.");
+
+      const response = await fetch("/api/online-updates/library", {
+        method: "PUT",
+        headers: {
+          "Content-Type": libraryFile.type || "application/zip",
+          "X-Filename": encodeURIComponent(libraryFile.name),
+        },
+        body: libraryFile,
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Library ZIP upload failed.");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      setLibraryFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/config"] });
+      toast({ title: "Library ZIP uploaded" });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -99,6 +133,18 @@ export default function OnlineUpdatesPage() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="online-updates-lib-version" className="text-sm font-medium">LibVersion</Label>
+            <Input
+              id="online-updates-lib-version"
+              value={libVersion}
+              onChange={e => setLibVersion(e.target.value)}
+              placeholder="1.0.0"
+              className="h-11 rounded bg-muted/50 border-border/60"
+              data-testid="input-online-updates-lib-version"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="online-updates-apk-url" className="text-sm font-medium">APK URL</Label>
             <Input
               id="online-updates-apk-url"
@@ -134,6 +180,32 @@ export default function OnlineUpdatesPage() {
               className="rounded bg-muted/50 border-border/60"
               data-testid="input-online-updates-server-response"
             />
+          </div>
+
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <Label htmlFor="online-updates-library-zip" className="text-sm font-medium">Library ZIP</Label>
+            <Input
+              id="online-updates-library-zip"
+              type="file"
+              accept=".zip,application/zip,application/x-zip-compressed"
+              onChange={e => setLibraryFile(e.target.files?.[0] ?? null)}
+              className="h-11 rounded bg-muted/50 border-border/60 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium"
+              data-testid="input-online-updates-library-zip"
+            />
+            {libraryFile && (
+              <p className="text-xs text-muted-foreground truncate">{libraryFile.name}</p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => uploadMutation.mutate()}
+              disabled={uploadMutation.isPending || !libraryFile}
+              className="w-full h-10 rounded text-sm"
+              data-testid="button-upload-online-updates-library"
+            >
+              {uploadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              Upload Library ZIP
+            </Button>
           </div>
 
           <Button

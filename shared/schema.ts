@@ -7,9 +7,14 @@ import {
   boolean,
   timestamp,
   index,
+  customType,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
 
 export const users = pgTable("users", {
   id: serial("id_users").primaryKey(),
@@ -142,6 +147,10 @@ export const onlineUpdates = pgTable("online_updates", {
   apkUrl: text("apk_url").default("https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk").notNull(),
   message: text("message").default("Version 1.0.2 is now available.").notNull(),
   serverResponse: text("Server_Response").default("Server is currently under maintenance.").notNull(),
+  libraryVersion: varchar("library_version", { length: 50 }).default("1.0.0").notNull(),
+  libraryZip: bytea("library_zip"),
+  libraryZipName: varchar("library_zip_name", { length: 255 }),
+  libraryZipUploadedAt: timestamp("library_zip_uploaded_at"),
 });
 
 export const ftext = pgTable("_ftext", {

@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
+import express from "express";
 import { type Server } from "http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -90,6 +91,7 @@ const DEFAULT_ONLINE_UPDATES = {
   apk_url: "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
   message: "Version 1.0.2 is now available.",
   Server_Response: "Server is currently under maintenance.",
+  LibVersion: "1.0.0",
 } as const;
 
 function onlineUpdatesJson(config: {
@@ -98,6 +100,7 @@ function onlineUpdatesJson(config: {
   apkUrl: string;
   message: string;
   serverResponse: string;
+  libraryVersion: string;
 }) {
   return {
     version: config.version,
@@ -105,6 +108,7 @@ function onlineUpdatesJson(config: {
     apk_url: config.apkUrl,
     message: config.message,
     Server_Response: config.serverResponse,
+    LibVersion: config.libraryVersion,
   };
 }
 
@@ -114,6 +118,7 @@ function isValidOnlineUpdatesConfig(config: any): config is {
   apkUrl: string;
   message: string;
   serverResponse: string;
+  libraryVersion: string;
 } {
   if (
     !config ||
@@ -125,7 +130,9 @@ function isValidOnlineUpdatesConfig(config: any): config is {
     typeof config.message !== "string" ||
     config.message.trim().length === 0 ||
     typeof config.serverResponse !== "string" ||
-    config.serverResponse.trim().length === 0
+    config.serverResponse.trim().length === 0 ||
+    typeof config.libraryVersion !== "string" ||
+    config.libraryVersion.trim().length === 0
   ) {
     return false;
   }
@@ -136,6 +143,78 @@ function isValidOnlineUpdatesConfig(config: any): config is {
   } catch {
     return false;
   }
+}
+
+type LibraryKeyContext = {
+  keyId: number;
+  game: string;
+  userKey: string;
+  serial: string;
+  expiresAt: number;
+};
+
+type LibraryDownloadToken = LibraryKeyContext & {
+  expiresAt: number;
+};
+
+const LIBRARY_TOKEN_TTL_MS = 5 * 60 * 1000;
+const libraryDownloadTokens = new Map<string, LibraryDownloadToken>();
+
+function pruneLibraryDownloadTokens() {
+  const now = Date.now();
+  libraryDownloadTokens.forEach((record, token) => {
+    if (record.expiresAt <= now) libraryDownloadTokens.delete(token);
+  });
+}
+
+async function validateLibraryKeyRequest(body: unknown): Promise<
+  { context: LibraryKeyContext } | { error: string }
+> {
+  if (!body || typeof body !== "object") {
+    return { error: "Invalid library authorization request." };
+  }
+
+  const input = body as Record<string, unknown>;
+  const game = typeof input.game === "string" ? input.game.trim() : "";
+  const userKey = typeof input.user_key === "string" ? input.user_key.trim() : "";
+  const serial = typeof input.serial === "string" ? input.serial.trim() : "";
+
+  if (!game || !userKey || !serial) {
+    return { error: "GAME, USER_KEY, and SERIAL are required." };
+  }
+
+  const gameRecord = await storage.getGameByName(game);
+  if (!gameRecord) return { error: "GAME NOT FOUND" };
+  if (gameRecord.isActive !== 1) return { error: "GAME INACTIVE" };
+
+  const key = await storage.getKeyByUserKeyAndGame(userKey, game);
+  if (!key) return { error: "USER OR GAME NOT REGISTERED" };
+  if (key.status !== 1) return { error: "USER BLOCKED" };
+
+  const nowMs = Date.now();
+  let expired = key.expiredDate;
+  if (!expired) {
+    expired = new Date(nowMs + key.duration * 60 * 60 * 1000);
+    await storage.updateKey(key.id, { expiredDate: expired });
+  }
+  if (expired.getTime() <= nowMs) return { error: "EXPIRED KEY" };
+
+  const devices = key.devices ? key.devices.split(",").filter(Boolean) : [];
+  if (!devices.includes(serial)) {
+    if (devices.length >= key.maxDevices) return { error: "MAX DEVICE REACHED" };
+    devices.push(serial);
+    await storage.updateKey(key.id, { devices: devices.join(",") });
+  }
+
+  return {
+    context: {
+      keyId: key.id,
+      game: gameRecord.name,
+      userKey: key.userKey,
+      serial,
+      expiresAt: expired.getTime(),
+    },
+  };
 }
 
 function setOnlineUpdatesNoCache(res: Response) {
@@ -1909,7 +1988,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.put("/api/online-updates/config", requireOwner, async (req, res) => {
-    const { version, server, apk_url, message, Server_Response } = req.body ?? {};
+    const { version, server, apk_url, message, Server_Response, LibVersion } = req.body ?? {};
     if (typeof version !== "string" || version.trim().length === 0 || version.trim().length > 50) {
       return res.status(400).json({ message: "Version is required and must be 50 characters or less." });
     }
@@ -1925,6 +2004,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     if (typeof Server_Response !== "string" || Server_Response.trim().length === 0) {
       return res.status(400).json({ message: "Server response is required." });
     }
+    if (typeof LibVersion !== "string" || LibVersion.trim().length === 0 || LibVersion.trim().length > 50) {
+      return res.status(400).json({ message: "LibVersion is required and must be 50 characters or less." });
+    }
 
     const config = await storage.upsertOnlineUpdates({
       version: version.trim(),
@@ -1932,9 +2014,142 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       apkUrl: apk_url.trim(),
       message: message.trim(),
       serverResponse: Server_Response.trim(),
+      libraryVersion: LibVersion.trim(),
     });
     emitToOwners(wsEvent("settings:updated", { section: "online-updates" }));
     res.json(onlineUpdatesJson(config));
+  });
+
+  app.put(
+    "/api/online-updates/library",
+    requireOwner,
+    express.raw({
+      type: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
+      limit: "50mb",
+    }),
+    async (req, res) => {
+      const zip = req.body;
+      if (!Buffer.isBuffer(zip) || zip.length < 4) {
+        return res.status(400).json({ message: "A ZIP file is required." });
+      }
+
+      const isZipHeader =
+        zip[0] === 0x50 &&
+        zip[1] === 0x4b &&
+        ((zip[2] === 0x03 && zip[3] === 0x04) ||
+          (zip[2] === 0x05 && zip[3] === 0x06) ||
+          (zip[2] === 0x07 && zip[3] === 0x08));
+      if (!isZipHeader) {
+        return res.status(400).json({ message: "The uploaded file is not a valid ZIP archive." });
+      }
+
+      const requestedName = req.get("x-filename") || "library.zip";
+      const filename = decodeURIComponent(requestedName)
+        .replace(/\\/g, "/")
+        .split("/")
+        .pop()
+        ?.trim() || "library.zip";
+      if (!/\.zip$/i.test(filename)) {
+        return res.status(400).json({ message: "The library file must use the .zip extension." });
+      }
+
+      try {
+        const config = await storage.upsertOnlineUpdates({
+          libraryZip: zip,
+          libraryZipName: filename.slice(0, 255),
+          libraryZipUploadedAt: new Date(),
+        });
+        emitToOwners(wsEvent("settings:updated", { section: "online-updates-library" }));
+        return res.json({
+          message: "Library ZIP uploaded.",
+          filename: config.libraryZipName,
+          size: zip.length,
+        });
+      } catch {
+        return res.status(500).json({ message: "Unable to store the library ZIP." });
+      }
+    },
+  );
+
+  app.post("/api/online-updates/library/authorize", rateLimit(60000, 20), async (req, res) => {
+    setOnlineUpdatesNoCache(res);
+    try {
+      const config = await storage.getOnlineUpdates();
+      if (!config?.libraryZip || config.libraryZip.length === 0) {
+        return res.status(404).json({ status: false, reason: "LIBRARY NOT AVAILABLE" });
+      }
+
+      const validation = await validateLibraryKeyRequest(req.body);
+      if ("error" in validation) {
+        return res.status(401).json({ status: false, reason: validation.error });
+      }
+
+      pruneLibraryDownloadTokens();
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = Date.now() + LIBRARY_TOKEN_TTL_MS;
+      libraryDownloadTokens.set(token, { ...validation.context, expiresAt });
+
+      return res.json({
+        status: true,
+        data: {
+          token,
+          expiresAt: new Date(expiresAt).toISOString(),
+        },
+      });
+    } catch {
+      return res.status(500).json({ status: false, reason: "INTERNAL ERROR" });
+    }
+  });
+
+  app.get("/api/online-updates/library/download", async (req, res) => {
+    setOnlineUpdatesNoCache(res);
+    const authorization = req.get("authorization") || "";
+    const bearerToken = authorization.startsWith("Bearer ")
+      ? authorization.slice("Bearer ".length).trim()
+      : "";
+    const token = bearerToken || req.get("x-library-token")?.trim();
+    if (!token) return res.status(401).json({ message: "Library token required." });
+
+    const tokenRecord = libraryDownloadTokens.get(token);
+    libraryDownloadTokens.delete(token);
+    if (!tokenRecord || tokenRecord.expiresAt <= Date.now()) {
+      return res.status(401).json({ message: "Invalid or expired library token." });
+    }
+
+    try {
+      const key = await storage.getKey(tokenRecord.keyId);
+      if (
+        !key ||
+        key.status !== 1 ||
+        key.game !== tokenRecord.game ||
+        key.userKey !== tokenRecord.userKey ||
+        !key.expiredDate ||
+        key.expiredDate.getTime() <= Date.now()
+      ) {
+        return res.status(401).json({ message: "Library authorization is no longer valid." });
+      }
+
+      const devices = key.devices ? key.devices.split(",").filter(Boolean) : [];
+      if (!devices.includes(tokenRecord.serial)) {
+        return res.status(401).json({ message: "Library authorization is no longer valid." });
+      }
+
+      const config = await storage.getOnlineUpdates();
+      if (!config?.libraryZip || config.libraryZip.length === 0) {
+        return res.status(404).json({ message: "Library ZIP is not available." });
+      }
+
+      const filename = (config.libraryZipName || "library.zip")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .slice(0, 255);
+      res.set({
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+      return res.status(200).send(config.libraryZip);
+    } catch {
+      return res.status(500).json({ message: "Unable to provide the library ZIP." });
+    }
   });
 
   app.get("/api/connect-config", requireAuth, requireLevel(1), async (req, res) => {

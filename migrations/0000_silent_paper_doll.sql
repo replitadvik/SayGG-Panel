@@ -119,7 +119,11 @@ CREATE TABLE IF NOT EXISTS "online_updates" (
 "server" boolean DEFAULT true NOT NULL,
 "apk_url" text DEFAULT 'https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk' NOT NULL,
 "message" text DEFAULT 'Version 1.0.2 is now available.' NOT NULL,
-"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
+"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL,
+"library_version" varchar(50) DEFAULT '1.0.0' NOT NULL,
+"library_zip" bytea,
+"library_zip_name" varchar(255),
+"library_zip_uploaded_at" timestamp
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "_ftext" (

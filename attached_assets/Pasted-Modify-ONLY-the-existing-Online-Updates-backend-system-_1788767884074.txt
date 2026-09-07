@@ -1,0 +1,123 @@
+Modify ONLY the existing Online Updates/backend system to support the new "LibVersion" field and secure ZIP delivery flow.
+
+Existing routes:
+
+"/online-updates"
+
+- Owner-only management page.
+
+"/api/online-updates/config"
+
+- Public read-only JSON endpoint.
+
+Keep both existing routes and their existing behavior.
+
+Public JSON
+
+Add the required "LibVersion" field to the existing JSON.
+
+The JSON must contain:
+
+{
+  "version": "1.0.0",
+  "server": true,
+  "apk_url": "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
+  "message": "Version 1.0.1 Update Available.",
+  "Server_Response": "Server is currently under maintenance.",
+  "LibVersion": "1.0.0"
+}
+
+"LibVersion" must be controlled by the existing Owner-only Online Updates page.
+
+The existing public endpoint:
+
+"/api/online-updates/config"
+
+must remain PUBLIC READ-ONLY.
+
+Unauthenticated clients, including the Android app, must be able to GET the JSON.
+
+They must NOT be able to modify the configuration.
+
+Keep the existing no-cache behavior for this endpoint.
+
+Owner Online Updates page
+
+Inside the existing Owner-only "/online-updates" page, add only the required library-update controls.
+
+Owner must be able to:
+
+- Change "LibVersion".
+- Upload the library ZIP.
+
+The existing Owner-only access protection must remain unchanged.
+
+Admin and Reseller must not gain access.
+
+Do NOT redesign the existing UI/UX.
+
+Do NOT add unrelated controls or features.
+
+Secure ZIP delivery
+
+Create the additional ZIP download endpoint required by the Android flow.
+
+The ZIP itself must NOT be exposed through the public JSON.
+
+Do NOT put a ZIP URL into the Android application.
+
+Do NOT put the ZIP URL into the public JSON.
+
+The ZIP download endpoint must require the temporary token issued by the existing server-side validation flow.
+
+Required flow:
+
+1. Android has a valid key.
+2. Android requests the server-side library authorization.
+3. Server validates the existing key.
+4. If the key is valid, generate a temporary token.
+5. Return the token to the Android app.
+6. The token is intended to be temporary and is never stored as persistent client data.
+7. Android sends the token to the ZIP endpoint.
+8. Server validates the token.
+9. Server verifies that the token is associated with the same valid key/request.
+10. If valid, provide the ZIP.
+11. Immediately revoke/invalidate the token after the ZIP request is accepted/provided.
+12. A reused or revoked token must not provide another ZIP.
+
+The ZIP endpoint must not allow unauthenticated downloading.
+
+The public "/api/online-updates/config" endpoint is ONLY for reading configuration and "LibVersion".
+
+Existing system preservation
+
+Do NOT change:
+
+- existing "/connect"
+- existing key validation
+- existing authentication
+- existing token system unless required to implement this exact temporary library-download flow
+- existing Neon database logic
+- existing Online Updates page design
+- existing APK update functionality
+- existing JSON fields
+- existing ZIP handling logic unless required to connect the new flow
+
+Do NOT add any unrelated features.
+
+Implement only:
+
+1. "LibVersion" in the existing update configuration.
+2. Owner control for "LibVersion".
+3. Owner ZIP upload/storage using the existing project architecture.
+4. Secure temporary token authorization for the ZIP request.
+5. Protected ZIP download endpoint.
+6. Public read-only access to the configuration JSON.
+
+The final intended flow is:
+
+Owner:
+Online Updates → set LibVersion → upload ZIP
+
+Android:
+Valid key → read public JSON → compare LibVersion → if server version is higher → obtain temporary token → request ZIP → server validates token → ZIP provided → token immediately revoked → existing ZIP extraction/rename methods continue.
