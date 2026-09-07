@@ -8,7 +8,6 @@ import {
   LayoutDashboard, Key, Users, Settings,
   LogOut, Menu, Wallet, Link2, User, Gamepad2, Shield,
   Sun, Moon, Zap, ChevronRight, Globe,
-  RefreshCw,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
@@ -31,7 +30,6 @@ const navItems: NavItem[] = [
   { path: "/games", label: "Games", icon: Gamepad2, minLevel: 1, maxLevel: 1, group: "system" },
   { path: "/connect-config", label: "Connect Config", icon: Shield, minLevel: 1, maxLevel: 1, group: "system" },
   { path: "/api-generator", label: "API Generator", icon: Globe, minLevel: 1, maxLevel: 1, group: "system" },
-  { path: "/online-updates", label: "Online Updates", icon: RefreshCw, minLevel: 1, maxLevel: 1, group: "system" },
   { path: "/settings", label: "Settings", icon: Settings, minLevel: 1, maxLevel: 1, group: "system" },
   { path: "/profile", label: "Profile", icon: User, minLevel: 1, group: "account" },
 ];

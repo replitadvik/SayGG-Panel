@@ -5,7 +5,7 @@ import { useSiteName } from "@/hooks/use-site-name";
 import { Link } from "wouter";
 import {
   Key, Users, Shield, Wallet, Clock, Gamepad2, Link2,
-  AlertTriangle, Ban, UserCheck, UserPlus, Settings,
+  AlertTriangle, Ban, UserCheck, UserPlus, Settings, RefreshCw,
   ArrowRight, Plus, Eye, User,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,6 +165,7 @@ export default function DashboardPage() {
         <div className="p-4 space-y-2">
           {level === 1 && (
             <>
+              <QuickAction href="/online-updates" icon={RefreshCw} label="Online Updates" testId="action-online-updates" />
               <QuickAction href="/keys/generate" icon={Plus} label="Generate Key" testId="action-generate-key" />
               <QuickAction href="/users" icon={Users} label="Manage Users" testId="action-manage-users" />
               <QuickAction href="/games" icon={Gamepad2} label="Manage Games" testId="action-manage-games" />
