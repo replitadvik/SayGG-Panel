@@ -155,6 +155,17 @@ export async function runMigrations(): Promise<void> {
     await client.query(`ALTER TABLE "site_config" ADD COLUMN IF NOT EXISTS "key_prefix" varchar(32) DEFAULT 'SayGG' NOT NULL`);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS "online_updates" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "version" varchar(50) DEFAULT '1.0.2' NOT NULL,
+        "server" boolean DEFAULT true NOT NULL,
+        "apk_url" text DEFAULT 'https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk' NOT NULL,
+        "message" text DEFAULT 'Version 1.0.2 is now available.' NOT NULL,
+        "Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS "_ftext" (
         "id" serial PRIMARY KEY NOT NULL,
         "_status" text,

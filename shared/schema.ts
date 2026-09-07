@@ -4,6 +4,7 @@ import {
   text,
   varchar,
   integer,
+  boolean,
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
@@ -132,6 +133,15 @@ export const siteConfig = pgTable("site_config", {
   id: serial("id").primaryKey(),
   siteName: varchar("site_name", { length: 255 }),
   keyPrefix: varchar("key_prefix", { length: 32 }).default("SayGG").notNull(),
+});
+
+export const onlineUpdates = pgTable("online_updates", {
+  id: serial("id").primaryKey(),
+  version: varchar("version", { length: 50 }).default("1.0.2").notNull(),
+  server: boolean("server").default(true).notNull(),
+  apkUrl: text("apk_url").default("https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk").notNull(),
+  message: text("message").default("Version 1.0.2 is now available.").notNull(),
+  serverResponse: text("Server_Response").default("Server is currently under maintenance.").notNull(),
 });
 
 export const ftext = pgTable("_ftext", {
@@ -314,6 +324,7 @@ export type ReferralCode = typeof referralCode.$inferSelect;
 export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type SiteConfig = typeof siteConfig.$inferSelect;
+export type OnlineUpdates = typeof onlineUpdates.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
 export type ConnectAuditLog = typeof connectAuditLog.$inferSelect;

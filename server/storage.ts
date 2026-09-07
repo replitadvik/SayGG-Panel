@@ -3,10 +3,10 @@ import { eq, and, desc, asc, count, sql, like, or, isNull, isNotNull, lt } from 
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
-  games, gameDurations, siteConfig, apiGeneratorConfig, apiGeneratorLog,
+  games, gameDurations, siteConfig, onlineUpdates, apiGeneratorConfig, apiGeneratorLog,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
-  type Game, type GameDuration, type ApiGeneratorConfig, type ApiGeneratorLog,
+  type Game, type GameDuration, type OnlineUpdates, type ApiGeneratorConfig, type ApiGeneratorLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -56,6 +56,8 @@ export interface IStorage {
   updateSiteName(name: string): Promise<void>;
   getKeyPrefix(): Promise<string>;
   updateKeyPrefix(prefix: string): Promise<void>;
+  getOnlineUpdates(): Promise<OnlineUpdates | undefined>;
+  upsertOnlineUpdates(data: Partial<OnlineUpdates>): Promise<OnlineUpdates>;
   getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined>;
   updateFtext(data: { _status?: string; _ftext?: string }): Promise<void>;
   getMaintenanceStatus(): Promise<{ status: string; myinput: string | null } | undefined>;
@@ -384,6 +386,25 @@ export class DatabaseStorage implements IStorage {
     } else {
       await db.update(siteConfig).set({ keyPrefix: prefix } as any).where(eq(siteConfig.id, existing[0].id));
     }
+  }
+
+  async getOnlineUpdates(): Promise<OnlineUpdates | undefined> {
+    const [row] = await db.select().from(onlineUpdates);
+    return row;
+  }
+
+  async upsertOnlineUpdates(data: Partial<OnlineUpdates>): Promise<OnlineUpdates> {
+    const existing = await this.getOnlineUpdates();
+    if (existing) {
+      const [updated] = await db.update(onlineUpdates)
+        .set(data as any)
+        .where(eq(onlineUpdates.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(onlineUpdates).values(data as any).returning();
+    return created;
   }
 
   async getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined> {

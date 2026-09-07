@@ -76,6 +76,46 @@ function requireLevel(maxLevel: number) {
   };
 }
 
+function requireOwner(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+  storage.getUser(req.session.userId).then((user) => {
+    if (!user || user.level !== 1) return res.status(403).json({ message: "Access Denied" });
+    next();
+  }).catch(next);
+}
+
+const DEFAULT_ONLINE_UPDATES = {
+  version: "1.0.2",
+  server: true,
+  apk_url: "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
+  message: "Version 1.0.2 is now available.",
+  Server_Response: "Server is currently under maintenance.",
+} as const;
+
+function onlineUpdatesJson(config: {
+  version: string;
+  server: boolean;
+  apkUrl: string;
+  message: string;
+  serverResponse: string;
+}) {
+  return {
+    version: config.version,
+    server: config.server,
+    apk_url: config.apkUrl,
+    message: config.message,
+    Server_Response: config.serverResponse,
+  };
+}
+
+function setOnlineUpdatesNoCache(res: Response) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "CDN-Cache-Control": "no-store",
+    "Vercel-CDN-Cache-Control": "no-store",
+  });
+}
+
 const BOOTSTRAP_SECRET = process.env.CONNECT_BOOTSTRAP_SECRET || "Vm8Lk7Uj2JmsjCPVPVjrLa7zgfx3uz9E";
 const DEFAULT_GAME_NAME = process.env.CONNECT_GAME_NAME || "PUBG";
 
@@ -126,6 +166,29 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       changedBy: "system",
     });
   }
+
+  const sendOnlineUpdatesJson = async (_req: Request, res: Response) => {
+    const config = await storage.getOnlineUpdates();
+    setOnlineUpdatesNoCache(res);
+    res.json(config ? onlineUpdatesJson(config) : DEFAULT_ONLINE_UPDATES);
+  };
+
+  app.get("/online-updates", async (req, res, next) => {
+    if (req.accepts("html")) return next();
+    try {
+      await sendOnlineUpdatesJson(req, res);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  app.get("/api/online-updates", async (req, res, next) => {
+    try {
+      await sendOnlineUpdatesJson(req, res);
+    } catch (e) {
+      next(e);
+    }
+  });
 
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Not authenticated" });
@@ -1782,6 +1845,40 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     emitToOwners(wsEvent("settings:updated", { section: "session" }));
 
     res.json({ message: "Session settings reset to defaults" });
+  });
+
+  app.get("/api/online-updates/config", requireOwner, async (_req, res) => {
+    const config = await storage.getOnlineUpdates();
+    res.json(config ? onlineUpdatesJson(config) : DEFAULT_ONLINE_UPDATES);
+  });
+
+  app.put("/api/online-updates/config", requireOwner, async (req, res) => {
+    const { version, server, apk_url, message, Server_Response } = req.body ?? {};
+    if (typeof version !== "string" || version.trim().length === 0 || version.trim().length > 50) {
+      return res.status(400).json({ message: "Version is required and must be 50 characters or less." });
+    }
+    if (typeof server !== "boolean") {
+      return res.status(400).json({ message: "Server must be a boolean." });
+    }
+    if (typeof apk_url !== "string" || apk_url.trim().length === 0 || apk_url.trim().length > 2000) {
+      return res.status(400).json({ message: "APK URL is required and must be 2000 characters or less." });
+    }
+    if (typeof message !== "string" || message.trim().length === 0) {
+      return res.status(400).json({ message: "Message is required." });
+    }
+    if (typeof Server_Response !== "string" || Server_Response.trim().length === 0) {
+      return res.status(400).json({ message: "Server response is required." });
+    }
+
+    const config = await storage.upsertOnlineUpdates({
+      version: version.trim(),
+      server,
+      apkUrl: apk_url.trim(),
+      message: message.trim(),
+      serverResponse: Server_Response.trim(),
+    });
+    emitToOwners(wsEvent("settings:updated", { section: "online-updates" }));
+    res.json(onlineUpdatesJson(config));
   });
 
   app.get("/api/connect-config", requireAuth, requireLevel(1), async (req, res) => {

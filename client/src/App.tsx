@@ -21,6 +21,7 @@ import GamesPage from "@/pages/games";
 import GameDurationsPage from "@/pages/game-durations";
 import ConnectConfigPage from "@/pages/connect-config";
 import ApiGeneratorPage from "@/pages/api-generator";
+import OnlineUpdatesPage from "@/pages/online-updates";
 import SettingsPage from "@/pages/settings";
 import ProfilePage from "@/pages/profile";
 import SetupPage from "@/pages/setup";
@@ -104,6 +105,7 @@ function Router() {
       <Route path="/games">{() => <ProtectedRoute component={GamesPage} maxLevel={1} />}</Route>
       <Route path="/connect-config">{() => <ProtectedRoute component={ConnectConfigPage} maxLevel={1} />}</Route>
       <Route path="/api-generator">{() => <ProtectedRoute component={ApiGeneratorPage} maxLevel={1} />}</Route>
+      <Route path="/online-updates">{() => <ProtectedRoute component={OnlineUpdatesPage} maxLevel={1} />}</Route>
       <Route path="/settings">{() => <ProtectedRoute component={SettingsPage} maxLevel={1} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route component={NotFound} />
