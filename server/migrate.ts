@@ -164,6 +164,7 @@ export async function runMigrations(): Promise<void> {
         "Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
       )
     `);
+    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "zip_token_expiry_minutes" integer DEFAULT 5 NOT NULL`);
     await client.query(`
       CREATE TABLE IF NOT EXISTS "online_update_zips" (
         "id" serial PRIMARY KEY NOT NULL,

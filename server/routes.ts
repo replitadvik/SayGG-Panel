@@ -151,7 +151,8 @@ type LibraryDownloadToken = LibraryKeyContext & {
   expiresAt: number;
 };
 
-const LIBRARY_TOKEN_TTL_MS = 5 * 60 * 1000;
+const MIN_ZIP_TOKEN_EXPIRY_MINUTES = 1;
+const MAX_ZIP_TOKEN_EXPIRY_MINUTES = 1440;
 const libraryDownloadTokens = new Map<string, LibraryDownloadToken>();
 
 function pruneLibraryDownloadTokens() {
@@ -2019,6 +2020,61 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     res.json(onlineUpdatesJson(config));
   });
 
+  app.get("/api/online-updates/token-settings", requireOwner, async (_req, res) => {
+    try {
+      const config = await storage.getOnlineUpdates() || await storage.upsertOnlineUpdates({});
+      const tokenHistory = (await storage.getOnlineUpdatesHistory())
+        .find(entry => entry.changeType === "token_expiry");
+      return res.json({
+        expiryMinutes: config.zipTokenExpiryMinutes,
+        minMinutes: MIN_ZIP_TOKEN_EXPIRY_MINUTES,
+        maxMinutes: MAX_ZIP_TOKEN_EXPIRY_MINUTES,
+        changedBy: tokenHistory?.changedBy || null,
+        changedAt: tokenHistory?.createdAt || null,
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to read ZIP token settings." });
+    }
+  });
+
+  app.put("/api/online-updates/token-settings", requireOwner, async (req, res) => {
+    const expiryMinutes = Number(req.body?.expiryMinutes);
+    if (
+      !Number.isInteger(expiryMinutes) ||
+      expiryMinutes < MIN_ZIP_TOKEN_EXPIRY_MINUTES ||
+      expiryMinutes > MAX_ZIP_TOKEN_EXPIRY_MINUTES
+    ) {
+      return res.status(400).json({
+        message: `Token expiry must be a whole number between ${MIN_ZIP_TOKEN_EXPIRY_MINUTES} and ${MAX_ZIP_TOKEN_EXPIRY_MINUTES} minutes.`,
+      });
+    }
+
+    try {
+      const existingConfig = await storage.getOnlineUpdates();
+      const currentExpiry = existingConfig?.zipTokenExpiryMinutes;
+      const user = await storage.getUser(req.session.userId!);
+      const config = await storage.upsertOnlineUpdates({ zipTokenExpiryMinutes: expiryMinutes });
+      if (currentExpiry !== undefined && currentExpiry !== expiryMinutes) {
+        await storage.createOnlineUpdatesHistory({
+          changeType: "token_expiry",
+          previousValue: String(currentExpiry),
+          newValue: String(expiryMinutes),
+          changedBy: user?.username || null,
+        });
+        // A policy change must take effect immediately. Existing tokens are
+        // not silently extended or left under the previous policy.
+        libraryDownloadTokens.clear();
+      }
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-token-settings" }));
+      return res.json({
+        message: "ZIP token expiry updated.",
+        expiryMinutes: config.zipTokenExpiryMinutes,
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to update ZIP token settings." });
+    }
+  });
+
   const handleZipUpload = async (req: Request, res: Response) => {
     const zip = req.body;
     if (!Buffer.isBuffer(zip) || zip.length < 4) {
@@ -2310,7 +2366,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
 
       pruneLibraryDownloadTokens();
       const token = crypto.randomBytes(32).toString("hex");
-      const expiresAt = Date.now() + LIBRARY_TOKEN_TTL_MS;
+      const config = await storage.getOnlineUpdates() || await storage.upsertOnlineUpdates({});
+      const expiryMinutes = config.zipTokenExpiryMinutes;
+      const expiresAt = Date.now() + expiryMinutes * 60 * 1000;
       libraryDownloadTokens.set(token, { ...validation.context, expiresAt });
 
       return res.json({

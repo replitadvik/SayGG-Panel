@@ -147,6 +147,7 @@ export const onlineUpdates = pgTable("online_updates", {
   apkUrl: text("apk_url").default("https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk").notNull(),
   message: text("message").default("Version 1.0.2 is now available.").notNull(),
   serverResponse: text("Server_Response").default("Server is currently under maintenance.").notNull(),
+  zipTokenExpiryMinutes: integer("zip_token_expiry_minutes").default(5).notNull(),
 });
 
 export const onlineUpdateZips = pgTable("online_update_zips", {

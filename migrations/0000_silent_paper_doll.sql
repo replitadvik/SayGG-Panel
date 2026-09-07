@@ -119,7 +119,8 @@ CREATE TABLE IF NOT EXISTS "online_updates" (
 "server" boolean DEFAULT true NOT NULL,
 "apk_url" text DEFAULT 'https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk' NOT NULL,
 "message" text DEFAULT 'Version 1.0.2 is now available.' NOT NULL,
-"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
+"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL,
+"zip_token_expiry_minutes" integer DEFAULT 5 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "online_update_zips" (
