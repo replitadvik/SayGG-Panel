@@ -119,16 +119,24 @@ CREATE TABLE IF NOT EXISTS "online_updates" (
 "server" boolean DEFAULT true NOT NULL,
 "apk_url" text DEFAULT 'https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk' NOT NULL,
 "message" text DEFAULT 'Version 1.0.2 is now available.' NOT NULL,
-"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL,
-"library_version" varchar(50) DEFAULT '1.0.0' NOT NULL,
-"library_zip" bytea,
-"library_zip_name" varchar(255),
-"library_zip_uploaded_at" timestamp
+"Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "online_update_zips" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"file_name" varchar(255) NOT NULL,
+	"zip_data" bytea NOT NULL,
+	"file_size" integer NOT NULL,
+	"is_active" boolean DEFAULT false NOT NULL,
+	"uploaded_by" varchar(50),
+	"uploaded_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "online_updates_history" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"change_type" varchar(20) NOT NULL,
+	"change_type" varchar(30) NOT NULL,
+	"zip_id" integer,
 	"previous_value" text,
 	"new_value" text NOT NULL,
 	"file_name" varchar(255),

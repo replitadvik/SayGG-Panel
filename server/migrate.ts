@@ -161,21 +161,26 @@ export async function runMigrations(): Promise<void> {
         "server" boolean DEFAULT true NOT NULL,
         "apk_url" text DEFAULT 'https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk' NOT NULL,
         "message" text DEFAULT 'Version 1.0.2 is now available.' NOT NULL,
-        "Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL,
-        "library_version" varchar(50) DEFAULT '1.0.0' NOT NULL,
-        "library_zip" bytea,
-        "library_zip_name" varchar(255),
-        "library_zip_uploaded_at" timestamp
+        "Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
       )
     `);
-    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_version" varchar(50) DEFAULT '1.0.0' NOT NULL`);
-    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip" bytea`);
-    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip_name" varchar(255)`);
-    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip_uploaded_at" timestamp`);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "online_update_zips" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "file_name" varchar(255) NOT NULL,
+        "zip_data" bytea NOT NULL,
+        "file_size" integer NOT NULL,
+        "is_active" boolean DEFAULT false NOT NULL,
+        "uploaded_by" varchar(50),
+        "uploaded_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      )
+    `);
     await client.query(`
       CREATE TABLE IF NOT EXISTS "online_updates_history" (
         "id" serial PRIMARY KEY NOT NULL,
-        "change_type" varchar(20) NOT NULL,
+        "change_type" varchar(30) NOT NULL,
+        "zip_id" integer,
         "previous_value" text,
         "new_value" text NOT NULL,
         "file_name" varchar(255),
@@ -184,6 +189,29 @@ export async function runMigrations(): Promise<void> {
         "created_at" timestamp DEFAULT now()
       )
     `);
+    await client.query(`ALTER TABLE "online_updates_history" ALTER COLUMN "change_type" TYPE varchar(30)`);
+    await client.query(`ALTER TABLE "online_updates_history" ADD COLUMN IF NOT EXISTS "zip_id" integer`);
+    const legacyZipColumns = await client.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'online_updates' AND column_name = 'library_zip'
+      ) AS "has_legacy_zip"
+    `);
+    if (legacyZipColumns.rows[0]?.has_legacy_zip) {
+      await client.query(`
+        INSERT INTO "online_update_zips" ("file_name", "zip_data", "file_size", "is_active", "uploaded_at", "updated_at")
+        SELECT COALESCE(NULLIF("library_zip_name", ''), 'library.zip'), "library_zip", octet_length("library_zip"), true,
+               COALESCE("library_zip_uploaded_at", now()), COALESCE("library_zip_uploaded_at", now())
+        FROM "online_updates"
+        WHERE "library_zip" IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM "online_update_zips")
+      `);
+      await client.query(`ALTER TABLE "online_updates" DROP COLUMN IF EXISTS "library_version"`);
+      await client.query(`ALTER TABLE "online_updates" DROP COLUMN IF EXISTS "library_zip"`);
+      await client.query(`ALTER TABLE "online_updates" DROP COLUMN IF EXISTS "library_zip_name"`);
+      await client.query(`ALTER TABLE "online_updates" DROP COLUMN IF EXISTS "library_zip_uploaded_at"`);
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS "_ftext" (

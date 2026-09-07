@@ -3,10 +3,10 @@ import { eq, and, desc, asc, count, sql, like, or, isNull, isNotNull, lt } from 
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
-  games, gameDurations, siteConfig, onlineUpdates, onlineUpdatesHistory, apiGeneratorConfig, apiGeneratorLog,
+  games, gameDurations, siteConfig, onlineUpdates, onlineUpdateZips, onlineUpdatesHistory, apiGeneratorConfig, apiGeneratorLog,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
-  type Game, type GameDuration, type OnlineUpdates, type OnlineUpdatesHistory, type ApiGeneratorConfig, type ApiGeneratorLog,
+  type Game, type GameDuration, type OnlineUpdates, type OnlineUpdateZip, type OnlineUpdatesHistory, type ApiGeneratorConfig, type ApiGeneratorLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -58,6 +58,12 @@ export interface IStorage {
   updateKeyPrefix(prefix: string): Promise<void>;
   getOnlineUpdates(): Promise<OnlineUpdates | undefined>;
   upsertOnlineUpdates(data: Partial<OnlineUpdates>): Promise<OnlineUpdates>;
+  getOnlineUpdateZips(): Promise<OnlineUpdateZip[]>;
+  getOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined>;
+  createOnlineUpdateZip(data: Partial<OnlineUpdateZip>): Promise<OnlineUpdateZip>;
+  updateOnlineUpdateZip(id: number, data: Partial<OnlineUpdateZip>): Promise<OnlineUpdateZip | undefined>;
+  activateOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined>;
+  deleteOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined>;
   createOnlineUpdatesHistory(data: Partial<OnlineUpdatesHistory>): Promise<OnlineUpdatesHistory>;
   getOnlineUpdatesHistory(): Promise<OnlineUpdatesHistory[]>;
   getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined>;
@@ -407,6 +413,49 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db.insert(onlineUpdates).values(data as any).returning();
     return created;
+  }
+
+  async getOnlineUpdateZips(): Promise<OnlineUpdateZip[]> {
+    return db.select().from(onlineUpdateZips)
+      .orderBy(desc(onlineUpdateZips.isActive), desc(onlineUpdateZips.id));
+  }
+
+  async getOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined> {
+    const [zip] = await db.select().from(onlineUpdateZips).where(eq(onlineUpdateZips.id, id));
+    return zip;
+  }
+
+  async createOnlineUpdateZip(data: Partial<OnlineUpdateZip>): Promise<OnlineUpdateZip> {
+    const [zip] = await db.insert(onlineUpdateZips).values(data as any).returning();
+    return zip;
+  }
+
+  async updateOnlineUpdateZip(id: number, data: Partial<OnlineUpdateZip>): Promise<OnlineUpdateZip | undefined> {
+    const [zip] = await db.update(onlineUpdateZips)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(eq(onlineUpdateZips.id, id))
+      .returning();
+    return zip;
+  }
+
+  async activateOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined> {
+    return db.transaction(async (tx) => {
+      const [target] = await tx.select().from(onlineUpdateZips).where(eq(onlineUpdateZips.id, id));
+      if (!target) return undefined;
+      await tx.update(onlineUpdateZips).set({ isActive: false, updatedAt: new Date() });
+      const [activated] = await tx.update(onlineUpdateZips)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(onlineUpdateZips.id, id))
+        .returning();
+      return activated;
+    });
+  }
+
+  async deleteOnlineUpdateZip(id: number): Promise<OnlineUpdateZip | undefined> {
+    const [deleted] = await db.delete(onlineUpdateZips)
+      .where(eq(onlineUpdateZips.id, id))
+      .returning();
+    return deleted;
   }
 
   async createOnlineUpdatesHistory(data: Partial<OnlineUpdatesHistory>): Promise<OnlineUpdatesHistory> {

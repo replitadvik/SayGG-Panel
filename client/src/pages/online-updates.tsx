@@ -7,7 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Clock3, FileArchive, Loader2, RefreshCw, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Download,
+  FileArchive,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  Upload,
+  XCircle,
+} from "lucide-react";
 
 interface OnlineUpdatesConfig {
   version: string;
@@ -15,18 +26,28 @@ interface OnlineUpdatesConfig {
   apk_url: string;
   message: string;
   Server_Response: string;
-  LibVersion: string;
 }
 
-interface LibraryStatus {
-  LibVersion: string;
-  filename: string | null;
+interface ZipRecord {
+  id: number;
+  filename: string;
   size: number;
+  isActive: boolean;
+  uploadedBy: string | null;
   uploadedAt: string | null;
+  updatedAt: string | null;
+}
+
+interface ZipListResponse {
+  maxZips: number;
+  activeZipId: number | null;
+  zips: ZipRecord[];
 }
 
 interface HistoryEntry {
   id: number;
+  changeType: string;
+  zipId: number | null;
   previousValue: string | null;
   newValue: string;
   fileName: string | null;
@@ -37,7 +58,7 @@ interface HistoryEntry {
 
 interface OnlineUpdatesHistory {
   versionChanges: HistoryEntry[];
-  libraryChanges: HistoryEntry[];
+  zipChanges: HistoryEntry[];
 }
 
 export default function OnlineUpdatesPage() {
@@ -45,8 +66,8 @@ export default function OnlineUpdatesPage() {
   const { data: config, isLoading } = useQuery<OnlineUpdatesConfig>({
     queryKey: ["/api/online-updates/config"],
   });
-  const { data: libraryStatus, isLoading: isLibraryLoading } = useQuery<LibraryStatus>({
-    queryKey: ["/api/online-updates/library"],
+  const { data: zipList, isLoading: isZipLoading } = useQuery<ZipListResponse>({
+    queryKey: ["/api/online-updates/zips"],
   });
   const { data: history, isLoading: isHistoryLoading } = useQuery<OnlineUpdatesHistory>({
     queryKey: ["/api/online-updates/history"],
@@ -56,8 +77,9 @@ export default function OnlineUpdatesPage() {
   const [apkUrl, setApkUrl] = useState("");
   const [message, setMessage] = useState("");
   const [serverResponse, setServerResponse] = useState("");
-  const [libVersion, setLibVersion] = useState("");
-  const [libraryFile, setLibraryFile] = useState<File | null>(null);
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [renamingZipId, setRenamingZipId] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,40 +91,30 @@ export default function OnlineUpdatesPage() {
     setServerResponse(config.Server_Response);
   }, [config]);
 
-  useEffect(() => {
-    if (libraryStatus) {
-      setLibVersion(libraryStatus.LibVersion);
-    } else if (config) {
-      setLibVersion(config.LibVersion);
-    }
-  }, [config, libraryStatus]);
+  const invalidateZipQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/online-updates/zips"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/online-updates/history"] });
+  };
 
-  const currentLibraryVersion = libraryStatus?.LibVersion || config?.LibVersion || "";
-  const libraryVersionChanged = libVersion.trim() !== currentLibraryVersion;
-
-  const uploadLibraryFile = async (file: File, requestedVersion: string) => {
-    const response = await fetch("/api/online-updates/library", {
-      method: "PUT",
+  const uploadZipFile = async (file: File) => {
+    const response = await fetch("/api/online-updates/zips", {
+      method: "POST",
       headers: {
         "Content-Type": file.type || "application/zip",
         "X-Filename": encodeURIComponent(file.name),
-        "X-Library-Version": requestedVersion.trim(),
       },
       body: file,
       credentials: "include",
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(result.message || "Library ZIP upload failed.");
+      throw new Error(result.message || "ZIP upload failed.");
     }
     return result;
   };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (libraryFile) {
-        await uploadLibraryFile(libraryFile, libVersion);
-      }
       await apiRequest("PUT", "/api/online-updates/config", {
         version,
         server,
@@ -112,11 +124,7 @@ export default function OnlineUpdatesPage() {
       });
     },
     onSuccess: () => {
-      setLibraryFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["/api/online-updates/config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/library"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/history"] });
       toast({ title: "Online updates saved" });
     },
     onError: (error: any) => {
@@ -126,23 +134,51 @@ export default function OnlineUpdatesPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!libraryFile) throw new Error("Choose a library ZIP file first.");
-      return uploadLibraryFile(libraryFile, libVersion);
+      if (!zipFile) throw new Error("Choose a ZIP file first.");
+      return uploadZipFile(zipFile);
     },
     onSuccess: () => {
-      setLibraryFile(null);
+      setZipFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/library"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/online-updates/history"] });
-      toast({ title: "Library ZIP uploaded" });
+      invalidateZipQueries();
+      toast({ title: "ZIP uploaded" });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
-  if (isLoading || isLibraryLoading || isHistoryLoading) {
+  const zipActionMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: number; action: "activate" | "deactivate" | "delete" }) => {
+      if (action === "delete" && !window.confirm("Delete this ZIP file and its stored contents?")) {
+        throw new Error("Delete cancelled.");
+      }
+      const method = action === "delete" ? "DELETE" : "POST";
+      return apiRequest(method, `/api/online-updates/zips/${id}${action === "delete" ? "" : `/${action}`}`);
+    },
+    onSuccess: (_data, variables) => {
+      invalidateZipQueries();
+      toast({ title: variables.action === "delete" ? "ZIP deleted" : `ZIP ${variables.action}d` });
+    },
+    onError: (error: any) => {
+      if (error.message !== "Delete cancelled.") {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
+    },
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, filename }: { id: number; filename: string }) =>
+      apiRequest("PATCH", `/api/online-updates/zips/${id}`, { filename }),
+    onSuccess: () => {
+      setRenamingZipId(null);
+      invalidateZipQueries();
+      toast({ title: "ZIP renamed" });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  if (isLoading || isZipLoading || isHistoryLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -224,7 +260,7 @@ export default function OnlineUpdatesPage() {
 
           <Button
             onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || (libraryVersionChanged && !libraryFile)}
+            disabled={saveMutation.isPending}
             className="w-full h-10 rounded text-sm"
             data-testid="button-save-online-updates"
           >
@@ -237,68 +273,135 @@ export default function OnlineUpdatesPage() {
       <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
         <div className="bg-panel-header px-5 py-3 flex items-center gap-2">
           <FileArchive className="h-4 w-4 text-panel-header-foreground/70" />
-          <h2 className="text-sm font-semibold text-panel-header-foreground">Library Updates</h2>
+          <h2 className="text-sm font-semibold text-panel-header-foreground">ZIP Updates</h2>
         </div>
         <div className="p-5 space-y-4">
           <div className="rounded bg-muted/40 border border-border/40 p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
-              Current ZIP: <span className="font-medium text-foreground">{libraryStatus?.filename || "No ZIP uploaded"}</span>
+              {zipList?.zips.length || 0} of {zipList?.maxZips || 5} ZIP slots used.
+              {zipList?.activeZipId ? " The active ZIP is the only one available to server authorization." : " No ZIP is active."}
             </p>
-            <p className="text-xs text-muted-foreground">
-              Current LibVersion: <span className="font-medium text-foreground">{currentLibraryVersion || "—"}</span>
-            </p>
-            {libraryStatus?.size ? (
-              <p className="text-xs text-muted-foreground">
-                Size: <span className="font-medium text-foreground">{(libraryStatus.size / 1024 / 1024).toFixed(2)} MB</span>
-              </p>
-            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="online-updates-lib-version" className="text-sm font-medium">LibVersion</Label>
-            <Input
-              id="online-updates-lib-version"
-              value={libVersion}
-              onChange={e => setLibVersion(e.target.value)}
-              placeholder="1.0.0"
-              className="h-11 rounded bg-muted/50 border-border/60"
-              data-testid="input-online-updates-lib-version"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="online-updates-library-zip" className="text-sm font-medium">New Library ZIP</Label>
+            <Label htmlFor="online-updates-library-zip" className="text-sm font-medium">Add ZIP file</Label>
             <Input
               ref={fileInputRef}
               id="online-updates-library-zip"
               type="file"
               accept=".zip,application/zip,application/x-zip-compressed"
-              onChange={e => setLibraryFile(e.target.files?.[0] ?? null)}
+              onChange={e => setZipFile(e.target.files?.[0] ?? null)}
               className="h-11 rounded bg-muted/50 border-border/60 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium"
               data-testid="input-online-updates-library-zip"
             />
-            {libraryFile && (
-              <p className="text-xs text-muted-foreground truncate">{libraryFile.name}</p>
+            {zipFile && (
+              <p className="text-xs text-muted-foreground truncate">{zipFile.name}</p>
             )}
           </div>
-
-          {libraryVersionChanged && !libraryFile && (
-            <p className="text-xs text-destructive">
-              Upload a new ZIP before saving a changed LibVersion.
-            </p>
-          )}
 
           <Button
             type="button"
             variant="outline"
             onClick={() => uploadMutation.mutate()}
-            disabled={uploadMutation.isPending || !libraryFile || !libVersion.trim()}
+            disabled={uploadMutation.isPending || !zipFile || (zipList?.zips.length || 0) >= (zipList?.maxZips || 5)}
             className="w-full h-10 rounded text-sm"
             data-testid="button-upload-online-updates-library"
           >
             {uploadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-            Upload Library ZIP &amp; Save
+            Upload ZIP
           </Button>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Stored ZIP files</h3>
+              <span className="text-xs text-muted-foreground">One active at a time</span>
+            </div>
+            {zipList?.zips.length ? (
+              <div className="space-y-2">
+                {zipList.zips.map(zip => (
+                  <div key={zip.id} className={`rounded border p-3 space-y-3 ${zip.isActive ? "border-primary/50 bg-primary/5" : "border-border/50"}`}>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        {renamingZipId === zip.id ? (
+                          <div className="flex gap-2">
+                            <Input
+                              value={renameValue}
+                              onChange={e => setRenameValue(e.target.value)}
+                              className="h-9 max-w-sm"
+                              autoFocus
+                              onKeyDown={e => {
+                                if (e.key === "Enter") renameMutation.mutate({ id: zip.id, filename: renameValue.trim() });
+                                if (e.key === "Escape") setRenamingZipId(null);
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => renameMutation.mutate({ id: zip.id, filename: renameValue.trim() })}
+                              disabled={renameMutation.isPending}
+                            >
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setRenamingZipId(null)} aria-label="Cancel rename">
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="font-medium truncate">{zip.filename}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {(zip.size / 1024 / 1024).toFixed(2)} MB · added {zip.uploadedAt ? new Date(zip.uploadedAt).toLocaleString() : "—"}
+                        </p>
+                      </div>
+                      {zip.isActive ? (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          Optional
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => window.open(`/api/online-updates/zips/${zip.id}/download`, "_blank")}>
+                        <Download className="mr-1.5 h-3.5 w-3.5" /> Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={zip.isActive ? "outline" : "default"}
+                        onClick={() => zipActionMutation.mutate({ id: zip.id, action: zip.isActive ? "deactivate" : "activate" })}
+                        disabled={zipActionMutation.isPending}
+                      >
+                        {zip.isActive ? <XCircle className="mr-1.5 h-3.5 w-3.5" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
+                        {zip.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRenamingZipId(zip.id);
+                          setRenameValue(zip.filename);
+                        }}
+                      >
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" /> Rename
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => zipActionMutation.mutate({ id: zip.id, action: "delete" })}
+                        disabled={zipActionMutation.isPending}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded border border-dashed p-5 text-center text-xs text-muted-foreground">No ZIP files uploaded yet.</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -310,10 +413,10 @@ export default function OnlineUpdatesPage() {
           emptyText="No version changes yet."
         />
         <HistoryCard
-          title="Lib Changed History"
+          title="ZIP Activity History"
           icon={<FileArchive className="h-4 w-4 text-panel-header-foreground/70" />}
-          entries={history?.libraryChanges || []}
-          emptyText="No library changes yet."
+          entries={history?.zipChanges || []}
+          emptyText="No ZIP activity yet."
           showLibraryDetails
         />
       </div>
@@ -355,7 +458,7 @@ function HistoryCard({
               )}
               {showLibraryDetails && (
                 <p className="text-xs text-muted-foreground">
-                  LibVersion: {entry.previousValue || "—"} → {entry.newValue}
+                  {entry.changeType.replace("zip_", "").replace("_", " ")} · {entry.previousValue || "—"} → {entry.newValue}
                   {entry.fileSize ? ` · ${(entry.fileSize / 1024 / 1024).toFixed(2)} MB` : ""}
                 </p>
               )}

@@ -147,15 +147,23 @@ export const onlineUpdates = pgTable("online_updates", {
   apkUrl: text("apk_url").default("https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk").notNull(),
   message: text("message").default("Version 1.0.2 is now available.").notNull(),
   serverResponse: text("Server_Response").default("Server is currently under maintenance.").notNull(),
-  libraryVersion: varchar("library_version", { length: 50 }).default("1.0.0").notNull(),
-  libraryZip: bytea("library_zip"),
-  libraryZipName: varchar("library_zip_name", { length: 255 }),
-  libraryZipUploadedAt: timestamp("library_zip_uploaded_at"),
+});
+
+export const onlineUpdateZips = pgTable("online_update_zips", {
+  id: serial("id").primaryKey(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  zipData: bytea("zip_data").notNull(),
+  fileSize: integer("file_size").notNull(),
+  isActive: boolean("is_active").default(false).notNull(),
+  uploadedBy: varchar("uploaded_by", { length: 50 }),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const onlineUpdatesHistory = pgTable("online_updates_history", {
   id: serial("id").primaryKey(),
-  changeType: varchar("change_type", { length: 20 }).notNull(),
+  changeType: varchar("change_type", { length: 30 }).notNull(),
+  zipId: integer("zip_id"),
   previousValue: text("previous_value"),
   newValue: text("new_value").notNull(),
   fileName: varchar("file_name", { length: 255 }),
@@ -348,6 +356,7 @@ export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type SiteConfig = typeof siteConfig.$inferSelect;
 export type OnlineUpdates = typeof onlineUpdates.$inferSelect;
+export type OnlineUpdateZip = typeof onlineUpdateZips.$inferSelect;
 export type OnlineUpdatesHistory = typeof onlineUpdatesHistory.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;

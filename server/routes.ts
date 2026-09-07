@@ -91,7 +91,6 @@ const DEFAULT_ONLINE_UPDATES = {
   apk_url: "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
   message: "Version 1.0.2 is now available.",
   Server_Response: "Server is currently under maintenance.",
-  LibVersion: "1.0.0",
 } as const;
 
 function onlineUpdatesJson(config: {
@@ -100,7 +99,6 @@ function onlineUpdatesJson(config: {
   apkUrl: string;
   message: string;
   serverResponse: string;
-  libraryVersion: string;
 }) {
   return {
     version: config.version,
@@ -108,7 +106,6 @@ function onlineUpdatesJson(config: {
     apk_url: config.apkUrl,
     message: config.message,
     Server_Response: config.serverResponse,
-    LibVersion: config.libraryVersion,
   };
 }
 
@@ -118,7 +115,6 @@ function isValidOnlineUpdatesConfig(config: any): config is {
   apkUrl: string;
   message: string;
   serverResponse: string;
-  libraryVersion: string;
 } {
   if (
     !config ||
@@ -130,9 +126,7 @@ function isValidOnlineUpdatesConfig(config: any): config is {
     typeof config.message !== "string" ||
     config.message.trim().length === 0 ||
     typeof config.serverResponse !== "string" ||
-    config.serverResponse.trim().length === 0 ||
-    typeof config.libraryVersion !== "string" ||
-    config.libraryVersion.trim().length === 0
+    config.serverResponse.trim().length === 0
   ) {
     return false;
   }
@@ -1988,7 +1982,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.put("/api/online-updates/config", requireOwner, async (req, res) => {
-    const { version, server, apk_url, message, Server_Response, LibVersion } = req.body ?? {};
+    const { version, server, apk_url, message, Server_Response } = req.body ?? {};
     if (typeof version !== "string" || version.trim().length === 0 || version.trim().length > 50) {
       return res.status(400).json({ message: "Version is required and must be 50 characters or less." });
     }
@@ -2005,23 +1999,12 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       return res.status(400).json({ message: "Server response is required." });
     }
     const existingConfig = await storage.getOnlineUpdates();
-    const nextLibraryVersion = LibVersion === undefined
-      ? existingConfig?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion
-      : LibVersion;
-    if (typeof nextLibraryVersion !== "string" || nextLibraryVersion.trim().length === 0 || nextLibraryVersion.trim().length > 50) {
-      return res.status(400).json({ message: "LibVersion is required and must be 50 characters or less." });
-    }
-    if (existingConfig && nextLibraryVersion.trim() !== existingConfig.libraryVersion) {
-      return res.status(400).json({ message: "Upload a new library ZIP before changing LibVersion." });
-    }
-
     const config = await storage.upsertOnlineUpdates({
       version: version.trim(),
       server,
       apkUrl: apk_url.trim(),
       message: message.trim(),
       serverResponse: Server_Response.trim(),
-      libraryVersion: nextLibraryVersion.trim(),
     });
     if (existingConfig && existingConfig.version !== config.version) {
       const user = await storage.getUser(req.session.userId!);
@@ -2036,100 +2019,276 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     res.json(onlineUpdatesJson(config));
   });
 
-  app.put(
-    "/api/online-updates/library",
-    requireOwner,
-    express.raw({
-      type: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
-      limit: "50mb",
-    }),
-    async (req, res) => {
-      const zip = req.body;
-      if (!Buffer.isBuffer(zip) || zip.length < 4) {
-        return res.status(400).json({ message: "A ZIP file is required." });
-      }
+  const handleZipUpload = async (req: Request, res: Response) => {
+    const zip = req.body;
+    if (!Buffer.isBuffer(zip) || zip.length < 4) {
+      return res.status(400).json({ message: "A ZIP file is required." });
+    }
 
-      const isZipHeader =
-        zip[0] === 0x50 &&
-        zip[1] === 0x4b &&
-        ((zip[2] === 0x03 && zip[3] === 0x04) ||
-          (zip[2] === 0x05 && zip[3] === 0x06) ||
-          (zip[2] === 0x07 && zip[3] === 0x08));
-      if (!isZipHeader) {
-        return res.status(400).json({ message: "The uploaded file is not a valid ZIP archive." });
-      }
+    const isZipHeader =
+      zip[0] === 0x50 &&
+      zip[1] === 0x4b &&
+      ((zip[2] === 0x03 && zip[3] === 0x04) ||
+        (zip[2] === 0x05 && zip[3] === 0x06) ||
+        (zip[2] === 0x07 && zip[3] === 0x08));
+    if (!isZipHeader) {
+      return res.status(400).json({ message: "The uploaded file is not a valid ZIP archive." });
+    }
 
-      const requestedName = req.get("x-filename") || "library.zip";
-      let filename = "library.zip";
-      try {
-        filename = decodeURIComponent(requestedName)
-          .replace(/\\/g, "/")
-          .split("/")
-          .pop()
-          ?.trim() || "library.zip";
-      } catch {
-        return res.status(400).json({ message: "Invalid library filename." });
-      }
-      if (!/\.zip$/i.test(filename)) {
-        return res.status(400).json({ message: "The library file must use the .zip extension." });
-      }
+    const requestedName = req.get("x-filename") || "library.zip";
+    let filename = "library.zip";
+    try {
+      filename = decodeURIComponent(requestedName)
+        .replace(/\\/g, "/")
+        .split("/")
+        .pop()
+        ?.trim() || "library.zip";
+    } catch {
+      return res.status(400).json({ message: "Invalid ZIP filename." });
+    }
+    if (!/\.zip$/i.test(filename)) {
+      return res.status(400).json({ message: "The uploaded file must use the .zip extension." });
+    }
 
-      try {
-        const existingConfig = await storage.getOnlineUpdates();
-        const requestedLibraryVersion = req.get("x-library-version");
-        const libraryVersion = requestedLibraryVersion?.trim() || existingConfig?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion;
-        if (!libraryVersion || libraryVersion.length > 50) {
-          return res.status(400).json({ message: "LibVersion is required and must be 50 characters or less." });
-        }
-        const user = await storage.getUser(req.session.userId!);
-        const config = await storage.upsertOnlineUpdates({
-          libraryVersion,
-          libraryZip: zip,
-          libraryZipName: filename.slice(0, 255),
-          libraryZipUploadedAt: new Date(),
-        });
+    try {
+      const zips = await storage.getOnlineUpdateZips();
+      if (zips.length >= 5) {
+        return res.status(409).json({ message: "You can store a maximum of 5 ZIP files." });
+      }
+      const user = await storage.getUser(req.session.userId!);
+      const zipRecord = await storage.createOnlineUpdateZip({
+        fileName: filename.slice(0, 255),
+        zipData: zip,
+        fileSize: zip.length,
+        isActive: zips.length === 0,
+        uploadedBy: user?.username || null,
+        uploadedAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await storage.createOnlineUpdatesHistory({
+        changeType: "zip_added",
+        zipId: zipRecord.id,
+        previousValue: null,
+        newValue: zipRecord.fileName,
+        fileName: zipRecord.fileName,
+        fileSize: zip.length,
+        changedBy: user?.username || null,
+      });
+      if (zipRecord.isActive) {
         await storage.createOnlineUpdatesHistory({
-          changeType: "library",
-          previousValue: existingConfig?.libraryVersion || null,
-          newValue: config.libraryVersion,
-          fileName: config.libraryZipName,
+          changeType: "zip_activated",
+          zipId: zipRecord.id,
+          previousValue: null,
+          newValue: zipRecord.fileName,
+          fileName: zipRecord.fileName,
           fileSize: zip.length,
           changedBy: user?.username || null,
         });
-        emitToOwners(wsEvent("settings:updated", { section: "online-updates-library" }));
-        return res.json({
-          message: "Library ZIP uploaded.",
-          filename: config.libraryZipName,
-          size: zip.length,
-          LibVersion: config.libraryVersion,
-          uploadedAt: config.libraryZipUploadedAt,
-        });
-      } catch {
-        return res.status(500).json({ message: "Unable to store the library ZIP." });
       }
-    },
-  );
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+      return res.json({
+        message: "ZIP uploaded.",
+        id: zipRecord.id,
+        filename: zipRecord.fileName,
+        size: zipRecord.fileSize,
+        isActive: zipRecord.isActive,
+        uploadedAt: zipRecord.uploadedAt,
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to store the ZIP file." });
+    }
+  };
+
+  const zipUploadOptions = express.raw({
+    type: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
+    limit: "50mb",
+  });
+  app.post("/api/online-updates/zips", requireOwner, zipUploadOptions, handleZipUpload);
+  // Keep the existing upload URL working for clients while using the multi-ZIP store.
+  app.put("/api/online-updates/library", requireOwner, zipUploadOptions, handleZipUpload);
+
+  app.get("/api/online-updates/zips", requireOwner, async (_req, res) => {
+    try {
+      const zips = await storage.getOnlineUpdateZips();
+      return res.json({
+        maxZips: 5,
+        activeZipId: zips.find(zip => zip.isActive)?.id || null,
+        zips: zips.map(zip => ({
+          id: zip.id,
+          filename: zip.fileName,
+          size: zip.fileSize,
+          isActive: zip.isActive,
+          uploadedBy: zip.uploadedBy,
+          uploadedAt: zip.uploadedAt,
+          updatedAt: zip.updatedAt,
+        })),
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to read ZIP metadata." });
+    }
+  });
 
   app.get("/api/online-updates/library", requireOwner, async (_req, res) => {
     try {
-      const config = await storage.getOnlineUpdates();
-      return res.json({
-        LibVersion: config?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion,
-        filename: config?.libraryZipName || null,
-        size: config?.libraryZip?.length || 0,
-        uploadedAt: config?.libraryZipUploadedAt || null,
+      const zips = await storage.getOnlineUpdateZips();
+      const activeZip = zips.find(zip => zip.isActive);
+      return res.json(activeZip ? {
+        id: activeZip.id,
+        filename: activeZip.fileName,
+        size: activeZip.fileSize,
+        uploadedAt: activeZip.uploadedAt,
+      } : {
+        id: null,
+        filename: null,
+        size: 0,
+        uploadedAt: null,
       });
     } catch {
-      return res.status(500).json({ message: "Unable to read library metadata." });
+      return res.status(500).json({ message: "Unable to read ZIP metadata." });
+    }
+  });
+
+  app.patch("/api/online-updates/zips/:id", requireOwner, async (req, res) => {
+    const id = Number(req.params.id);
+    const filename = typeof req.body?.filename === "string" ? req.body.filename.trim() : "";
+    if (!Number.isInteger(id) || id < 1 || !filename || filename.length > 255 || !/\.zip$/i.test(filename)) {
+      return res.status(400).json({ message: "A valid ZIP filename is required." });
+    }
+    try {
+      const existingZip = await storage.getOnlineUpdateZip(id);
+      if (!existingZip) return res.status(404).json({ message: "ZIP file not found." });
+      if (existingZip.fileName === filename) return res.json(existingZip);
+      const user = await storage.getUser(req.session.userId!);
+      const updatedZip = await storage.updateOnlineUpdateZip(id, { fileName: filename });
+      await storage.createOnlineUpdatesHistory({
+        changeType: "zip_renamed",
+        zipId: id,
+        previousValue: existingZip.fileName,
+        newValue: filename,
+        fileName: filename,
+        fileSize: existingZip.fileSize,
+        changedBy: user?.username || null,
+      });
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+      return res.json(updatedZip);
+    } catch {
+      return res.status(500).json({ message: "Unable to rename the ZIP file." });
+    }
+  });
+
+  app.post("/api/online-updates/zips/:id/activate", requireOwner, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ message: "Invalid ZIP id." });
+    try {
+      const target = await storage.getOnlineUpdateZip(id);
+      if (!target) return res.status(404).json({ message: "ZIP file not found." });
+      if (target.isActive) return res.json(target);
+      const zips = await storage.getOnlineUpdateZips();
+      const current = zips.find(zip => zip.isActive);
+      const activated = await storage.activateOnlineUpdateZip(id);
+      const user = await storage.getUser(req.session.userId!);
+      if (current) {
+        await storage.createOnlineUpdatesHistory({
+          changeType: "zip_deactivated",
+          zipId: current.id,
+          previousValue: current.fileName,
+          newValue: "Inactive",
+          fileName: current.fileName,
+          fileSize: current.fileSize,
+          changedBy: user?.username || null,
+        });
+      }
+      await storage.createOnlineUpdatesHistory({
+        changeType: "zip_activated",
+        zipId: id,
+        previousValue: target.fileName,
+        newValue: "Active",
+        fileName: target.fileName,
+        fileSize: target.fileSize,
+        changedBy: user?.username || null,
+      });
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+      return res.json(activated);
+    } catch {
+      return res.status(500).json({ message: "Unable to activate the ZIP file." });
+    }
+  });
+
+  app.post("/api/online-updates/zips/:id/deactivate", requireOwner, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ message: "Invalid ZIP id." });
+    try {
+      const existingZip = await storage.getOnlineUpdateZip(id);
+      if (!existingZip) return res.status(404).json({ message: "ZIP file not found." });
+      if (!existingZip.isActive) return res.json(existingZip);
+      const updatedZip = await storage.updateOnlineUpdateZip(id, { isActive: false });
+      const user = await storage.getUser(req.session.userId!);
+      await storage.createOnlineUpdatesHistory({
+        changeType: "zip_deactivated",
+        zipId: id,
+        previousValue: "Active",
+        newValue: "Inactive",
+        fileName: existingZip.fileName,
+        fileSize: existingZip.fileSize,
+        changedBy: user?.username || null,
+      });
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+      return res.json(updatedZip);
+    } catch {
+      return res.status(500).json({ message: "Unable to deactivate the ZIP file." });
+    }
+  });
+
+  app.delete("/api/online-updates/zips/:id", requireOwner, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ message: "Invalid ZIP id." });
+    try {
+      const existingZip = await storage.getOnlineUpdateZip(id);
+      if (!existingZip) return res.status(404).json({ message: "ZIP file not found." });
+      const user = await storage.getUser(req.session.userId!);
+      await storage.deleteOnlineUpdateZip(id);
+      await storage.createOnlineUpdatesHistory({
+        changeType: "zip_deleted",
+        zipId: id,
+        previousValue: existingZip.fileName,
+        newValue: "Deleted",
+        fileName: existingZip.fileName,
+        fileSize: existingZip.fileSize,
+        changedBy: user?.username || null,
+      });
+
+      if (existingZip.isActive) {
+        const remaining = await storage.getOnlineUpdateZips();
+        const next = remaining[0];
+        if (next) {
+          const activated = await storage.activateOnlineUpdateZip(next.id);
+          await storage.createOnlineUpdatesHistory({
+            changeType: "zip_activated",
+            zipId: next.id,
+            previousValue: next.fileName,
+            newValue: "Active",
+            fileName: next.fileName,
+            fileSize: next.fileSize,
+            changedBy: user?.username || null,
+          });
+          emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+          return res.json({ message: "ZIP deleted and the next ZIP was activated.", activatedZip: activated });
+        }
+      }
+      emitToOwners(wsEvent("settings:updated", { section: "online-updates-zips" }));
+      return res.json({ message: "ZIP deleted." });
+    } catch {
+      return res.status(500).json({ message: "Unable to delete the ZIP file." });
     }
   });
 
   app.get("/api/online-updates/history", requireOwner, async (_req, res) => {
     try {
       const history = await storage.getOnlineUpdatesHistory();
+      const zipChanges = history.filter(entry => entry.changeType.startsWith("zip_") || entry.changeType === "library");
       return res.json({
         versionChanges: history.filter(entry => entry.changeType === "version"),
-        libraryChanges: history.filter(entry => entry.changeType === "library"),
+        zipChanges,
       });
     } catch {
       return res.status(500).json({ message: "Unable to read online update history." });
@@ -2139,9 +2298,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.post("/api/online-updates/library/authorize", rateLimit(60000, 20), async (req, res) => {
     setOnlineUpdatesNoCache(res);
     try {
-      const config = await storage.getOnlineUpdates();
-      if (!config?.libraryZip || config.libraryZip.length === 0) {
-        return res.status(404).json({ status: false, reason: "LIBRARY NOT AVAILABLE" });
+      const activeZip = (await storage.getOnlineUpdateZips()).find(zip => zip.isActive);
+      if (!activeZip || activeZip.zipData.length === 0) {
+        return res.status(404).json({ status: false, reason: "ZIP NOT AVAILABLE" });
       }
 
       const validation = await validateLibraryKeyRequest(req.body);
@@ -2199,21 +2358,38 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         return res.status(401).json({ message: "Library authorization is no longer valid." });
       }
 
-      const config = await storage.getOnlineUpdates();
-      if (!config?.libraryZip || config.libraryZip.length === 0) {
-        return res.status(404).json({ message: "Library ZIP is not available." });
+      const activeZip = (await storage.getOnlineUpdateZips()).find(zip => zip.isActive);
+      if (!activeZip || activeZip.zipData.length === 0) {
+        return res.status(404).json({ message: "No active ZIP is available." });
       }
 
-      const filename = (config.libraryZipName || "library.zip")
+      const filename = (activeZip.fileName || "library.zip")
         .replace(/[^a-zA-Z0-9._-]/g, "_")
         .slice(0, 255);
       res.set({
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${filename}"`,
       });
-      return res.status(200).send(config.libraryZip);
+      return res.status(200).send(activeZip.zipData);
     } catch {
       return res.status(500).json({ message: "Unable to provide the library ZIP." });
+    }
+  });
+
+  app.get("/api/online-updates/zips/:id/download", requireOwner, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ message: "Invalid ZIP id." });
+    try {
+      const zip = await storage.getOnlineUpdateZip(id);
+      if (!zip) return res.status(404).json({ message: "ZIP file not found." });
+      const filename = zip.fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 255);
+      res.set({
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+      return res.status(200).send(zip.zipData);
+    } catch {
+      return res.status(500).json({ message: "Unable to provide the ZIP file." });
     }
   });
 
