@@ -1,0 +1,306 @@
+Modify my existing key panel project to add a new Owner-only page called "Online Updates".
+
+IMPORTANT:
+
+- Do NOT redesign the existing UI/UX.
+- Do NOT change the existing theme, layout style, sidebar/navigation style, components, colors, typography, spacing, or responsive behavior.
+- Reuse the existing UI/UX components and patterns already present in the project.
+- Do NOT add any extra features beyond what is explicitly requested below.
+- Do NOT modify existing key-management functionality.
+- Do NOT modify existing Admin or Reseller functionality except for enforcing that they cannot access this new page.
+- Make the smallest, cleanest implementation possible.
+
+1. OWNER-ONLY ACCESS
+
+Create a dedicated Online Updates page that can ONLY be accessed by the Owner role.
+
+The access restriction must be enforced on the backend/server side, not only by hiding the menu item.
+
+Roles:
+
+- Owner → ALLOWED
+- Admin → STRICTLY DENIED
+- Reseller → STRICTLY DENIED
+
+Requirements:
+
+- Only Owner should see the "Online Updates" navigation item.
+- Admin must not see the navigation item.
+- Reseller must not see the navigation item.
+- Admin must not be able to access the page by manually entering its URL.
+- Reseller must not be able to access the page by manually entering its URL.
+- Direct API requests to the Online Updates management endpoint must also verify the authenticated user is Owner.
+- Never rely only on frontend role checks for security.
+- If a non-Owner attempts to access the page or its API, return the project's existing appropriate unauthorized/forbidden behavior.
+- Do not expose the page data or update-management API to Admin or Reseller.
+
+2. OWNER SIDEBAR
+
+Inside the existing Owner right-side/menu navigation, add exactly one new navigation item:
+
+Online Updates
+
+Use the existing navigation icon/component/style already used by the project.
+
+Do not add any other navigation items.
+
+The navigation item must only be rendered for Owner.
+
+3. ONLINE UPDATES PAGE
+
+Create a dedicated page:
+
+Online Updates
+
+The page is for managing the application's existing online-update JSON configuration.
+
+Use the existing project's UI/UX patterns. Do not invent a new design system.
+
+The page must provide controls for these existing JSON fields:
+
+{
+  "version": "1.0.2",
+  "server": true,
+  "apk_url": "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
+  "message": "Version 1.0.2 is now available.",
+  "Server_Response": "Server is currently under maintenance."
+}
+
+4. REQUIRED CONTROLS
+
+Server Toggle
+
+Provide a toggle/switch for:
+
+server
+
+It must represent the boolean value:
+
+"server": true
+
+Owner must be able to turn it ON/OFF.
+
+Do not create any additional server controls.
+
+Version
+
+Provide an easy version input/control for:
+
+version
+
+Example:
+
+1.0.2
+
+It must save as:
+
+"version": "1.0.2"
+
+Do not add automatic version-generation features or additional version-management features.
+
+APK URL
+
+Provide an input field for:
+
+apk_url
+
+Example:
+
+https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk
+
+Save it exactly as:
+
+"apk_url": "..."
+
+Message
+
+Provide an input/textarea using the existing project's appropriate form component for:
+
+message
+
+Example:
+
+Version 1.0.2 is now available.
+
+Save it as:
+
+"message": "Version 1.0.2 is now available."
+
+Server Response
+
+Provide an input/textarea for:
+
+Server_Response
+
+Example:
+
+Server is currently under maintenance.
+
+Save it exactly using the existing JSON key:
+
+"Server_Response": "Server is currently under maintenance."
+
+Do NOT rename it to "server_response".
+
+5. SAVE
+
+Provide the existing project's standard save/update action.
+
+When Owner saves the settings, persist the values so the JSON endpoint returns the latest configuration.
+
+Do not add:
+
+- version history
+- rollback
+- scheduling
+- release management
+- upload system
+- analytics
+- notifications
+- extra confirmation systems
+- additional settings
+- additional fields
+
+Only implement the requested configuration management.
+
+6. JSON ENDPOINT
+
+Create/use the appropriate backend endpoint that returns the configuration as raw JSON.
+
+The endpoint response must have exactly this structure:
+
+{
+  "version": "1.0.2",
+  "server": true,
+  "apk_url": "https://github.com/advikbeats-maker/online-lib/releases/download/v1.0.2/app-release.apk",
+  "message": "Version 1.0.2 is now available.",
+  "Server_Response": "Server is currently under maintenance."
+}
+
+Important:
+
+- Keep the field names exactly as shown.
+- Keep "server" as a boolean, NOT a string.
+- Keep all other values as strings.
+- Do not add unnecessary fields to the public JSON response.
+- Do not change the JSON format.
+
+7. PUBLIC UPDATE JSON VS OWNER MANAGEMENT
+
+The JSON endpoint used by the Android application is the update configuration endpoint.
+
+The Owner management page/API is separate from the public Android JSON endpoint.
+
+The Owner management API must require Owner authentication.
+
+The public JSON endpoint should return only the five configuration fields shown above and must not expose Owner/session/database information.
+
+8. NO CDN CACHE FOR UPDATE JSON
+
+The Android update JSON must always return the latest saved configuration.
+
+Do NOT allow Vercel/CDN/browser caching to serve an old configuration.
+
+For the public update JSON response, use appropriate no-cache headers such as:
+
+Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+CDN-Cache-Control: no-store
+Vercel-CDN-Cache-Control: no-store
+
+Also disable any framework-level data caching for this dynamic endpoint.
+
+The endpoint must retrieve the latest configuration rather than returning a previously cached JSON response.
+
+This is important because changes to:
+
+server
+version
+apk_url
+message
+Server_Response
+
+must be reflected on the next Android request.
+
+Do NOT disable the CDN globally for the entire project. Only make this update configuration endpoint non-cacheable.
+
+9. DATABASE
+
+Use the project's existing database architecture and existing Neon connection.
+
+Do NOT create a second database.
+
+Do NOT replace Neon.
+
+Do NOT modify unrelated tables or existing key-management logic.
+
+Store only the required update configuration using the project's existing database conventions.
+
+If an appropriate existing configuration/settings table already exists, reuse it rather than creating unnecessary duplicate storage.
+
+10. SECURITY
+
+This page is sensitive Owner functionality.
+
+Implement authorization carefully.
+
+Frontend hiding is NOT sufficient.
+
+Every Owner management API/action must independently verify:
+
+authenticated user → role === Owner
+
+Admin and Reseller must receive an authorization failure even if they manually call the endpoint.
+
+Do not trust a role value supplied by the client.
+
+Use the project's existing authenticated session/user identity and existing role system.
+
+Do not expose database credentials, secrets, or privileged environment variables to the browser.
+
+11. EXISTING CODE SAFETY
+
+Before implementing:
+
+- Inspect the existing authentication system.
+- Inspect the existing Owner/Admin/Reseller role handling.
+- Inspect the existing navigation/sidebar implementation.
+- Inspect the existing page routing system.
+- Inspect the existing Neon/database access layer.
+- Inspect the existing API conventions.
+- Inspect existing form/input/button components.
+- Reuse the project's existing patterns.
+
+Do not create duplicate authentication or database systems.
+
+Do not rewrite unrelated files.
+
+Do not change existing functionality.
+
+12. FINAL REQUIREMENT
+
+Implement ONLY this feature:
+
+Owner → Online Updates → manage the five-field online update JSON configuration → save to Neon → public JSON endpoint returns the latest configuration without CDN/browser caching.
+
+Nothing else.
+
+After implementation, verify these access cases:
+
+Owner:
+✓ Sees Online Updates
+✓ Can open Online Updates
+✓ Can edit configuration
+✓ Can save configuration
+✓ Public JSON reflects latest values
+
+Admin:
+✗ Does not see Online Updates
+✗ Cannot access the page directly
+✗ Cannot call the Owner management API
+
+Reseller:
+✗ Does not see Online Updates
+✗ Cannot access the page directly
+✗ Cannot call the Owner management API
+
+Do not add extra features or redesign anything.
