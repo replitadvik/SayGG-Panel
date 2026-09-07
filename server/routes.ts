@@ -1681,11 +1681,23 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     }
   });
 
-  app.get("/connect", (_req, res) => {
+  const setConnectNoCacheHeaders = (req: Request, res: Response) => {
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      "CDN-Cache-Control": "no-store",
+      "Vercel-CDN-Cache-Control": "no-store",
+    });
+    delete req.headers["if-none-match"];
+    delete req.headers["if-modified-since"];
+  };
+
+  app.get("/connect", (req, res) => {
+    setConnectNoCacheHeaders(req, res);
     res.json({ status: false, reason: "Use POST" });
   });
 
   app.post("/connect", async (req, res) => {
+    setConnectNoCacheHeaders(req, res);
     try {
       const maintenance = await storage.getMaintenanceStatus();
       if (maintenance && maintenance.status === "on") {
