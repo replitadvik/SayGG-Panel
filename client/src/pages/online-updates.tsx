@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle2,
@@ -342,17 +349,23 @@ export default function OnlineUpdatesPage() {
                   className="h-11 rounded bg-muted/50 border-border/60"
                   data-testid="input-online-updates-token-expiry"
                 />
-                <select
-                  aria-label="Token expiry duration"
+                <Select
                   value={tokenExpiryUnit}
-                  onChange={e => setTokenExpiryUnit(e.target.value as TokenExpiryUnit)}
-                  className="h-11 w-32 rounded border border-border/60 bg-muted/50 px-3 text-sm"
-                  data-testid="select-online-updates-token-expiry-unit"
+                  onValueChange={value => setTokenExpiryUnit(value as TokenExpiryUnit)}
                 >
-                  <option value="seconds">Seconds</option>
-                  <option value="minutes">Minutes</option>
-                  <option value="hours">Hours</option>
-                </select>
+                  <SelectTrigger
+                    aria-label="Token expiry duration"
+                    className="h-11 w-32 rounded border-border/60 bg-muted/50 px-3 text-sm"
+                    data-testid="select-online-updates-token-expiry-unit"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="min-w-32">
+                    <SelectItem value="seconds">Seconds</SelectItem>
+                    <SelectItem value="minutes">Minutes</SelectItem>
+                    <SelectItem value="hours">Hours</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <Button
