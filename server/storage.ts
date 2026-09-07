@@ -3,10 +3,10 @@ import { eq, and, desc, asc, count, sql, like, or, isNull, isNotNull, lt } from 
 import {
   users, keysCode, referralCode, priceConfig,
   feature, modname, ftext, onoff, history, loginThrottle, connectConfig, connectAuditLog, sessionSettings,
-  games, gameDurations, siteConfig, onlineUpdates, apiGeneratorConfig, apiGeneratorLog,
+  games, gameDurations, siteConfig, onlineUpdates, onlineUpdatesHistory, apiGeneratorConfig, apiGeneratorLog,
   type User, type Key, type ReferralCode, type PriceConfig,
   type Feature, type History, type ConnectConfig, type ConnectAuditLog, type SessionSettings,
-  type Game, type GameDuration, type OnlineUpdates, type ApiGeneratorConfig, type ApiGeneratorLog,
+  type Game, type GameDuration, type OnlineUpdates, type OnlineUpdatesHistory, type ApiGeneratorConfig, type ApiGeneratorLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -58,6 +58,8 @@ export interface IStorage {
   updateKeyPrefix(prefix: string): Promise<void>;
   getOnlineUpdates(): Promise<OnlineUpdates | undefined>;
   upsertOnlineUpdates(data: Partial<OnlineUpdates>): Promise<OnlineUpdates>;
+  createOnlineUpdatesHistory(data: Partial<OnlineUpdatesHistory>): Promise<OnlineUpdatesHistory>;
+  getOnlineUpdatesHistory(): Promise<OnlineUpdatesHistory[]>;
   getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined>;
   updateFtext(data: { _status?: string; _ftext?: string }): Promise<void>;
   getMaintenanceStatus(): Promise<{ status: string; myinput: string | null } | undefined>;
@@ -405,6 +407,15 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db.insert(onlineUpdates).values(data as any).returning();
     return created;
+  }
+
+  async createOnlineUpdatesHistory(data: Partial<OnlineUpdatesHistory>): Promise<OnlineUpdatesHistory> {
+    const [created] = await db.insert(onlineUpdatesHistory).values(data as any).returning();
+    return created;
+  }
+
+  async getOnlineUpdatesHistory(): Promise<OnlineUpdatesHistory[]> {
+    return db.select().from(onlineUpdatesHistory).orderBy(desc(onlineUpdatesHistory.id));
   }
 
   async getFtext(): Promise<{ _status: string | null; _ftext: string | null } | undefined> {

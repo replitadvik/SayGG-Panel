@@ -126,6 +126,17 @@ CREATE TABLE IF NOT EXISTS "online_updates" (
 "library_zip_uploaded_at" timestamp
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "online_updates_history" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"change_type" varchar(20) NOT NULL,
+	"previous_value" text,
+	"new_value" text NOT NULL,
+	"file_name" varchar(255),
+	"file_size" integer,
+	"changed_by" varchar(50),
+	"created_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "_ftext" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"_status" text,

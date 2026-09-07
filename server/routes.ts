@@ -2004,8 +2004,15 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
     if (typeof Server_Response !== "string" || Server_Response.trim().length === 0) {
       return res.status(400).json({ message: "Server response is required." });
     }
-    if (typeof LibVersion !== "string" || LibVersion.trim().length === 0 || LibVersion.trim().length > 50) {
+    const existingConfig = await storage.getOnlineUpdates();
+    const nextLibraryVersion = LibVersion === undefined
+      ? existingConfig?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion
+      : LibVersion;
+    if (typeof nextLibraryVersion !== "string" || nextLibraryVersion.trim().length === 0 || nextLibraryVersion.trim().length > 50) {
       return res.status(400).json({ message: "LibVersion is required and must be 50 characters or less." });
+    }
+    if (existingConfig && nextLibraryVersion.trim() !== existingConfig.libraryVersion) {
+      return res.status(400).json({ message: "Upload a new library ZIP before changing LibVersion." });
     }
 
     const config = await storage.upsertOnlineUpdates({
@@ -2014,8 +2021,17 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       apkUrl: apk_url.trim(),
       message: message.trim(),
       serverResponse: Server_Response.trim(),
-      libraryVersion: LibVersion.trim(),
+      libraryVersion: nextLibraryVersion.trim(),
     });
+    if (existingConfig && existingConfig.version !== config.version) {
+      const user = await storage.getUser(req.session.userId!);
+      await storage.createOnlineUpdatesHistory({
+        changeType: "version",
+        previousValue: existingConfig.version,
+        newValue: config.version,
+        changedBy: user?.username || null,
+      });
+    }
     emitToOwners(wsEvent("settings:updated", { section: "online-updates" }));
     res.json(onlineUpdatesJson(config));
   });
@@ -2044,32 +2060,81 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       }
 
       const requestedName = req.get("x-filename") || "library.zip";
-      const filename = decodeURIComponent(requestedName)
-        .replace(/\\/g, "/")
-        .split("/")
-        .pop()
-        ?.trim() || "library.zip";
+      let filename = "library.zip";
+      try {
+        filename = decodeURIComponent(requestedName)
+          .replace(/\\/g, "/")
+          .split("/")
+          .pop()
+          ?.trim() || "library.zip";
+      } catch {
+        return res.status(400).json({ message: "Invalid library filename." });
+      }
       if (!/\.zip$/i.test(filename)) {
         return res.status(400).json({ message: "The library file must use the .zip extension." });
       }
 
       try {
+        const existingConfig = await storage.getOnlineUpdates();
+        const requestedLibraryVersion = req.get("x-library-version");
+        const libraryVersion = requestedLibraryVersion?.trim() || existingConfig?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion;
+        if (!libraryVersion || libraryVersion.length > 50) {
+          return res.status(400).json({ message: "LibVersion is required and must be 50 characters or less." });
+        }
+        const user = await storage.getUser(req.session.userId!);
         const config = await storage.upsertOnlineUpdates({
+          libraryVersion,
           libraryZip: zip,
           libraryZipName: filename.slice(0, 255),
           libraryZipUploadedAt: new Date(),
+        });
+        await storage.createOnlineUpdatesHistory({
+          changeType: "library",
+          previousValue: existingConfig?.libraryVersion || null,
+          newValue: config.libraryVersion,
+          fileName: config.libraryZipName,
+          fileSize: zip.length,
+          changedBy: user?.username || null,
         });
         emitToOwners(wsEvent("settings:updated", { section: "online-updates-library" }));
         return res.json({
           message: "Library ZIP uploaded.",
           filename: config.libraryZipName,
           size: zip.length,
+          LibVersion: config.libraryVersion,
+          uploadedAt: config.libraryZipUploadedAt,
         });
       } catch {
         return res.status(500).json({ message: "Unable to store the library ZIP." });
       }
     },
   );
+
+  app.get("/api/online-updates/library", requireOwner, async (_req, res) => {
+    try {
+      const config = await storage.getOnlineUpdates();
+      return res.json({
+        LibVersion: config?.libraryVersion || DEFAULT_ONLINE_UPDATES.LibVersion,
+        filename: config?.libraryZipName || null,
+        size: config?.libraryZip?.length || 0,
+        uploadedAt: config?.libraryZipUploadedAt || null,
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to read library metadata." });
+    }
+  });
+
+  app.get("/api/online-updates/history", requireOwner, async (_req, res) => {
+    try {
+      const history = await storage.getOnlineUpdatesHistory();
+      return res.json({
+        versionChanges: history.filter(entry => entry.changeType === "version"),
+        libraryChanges: history.filter(entry => entry.changeType === "library"),
+      });
+    } catch {
+      return res.status(500).json({ message: "Unable to read online update history." });
+    }
+  });
 
   app.post("/api/online-updates/library/authorize", rateLimit(60000, 20), async (req, res) => {
     setOnlineUpdatesNoCache(res);

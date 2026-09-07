@@ -172,6 +172,18 @@ export async function runMigrations(): Promise<void> {
     await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip" bytea`);
     await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip_name" varchar(255)`);
     await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "library_zip_uploaded_at" timestamp`);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "online_updates_history" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "change_type" varchar(20) NOT NULL,
+        "previous_value" text,
+        "new_value" text NOT NULL,
+        "file_name" varchar(255),
+        "file_size" integer,
+        "changed_by" varchar(50),
+        "created_at" timestamp DEFAULT now()
+      )
+    `);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS "_ftext" (

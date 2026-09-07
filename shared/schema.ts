@@ -153,6 +153,20 @@ export const onlineUpdates = pgTable("online_updates", {
   libraryZipUploadedAt: timestamp("library_zip_uploaded_at"),
 });
 
+export const onlineUpdatesHistory = pgTable("online_updates_history", {
+  id: serial("id").primaryKey(),
+  changeType: varchar("change_type", { length: 20 }).notNull(),
+  previousValue: text("previous_value"),
+  newValue: text("new_value").notNull(),
+  fileName: varchar("file_name", { length: 255 }),
+  fileSize: integer("file_size"),
+  changedBy: varchar("changed_by", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_online_updates_history_type").on(table.changeType),
+  index("idx_online_updates_history_created").on(table.createdAt),
+]);
+
 export const ftext = pgTable("_ftext", {
   id: serial("id").primaryKey(),
   _status: text("_status"),
@@ -334,6 +348,7 @@ export type PriceConfig = typeof priceConfig.$inferSelect;
 export type Feature = typeof feature.$inferSelect;
 export type SiteConfig = typeof siteConfig.$inferSelect;
 export type OnlineUpdates = typeof onlineUpdates.$inferSelect;
+export type OnlineUpdatesHistory = typeof onlineUpdatesHistory.$inferSelect;
 export type History = typeof history.$inferSelect;
 export type ConnectConfig = typeof connectConfig.$inferSelect;
 export type ConnectAuditLog = typeof connectAuditLog.$inferSelect;
