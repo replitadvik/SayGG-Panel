@@ -151,9 +151,15 @@ type LibraryDownloadToken = LibraryKeyContext & {
   expiresAt: number;
 };
 
-const MIN_ZIP_TOKEN_EXPIRY_MINUTES = 1;
-const MAX_ZIP_TOKEN_EXPIRY_MINUTES = 1440;
+const MIN_ZIP_TOKEN_EXPIRY_SECONDS = 1;
+const MAX_ZIP_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 const libraryDownloadTokens = new Map<string, LibraryDownloadToken>();
+
+function formatTokenExpiry(seconds: number): string {
+  if (seconds % 3600 === 0) return `${seconds / 3600} hour(s)`;
+  if (seconds % 60 === 0) return `${seconds / 60} minute(s)`;
+  return `${seconds} second(s)`;
+}
 
 function pruneLibraryDownloadTokens() {
   const now = Date.now();
@@ -2026,9 +2032,9 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const tokenHistory = (await storage.getOnlineUpdatesHistory())
         .find(entry => entry.changeType === "token_expiry");
       return res.json({
-        expiryMinutes: config.zipTokenExpiryMinutes,
-        minMinutes: MIN_ZIP_TOKEN_EXPIRY_MINUTES,
-        maxMinutes: MAX_ZIP_TOKEN_EXPIRY_MINUTES,
+        expirySeconds: config.zipTokenExpirySeconds,
+        minSeconds: MIN_ZIP_TOKEN_EXPIRY_SECONDS,
+        maxSeconds: MAX_ZIP_TOKEN_EXPIRY_SECONDS,
         changedBy: tokenHistory?.changedBy || null,
         changedAt: tokenHistory?.createdAt || null,
       });
@@ -2038,27 +2044,27 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   });
 
   app.put("/api/online-updates/token-settings", requireOwner, async (req, res) => {
-    const expiryMinutes = Number(req.body?.expiryMinutes);
+    const expirySeconds = Number(req.body?.expirySeconds);
     if (
-      !Number.isInteger(expiryMinutes) ||
-      expiryMinutes < MIN_ZIP_TOKEN_EXPIRY_MINUTES ||
-      expiryMinutes > MAX_ZIP_TOKEN_EXPIRY_MINUTES
+      !Number.isInteger(expirySeconds) ||
+      expirySeconds < MIN_ZIP_TOKEN_EXPIRY_SECONDS ||
+      expirySeconds > MAX_ZIP_TOKEN_EXPIRY_SECONDS
     ) {
       return res.status(400).json({
-        message: `Token expiry must be a whole number between ${MIN_ZIP_TOKEN_EXPIRY_MINUTES} and ${MAX_ZIP_TOKEN_EXPIRY_MINUTES} minutes.`,
+        message: `Token expiry must be a whole number between ${MIN_ZIP_TOKEN_EXPIRY_SECONDS} seconds and ${MAX_ZIP_TOKEN_EXPIRY_SECONDS} seconds.`,
       });
     }
 
     try {
       const existingConfig = await storage.getOnlineUpdates();
-      const currentExpiry = existingConfig?.zipTokenExpiryMinutes;
+      const currentExpiry = existingConfig?.zipTokenExpirySeconds;
       const user = await storage.getUser(req.session.userId!);
-      const config = await storage.upsertOnlineUpdates({ zipTokenExpiryMinutes: expiryMinutes });
-      if (currentExpiry !== undefined && currentExpiry !== expiryMinutes) {
+      const config = await storage.upsertOnlineUpdates({ zipTokenExpirySeconds: expirySeconds });
+      if (currentExpiry !== undefined && currentExpiry !== expirySeconds) {
         await storage.createOnlineUpdatesHistory({
           changeType: "token_expiry",
-          previousValue: String(currentExpiry),
-          newValue: String(expiryMinutes),
+          previousValue: formatTokenExpiry(currentExpiry),
+          newValue: formatTokenExpiry(expirySeconds),
           changedBy: user?.username || null,
         });
         // A policy change must take effect immediately. Existing tokens are
@@ -2068,7 +2074,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       emitToOwners(wsEvent("settings:updated", { section: "online-updates-token-settings" }));
       return res.json({
         message: "ZIP token expiry updated.",
-        expiryMinutes: config.zipTokenExpiryMinutes,
+        expirySeconds: config.zipTokenExpirySeconds,
       });
     } catch {
       return res.status(500).json({ message: "Unable to update ZIP token settings." });
@@ -2367,8 +2373,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       pruneLibraryDownloadTokens();
       const token = crypto.randomBytes(32).toString("hex");
       const config = await storage.getOnlineUpdates() || await storage.upsertOnlineUpdates({});
-      const expiryMinutes = config.zipTokenExpiryMinutes;
-      const expiresAt = Date.now() + expiryMinutes * 60 * 1000;
+      const expiresAt = Date.now() + config.zipTokenExpirySeconds * 1000;
       libraryDownloadTokens.set(token, { ...validation.context, expiresAt });
 
       return res.json({

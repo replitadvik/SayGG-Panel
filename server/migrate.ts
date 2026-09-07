@@ -164,7 +164,22 @@ export async function runMigrations(): Promise<void> {
         "Server_Response" text DEFAULT 'Server is currently under maintenance.' NOT NULL
       )
     `);
-    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "zip_token_expiry_minutes" integer DEFAULT 5 NOT NULL`);
+    await client.query(`ALTER TABLE "online_updates" ADD COLUMN IF NOT EXISTS "zip_token_expiry_seconds" integer DEFAULT 300 NOT NULL`);
+    const legacyTokenExpiry = await client.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'online_updates' AND column_name = 'zip_token_expiry_minutes'
+      ) AS "has_legacy_token_expiry"
+    `);
+    if (legacyTokenExpiry.rows[0]?.has_legacy_token_expiry) {
+      await client.query(`
+        UPDATE "online_updates"
+        SET "zip_token_expiry_seconds" = GREATEST(1, "zip_token_expiry_minutes" * 60)
+        WHERE "zip_token_expiry_minutes" IS NOT NULL
+      `);
+      await client.query(`ALTER TABLE "online_updates" DROP COLUMN IF EXISTS "zip_token_expiry_minutes"`);
+    }
     await client.query(`
       CREATE TABLE IF NOT EXISTS "online_update_zips" (
         "id" serial PRIMARY KEY NOT NULL,

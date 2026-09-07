@@ -62,12 +62,14 @@ interface OnlineUpdatesHistory {
 }
 
 interface TokenSettings {
-  expiryMinutes: number;
-  minMinutes: number;
-  maxMinutes: number;
+  expirySeconds: number;
+  minSeconds: number;
+  maxSeconds: number;
   changedBy: string | null;
   changedAt: string | null;
 }
+
+type TokenExpiryUnit = "seconds" | "minutes" | "hours";
 
 export default function OnlineUpdatesPage() {
   const { toast } = useToast();
@@ -88,7 +90,8 @@ export default function OnlineUpdatesPage() {
   const [apkUrl, setApkUrl] = useState("");
   const [message, setMessage] = useState("");
   const [serverResponse, setServerResponse] = useState("");
-  const [tokenExpiryMinutes, setTokenExpiryMinutes] = useState("");
+  const [tokenExpiryValue, setTokenExpiryValue] = useState("");
+  const [tokenExpiryUnit, setTokenExpiryUnit] = useState<TokenExpiryUnit>("minutes");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [renamingZipId, setRenamingZipId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -104,7 +107,17 @@ export default function OnlineUpdatesPage() {
   }, [config]);
 
   useEffect(() => {
-    if (tokenSettings) setTokenExpiryMinutes(String(tokenSettings.expiryMinutes));
+    if (!tokenSettings) return;
+    if (tokenSettings.expirySeconds % 3600 === 0) {
+      setTokenExpiryValue(String(tokenSettings.expirySeconds / 3600));
+      setTokenExpiryUnit("hours");
+    } else if (tokenSettings.expirySeconds % 60 === 0) {
+      setTokenExpiryValue(String(tokenSettings.expirySeconds / 60));
+      setTokenExpiryUnit("minutes");
+    } else {
+      setTokenExpiryValue(String(tokenSettings.expirySeconds));
+      setTokenExpiryUnit("seconds");
+    }
   }, [tokenSettings]);
 
   const invalidateZipQueries = () => {
@@ -150,11 +163,13 @@ export default function OnlineUpdatesPage() {
 
   const tokenSettingsMutation = useMutation({
     mutationFn: async () => {
-      const expiryMinutes = Number(tokenExpiryMinutes);
-      if (!Number.isInteger(expiryMinutes)) {
-        throw new Error("Enter a whole number of minutes.");
+      const value = Number(tokenExpiryValue);
+      const multiplier = { seconds: 1, minutes: 60, hours: 3600 }[tokenExpiryUnit];
+      const expirySeconds = value * multiplier;
+      if (!Number.isInteger(value) || !Number.isInteger(expirySeconds)) {
+        throw new Error("Enter a whole number and choose a duration.");
       }
-      return apiRequest("PUT", "/api/online-updates/token-settings", { expiryMinutes });
+      return apiRequest("PUT", "/api/online-updates/token-settings", { expirySeconds });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/online-updates/token-settings"] });
@@ -310,29 +325,41 @@ export default function OnlineUpdatesPage() {
         </div>
         <div className="p-5 space-y-3">
           <p className="text-xs text-muted-foreground">
-            Owner-only setting. Temporary ZIP download tokens expire after this many minutes.
+            Owner-only setting. Temporary ZIP download tokens expire after the selected duration.
             Changing it immediately invalidates existing tokens.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="space-y-2 flex-1">
-              <Label htmlFor="online-updates-token-expiry">Expiry time in minutes</Label>
-              <Input
-                id="online-updates-token-expiry"
-                type="number"
-                min={tokenSettings?.minMinutes || 1}
-                max={tokenSettings?.maxMinutes || 1440}
-                step={1}
-                value={tokenExpiryMinutes}
-                onChange={e => setTokenExpiryMinutes(e.target.value)}
-                className="h-11 rounded bg-muted/50 border-border/60"
-                data-testid="input-online-updates-token-expiry"
-              />
+              <Label htmlFor="online-updates-token-expiry">Expire Time</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="online-updates-token-expiry"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={tokenExpiryValue}
+                  onChange={e => setTokenExpiryValue(e.target.value)}
+                  className="h-11 rounded bg-muted/50 border-border/60"
+                  data-testid="input-online-updates-token-expiry"
+                />
+                <select
+                  aria-label="Token expiry duration"
+                  value={tokenExpiryUnit}
+                  onChange={e => setTokenExpiryUnit(e.target.value as TokenExpiryUnit)}
+                  className="h-11 w-32 rounded border border-border/60 bg-muted/50 px-3 text-sm"
+                  data-testid="select-online-updates-token-expiry-unit"
+                >
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                </select>
+              </div>
             </div>
             <Button
               type="button"
               variant="outline"
               onClick={() => tokenSettingsMutation.mutate()}
-              disabled={tokenSettingsMutation.isPending || !tokenExpiryMinutes}
+              disabled={tokenSettingsMutation.isPending || !tokenExpiryValue}
               className="h-11"
               data-testid="button-save-online-updates-token-expiry"
             >
@@ -341,7 +368,7 @@ export default function OnlineUpdatesPage() {
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Allowed range: {tokenSettings?.minMinutes || 1}–{tokenSettings?.maxMinutes || 1440} minutes
+            Allowed range: 1 second–7 days
             {tokenSettings?.changedAt ? ` · Last changed ${new Date(tokenSettings.changedAt).toLocaleString()}` : ""}
           </p>
         </div>
