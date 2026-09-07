@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Key, Users, Settings,
   LogOut, Menu, Wallet, Link2, User, Gamepad2, Shield,
   Sun, Moon, Zap, ChevronRight, Globe,
+  RefreshCw,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
@@ -21,6 +22,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { path: "/online-updates", label: "Online Updates", icon: RefreshCw, minLevel: 1, maxLevel: 1, group: "main" },
   { path: "/", label: "Dashboard", icon: LayoutDashboard, minLevel: 1, group: "main" },
   { path: "/keys", label: "Keys", icon: Key, minLevel: 1, group: "main" },
   { path: "/keys/generate", label: "Generate Key", icon: Zap, minLevel: 1, group: "main" },
