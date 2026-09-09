@@ -155,6 +155,15 @@ const MIN_ZIP_TOKEN_EXPIRY_SECONDS = 1;
 const MAX_ZIP_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 const libraryDownloadTokens = new Map<string, LibraryDownloadToken>();
 
+// Expiry is calculated and stored as an absolute instant. Only the API
+// representation is localized so clients receive the same instant in IST.
+const INDIA_TIMEZONE_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+function formatIndiaIso(date: Date): string {
+  return new Date(date.getTime() + INDIA_TIMEZONE_OFFSET_MS)
+    .toISOString()
+    .replace("Z", "+05:30");
+}
+
 function formatTokenExpiry(seconds: number): string {
   if (seconds % 3600 === 0) return `${seconds / 3600} hour(s)`;
   if (seconds % 60 === 0) return `${seconds / 60} minute(s)`;
@@ -1872,7 +1881,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
         data: {
           token,
           rng: Math.floor(Date.now() / 1000),
-          EXP: expired.toISOString(),
+          EXP: formatIndiaIso(expired),
           secret_version: connectCfg?.secretVersion || 1,
           modname: modData || "",
           mod_status: textData?._status || "",
@@ -1890,7 +1899,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
           gameDisplayName: gameRecord.displayName,
           keyStatus: findKey.status === 1 ? "active" : "blocked",
           durationLabel,
-          expiresAt: expired.toISOString(),
+          expiresAt: formatIndiaIso(expired),
           timeLeftMs,
           timeLeft: timeLeftMs > 0 ? `${Math.floor(timeLeftMs / 3600000)}h ${Math.floor((timeLeftMs % 3600000) / 60000)}m` : "Expired",
           maxDevices: findKey.maxDevices,

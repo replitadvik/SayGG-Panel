@@ -78,6 +78,18 @@ interface TokenSettings {
 
 type TokenExpiryUnit = "seconds" | "minutes" | "hours";
 
+const indiaDateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "medium",
+  timeZone: "Asia/Kolkata",
+});
+
+function formatIndiaDateTime(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : indiaDateTimeFormatter.format(date);
+}
+
 export default function OnlineUpdatesPage() {
   const { toast } = useToast();
   const { data: config, isLoading } = useQuery<OnlineUpdatesConfig>({
@@ -382,7 +394,7 @@ export default function OnlineUpdatesPage() {
           </div>
           <p className="text-[11px] text-muted-foreground">
             Allowed range: 1 second–7 days
-            {tokenSettings?.changedAt ? ` · Last changed ${new Date(tokenSettings.changedAt).toLocaleString()}` : ""}
+            {tokenSettings?.changedAt ? ` · Last changed ${formatIndiaDateTime(tokenSettings.changedAt)}` : ""}
           </p>
         </div>
       </div>
@@ -466,7 +478,7 @@ export default function OnlineUpdatesPage() {
                           <p className="font-medium truncate">{zip.filename}</p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {(zip.size / 1024 / 1024).toFixed(2)} MB · added {zip.uploadedAt ? new Date(zip.uploadedAt).toLocaleString() : "—"}
+                          {(zip.size / 1024 / 1024).toFixed(2)} MB · added {formatIndiaDateTime(zip.uploadedAt)}
                         </p>
                       </div>
                       {zip.isActive ? (
@@ -580,7 +592,7 @@ function HistoryCard({
                 </p>
               )}
               <p className="text-[11px] text-muted-foreground">
-                {entry.changedBy || "Owner"} · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "Just now"}
+                {entry.changedBy || "Owner"} · {entry.createdAt ? formatIndiaDateTime(entry.createdAt) : "Just now"}
               </p>
             </div>
           ))
