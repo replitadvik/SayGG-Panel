@@ -683,6 +683,19 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       const data = generateKeySchema.parse(req.body);
       const isOwner = user.level === 1;
       const roleName = isOwner ? "Owner" : user.level === 2 ? "Admin" : "Reseller";
+      const requestedQuantity = data.quantity ?? 1;
+      const canGenerateMultiple = isOwner || user.multiKeysEnabled === 1;
+      const multiKeysLimit = isOwner ? 100 : Math.min(Math.max(user.multiKeysLimit ?? 5, 2), 100);
+
+      if (requestedQuantity > 1 && !canGenerateMultiple) {
+        return res.status(403).json({ message: "Multiple key generation is not enabled for this account." });
+      }
+      if (requestedQuantity > multiKeysLimit) {
+        return res.status(400).json({ message: `You can generate up to ${multiKeysLimit} keys at a time.` });
+      }
+      if (requestedQuantity > 1 && data.customInput === "custom") {
+        return res.status(400).json({ message: "Multiple key generation only supports random keys." });
+      }
 
       if (user.level === 3 && data.maxDevices > 2) {
         return res.status(400).json({ message: "Reseller accounts are limited to 2 devices per key." });
@@ -711,64 +724,89 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       }
 
       const cost = durEntry.price * data.maxDevices;
+      const totalCost = cost * requestedQuantity;
 
-      if (!isOwner && cost > user.saldo) {
+      if (!isOwner && totalCost > user.saldo) {
         return res.status(400).json({
-          message: `Insufficient balance. This key costs ${cost.toLocaleString()} but your balance is ${user.saldo.toLocaleString()}.`,
+          message: `Insufficient balance. These keys cost ${totalCost.toLocaleString()} but your balance is ${user.saldo.toLocaleString()}.`,
         });
       }
 
-      let license: string;
-      if (data.customInput === "custom" && data.customLicense) {
-        if (data.customLicense.length < 4 || data.customLicense.length > 19) {
-          return res.status(400).json({ message: "Custom key must be 4-19 characters." });
+      const keyPrefix = await storage.getKeyPrefix();
+      const licenses: string[] = [];
+      for (let index = 0; index < requestedQuantity; index++) {
+        let license = data.customInput === "custom" && data.customLicense
+          ? data.customLicense
+          : generateKeyLicense(data.duration, keyPrefix);
+
+        if (data.customInput === "custom" && data.customLicense) {
+          if (data.customLicense.length < 4 || data.customLicense.length > 19) {
+            return res.status(400).json({ message: "Custom key must be 4-19 characters." });
+          }
+          if (licenses.includes(license) || await storage.getKeyByUserKeyAndGame(license, gameRecord.name)) {
+            return res.status(400).json({ message: "Key already exists." });
+          }
+        } else {
+          let attempts = 0;
+          while ((licenses.includes(license) || await storage.getKeyByUserKeyAndGame(license, gameRecord.name)) && attempts < 10) {
+            license = generateKeyLicense(data.duration, keyPrefix);
+            attempts++;
+          }
+          if (licenses.includes(license) || await storage.getKeyByUserKeyAndGame(license, gameRecord.name)) {
+            return res.status(409).json({ message: "Could not create a unique key. Please try again." });
+          }
         }
-        const existingKey = await storage.getKeyByUserKeyAndGame(data.customLicense, gameRecord.name);
-        if (existingKey) return res.status(400).json({ message: "Key already exists." });
-        license = data.customLicense;
-      } else {
-        const keyPrefix = await storage.getKeyPrefix();
-        license = generateKeyLicense(data.duration, keyPrefix);
+        licenses.push(license);
       }
 
-      const newKey = await storage.createKey({
-        game: gameRecord.name,
-        gameId: data.gameId,
-        userKey: license,
-        duration: data.duration,
-        maxDevices: data.maxDevices,
-        registrator: user.username,
-        adminId: user.id,
-        status: 1,
-      } as any);
-
-      const newBalance = isOwner ? user.saldo : user.saldo - cost;
-      if (!isOwner) {
-        await storage.updateUser(user.id, { saldo: newBalance });
-      }
-
-      const costLabel = isOwner ? "Free (Owner)" : cost.toLocaleString();
-      const balLabel = isOwner ? "∞" : newBalance.toLocaleString();
-      await storage.createHistory({
-        keysId: newKey.id,
+      const result = await storage.createKeysAndCharge({
+        keys: licenses.map((license) => ({
+          game: gameRecord.name,
+          gameId: data.gameId,
+          userKey: license,
+          duration: data.duration,
+          maxDevices: data.maxDevices,
+          registrator: user.username,
+          adminId: user.id,
+          status: 1,
+        })),
         userId: user.id,
-        userDo: user.username,
-        activity: "Key Generated",
-        info: `[${roleName}] Generated key #${newKey.id}`,
-        description: [
-          `Key: ${license}`,
-          `Game: ${gameRecord.name}`,
-          `Duration: ${data.duration}h`,
-          `Devices: ${data.maxDevices}`,
-          `Type: ${data.customInput === "custom" ? "Custom" : "Random"}`,
-          `Cost: ${costLabel}`,
-          `Balance after: ${balLabel}`,
-        ].join(". ") + ".",
+        charge: isOwner ? 0 : totalCost,
+        currentBalance: user.saldo,
       });
+      const newKeys = result.keys;
+      const newBalance = result.balanceAfter;
 
-      emitScopedKeyEvent(wsEvent("keys:created", { keyId: newKey.id, registrator: user.username }), user.username);
+      const costLabel = isOwner ? "Free (Owner)" : totalCost.toLocaleString();
+      const balLabel = isOwner ? "∞" : newBalance.toLocaleString();
+      for (const newKey of newKeys) {
+        await storage.createHistory({
+          keysId: newKey.id,
+          userId: user.id,
+          userDo: user.username,
+          activity: "Key Generated",
+          info: `[${roleName}] Generated key #${newKey.id}`,
+          description: [
+            `Key: ${newKey.userKey}`,
+            `Game: ${gameRecord.name}`,
+            `Duration: ${data.duration}h`,
+            `Devices: ${data.maxDevices}`,
+            `Type: ${data.customInput === "custom" ? "Custom" : "Random"}`,
+            `Batch size: ${requestedQuantity}`,
+            `Cost: ${costLabel}`,
+            `Balance after: ${balLabel}`,
+          ].join(". ") + ".",
+        });
 
-      res.json({ key: newKey, cost: isOwner ? 0 : cost, balanceAfter: newBalance });
+        emitScopedKeyEvent(wsEvent("keys:created", { keyId: newKey.id, registrator: user.username }), user.username);
+      }
+
+      res.json({
+        key: newKeys[0],
+        keys: newKeys,
+        cost: isOwner ? 0 : totalCost,
+        balanceAfter: newBalance,
+      });
     } catch (e: any) {
       res.status(400).json({ message: e.message || "Key generation failed." });
     }
@@ -1278,7 +1316,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       if (target.uplink !== me.username) return res.status(403).json({ message: "Can only edit users you referred." });
     }
 
-    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets } = req.body;
+    const { level, status, saldo, expirationDate, fullname, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets, multiKeysEnabled, multiKeysLimit } = req.body;
     const updates: any = {};
     if (level !== undefined) updates.level = level;
     if (status !== undefined) {
@@ -1295,6 +1333,12 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       if (maxDevicesLimit !== undefined) updates.maxDevicesLimit = Math.max(1, parseInt(maxDevicesLimit) || 1000);
       if (maxKeyExtends !== undefined) updates.maxKeyExtends = Math.max(1, parseInt(maxKeyExtends) || 5);
       if (maxKeyResets !== undefined) updates.maxKeyResets = Math.max(1, parseInt(maxKeyResets) || 3);
+      if (multiKeysEnabled !== undefined) {
+        updates.multiKeysEnabled = multiKeysEnabled === true || multiKeysEnabled === 1 || multiKeysEnabled === "1" ? 1 : 0;
+      }
+      if (multiKeysLimit !== undefined) {
+        updates.multiKeysLimit = Math.min(100, Math.max(2, parseInt(multiKeysLimit) || 5));
+      }
     }
 
     const updated = await storage.updateUser(target.id, updates);
@@ -1448,7 +1492,7 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
   app.post("/api/referrals", requireLevel(2), async (req, res) => {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets } = req.body;
+    const { level, setSaldo, accExpiration, maxKeyEdits, maxDevicesLimit, maxKeyExtends, maxKeyResets, multiKeysEnabled, multiKeysLimit } = req.body;
 
     const refLevel = level || 3;
     if (user.level === 2 && refLevel !== 3) {
@@ -1467,6 +1511,8 @@ export async function registerRoutes(httpServer: Server | null, app: Express): P
       maxDevicesLimit: maxDevicesLimit !== undefined ? Math.max(1, parseInt(maxDevicesLimit) || 1000) : 1000,
       maxKeyExtends: maxKeyExtends !== undefined ? Math.max(1, parseInt(maxKeyExtends) || 5) : 5,
       maxKeyResets: maxKeyResets !== undefined ? Math.max(1, parseInt(maxKeyResets) || 3) : 3,
+      multiKeysEnabled: user.level === 1 && (multiKeysEnabled === true || multiKeysEnabled === 1 || multiKeysEnabled === "1") ? 1 : 0,
+      multiKeysLimit: user.level === 1 ? Math.min(100, Math.max(2, parseInt(multiKeysLimit) || 5)) : 5,
     } as any);
 
     emitScopedUserEvent(wsEvent("referrals:created", { refId: ref.id }), user.username);

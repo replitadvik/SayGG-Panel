@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Search, Trash2, Edit, CheckCircle, XCircle, RotateCcw, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
@@ -89,6 +90,8 @@ export default function UsersPage() {
       maxDevicesLimit: u.maxDevicesLimit ?? 1000,
       maxKeyExtends: u.maxKeyExtends ?? 5,
       maxKeyResets: u.maxKeyResets ?? 3,
+      multiKeysEnabled: u.multiKeysEnabled === 1,
+      multiKeysLimit: u.multiKeysLimit ?? 5,
     });
   };
 
@@ -245,6 +248,33 @@ export default function UsersPage() {
                     <p className="text-[10px] text-muted-foreground">Max device resets per key for this user</p>
                   </div>
                 </div>
+                <div className="flex items-center justify-between gap-4 pt-2">
+                  <div>
+                    <Label htmlFor="edit-multi-keys" className="text-sm font-medium">Multi Keys</Label>
+                    <p className="text-[10px] text-muted-foreground mt-1">Allow this user to generate multiple keys at once</p>
+                  </div>
+                  <Switch
+                    id="edit-multi-keys"
+                    checked={!!editForm.multiKeysEnabled}
+                    onCheckedChange={checked => setEditForm({ ...editForm, multiKeysEnabled: checked })}
+                    data-testid="switch-edit-multi-keys"
+                  />
+                </div>
+                {editForm.multiKeysEnabled && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Multi Keys Generation Limit</Label>
+                    <Input
+                      type="number"
+                      min="2"
+                      max="100"
+                      value={editForm.multiKeysLimit ?? 5}
+                      onChange={e => setEditForm({ ...editForm, multiKeysLimit: parseInt(e.target.value) || 5 })}
+                      className="h-11 rounded bg-muted/50 border-border/60"
+                      data-testid="input-edit-multi-keys-limit"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Maximum keys this user can generate in one request (default 5)</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Copy, Link2 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
@@ -18,7 +19,8 @@ export default function ReferralsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000", maxKeyExtends: "5", maxKeyResets: "3" });
+  const defaultCreateForm = { level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000", maxKeyExtends: "5", maxKeyResets: "3", multiKeysEnabled: false, multiKeysLimit: "5" };
+  const [createForm, setCreateForm] = useState(defaultCreateForm);
 
   const { data: referrals = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/referrals"],
@@ -32,7 +34,7 @@ export default function ReferralsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
       setShowCreate(false);
-      setCreateForm({ level: "3", setSaldo: "0", accExpiration: "", maxKeyEdits: "3", maxDevicesLimit: "1000", maxKeyExtends: "5", maxKeyResets: "3" });
+       setCreateForm(defaultCreateForm);
       toast({ title: "Referral code created" });
     },
     onError: (e: any) => {
@@ -55,6 +57,10 @@ export default function ReferralsPage() {
       maxDevicesLimit: parseInt(createForm.maxDevicesLimit) || 1000,
       maxKeyExtends: parseInt(createForm.maxKeyExtends) || 5,
       maxKeyResets: parseInt(createForm.maxKeyResets) || 3,
+      ...(user?.level === 1 ? {
+        multiKeysEnabled: createForm.multiKeysEnabled,
+        multiKeysLimit: parseInt(createForm.multiKeysLimit) || 5,
+      } : {}),
     });
   };
 
@@ -163,6 +169,37 @@ export default function ReferralsPage() {
                 </div>
               </div>
             </div>
+            {user?.level === 1 && (
+              <div className="space-y-3 pt-2 border-t border-border/40">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label htmlFor="ref-multi-keys" className="text-sm font-medium">Multi Keys</Label>
+                    <p className="text-[10px] text-muted-foreground mt-1">Allow this referral’s user to generate multiple keys at once</p>
+                  </div>
+                  <Switch
+                    id="ref-multi-keys"
+                    checked={createForm.multiKeysEnabled}
+                    onCheckedChange={checked => setCreateForm({ ...createForm, multiKeysEnabled: checked })}
+                    data-testid="switch-ref-multi-keys"
+                  />
+                </div>
+                {createForm.multiKeysEnabled && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Multi Keys Generation Limit</Label>
+                    <Input
+                      type="number"
+                      min="2"
+                      max="100"
+                      value={createForm.multiKeysLimit}
+                      onChange={e => setCreateForm({ ...createForm, multiKeysLimit: e.target.value })}
+                      className="h-11 rounded bg-muted/50 border-border/60"
+                      data-testid="input-ref-multi-keys-limit"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Maximum keys this user can generate in one request (default 5)</p>
+                  </div>
+                )}
+              </div>
+            )}
             <DialogFooter className="gap-2">
               <Button variant="outline" type="button" onClick={() => setShowCreate(false)} className="rounded h-10">Cancel</Button>
               <Button type="submit" disabled={createMutation.isPending} className="rounded h-10" data-testid="button-submit-referral">

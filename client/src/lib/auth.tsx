@@ -18,6 +18,12 @@ type User = {
   expirationDate: string | null;
   deviceId: string | null;
   deviceResetCount: number;
+  maxKeyEdits: number;
+  maxDevicesLimit: number;
+  maxKeyExtends: number;
+  maxKeyResets: number;
+  multiKeysEnabled: number;
+  multiKeysLimit: number;
 };
 
 type AuthContextType = {

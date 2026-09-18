@@ -37,6 +37,8 @@ export async function runMigrations(): Promise<void> {
     await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "max_devices_limit" integer DEFAULT 1000 NOT NULL`);
     await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "max_key_extends" integer DEFAULT 5 NOT NULL`);
     await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "max_key_resets" integer DEFAULT 3 NOT NULL`);
+    await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "multi_keys_enabled" integer DEFAULT 0 NOT NULL`);
+    await client.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "multi_keys_limit" integer DEFAULT 5 NOT NULL`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS "games" (
@@ -115,6 +117,8 @@ export async function runMigrations(): Promise<void> {
     await client.query(`ALTER TABLE "referral_code" ADD COLUMN IF NOT EXISTS "max_devices_limit" integer DEFAULT 1000`);
     await client.query(`ALTER TABLE "referral_code" ADD COLUMN IF NOT EXISTS "max_key_extends" integer DEFAULT 5`);
     await client.query(`ALTER TABLE "referral_code" ADD COLUMN IF NOT EXISTS "max_key_resets" integer DEFAULT 3`);
+    await client.query(`ALTER TABLE "referral_code" ADD COLUMN IF NOT EXISTS "multi_keys_enabled" integer DEFAULT 0`);
+    await client.query(`ALTER TABLE "referral_code" ADD COLUMN IF NOT EXISTS "multi_keys_limit" integer DEFAULT 5`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS "price_config" (

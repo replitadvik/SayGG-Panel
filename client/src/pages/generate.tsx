@@ -49,12 +49,16 @@ export default function GeneratePage() {
   const [maxDevices, setMaxDevices] = useState("1");
   const [customInput, setCustomInput] = useState("random");
   const [customLicense, setCustomLicense] = useState("");
-  const [generatedKey, setGeneratedKey] = useState<any>(null);
+  const [quantity, setQuantity] = useState("1");
+  const [generatedKeys, setGeneratedKeys] = useState<any[]>([]);
   const [genMeta, setGenMeta] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
 
   const isOwner = user?.level === 1;
+  const canGenerateMultiple = isOwner || user?.multiKeysEnabled === 1;
+  const multiKeysLimit = isOwner ? 100 : Math.min(Math.max(user?.multiKeysLimit ?? 5, 2), 100);
 
   // Track whether auto-selection has already fired this session.
   // Using refs (not state) so they survive re-renders without causing extra renders.
@@ -107,15 +111,19 @@ export default function GeneratePage() {
   const unitPrice = selectedDuration?.price ?? 0;
   const devCount = parseInt(maxDevices || "1") || 1;
   const cost = unitPrice * devCount;
+  const keyCount = Math.max(1, parseInt(quantity || "1") || 1);
 
   const deviceCap = user?.level === 3 ? 2 : (user?.level === 2 ? Math.min(user?.maxDevicesLimit ?? 1000, 1000) : Infinity);
   const devicesExceeded = !isOwner && devCount > deviceCap;
-  const balanceInsufficient = !isOwner && cost > (user?.saldo ?? 0);
+  const balanceInsufficient = !isOwner && cost * keyCount > (user?.saldo ?? 0);
+  const quantityExceeded = canGenerateMultiple && keyCount > multiKeysLimit;
 
   const validationError = devicesExceeded
     ? `Max devices exceeded. Your account allows up to ${deviceCap} devices per key.`
-    : balanceInsufficient && cost > 0
-      ? `Insufficient balance. This key costs ${formatCurrency(cost)} but your balance is ${formatCurrency(user?.saldo ?? 0)}.`
+      : quantityExceeded
+        ? `You can generate up to ${multiKeysLimit} keys at a time.`
+        : balanceInsufficient && cost * keyCount > 0
+        ? `Insufficient balance. These keys cost ${formatCurrency(cost * keyCount)} but your balance is ${formatCurrency(user?.saldo ?? 0)}.`
       : null;
 
   const selectedGame = activeGames.find(g => String(g.id) === selectedGameId);
@@ -126,15 +134,15 @@ export default function GeneratePage() {
     },
   });
 
-  function buildStructuredText(key: any, meta: any) {
-    return [
+  function buildStructuredText(keys: any[], meta: any) {
+    return keys.map((key, index) => [
+      keys.length > 1 ? `Key ${index + 1}: ${key.userKey}` : `Key: ${key.userKey}`,
       `Game: ${meta.gameDisplay}`,
-      `Key: ${key.userKey}`,
       `Duration: ${formatDuration(meta.duration)}`,
       `Device: ${meta.maxDevices}`,
       `Created at: ${formatCreatedAt(meta.createdAt)}`,
       `Key will start on first use`,
-    ].join("\n");
+    ].join("\n")).join("\n\n");
   }
 
   const generateMutation = useMutation({
@@ -143,7 +151,9 @@ export default function GeneratePage() {
       return res.json();
     },
     onSuccess: async (data) => {
-      const key = data.key;
+      const keys = Array.isArray(data.keys) ? data.keys : data.key ? [data.key] : [];
+      const key = keys[0];
+      if (!key) throw new Error("The server did not return a generated key.");
       const meta = {
         game: key.game,
         gameDisplay: selectedGame?.displayName || key.game,
@@ -153,14 +163,15 @@ export default function GeneratePage() {
         balanceAfter: data.balanceAfter,
         createdAt: key.createdAt,
       };
-      setGeneratedKey(key);
+      setGeneratedKeys(keys);
       setGenMeta(meta);
       setCopied(false);
+      setCopiedKeyId(null);
       setPopupOpen(true);
 
       try {
-        await navigator.clipboard.writeText(buildStructuredText(key, meta));
-        toast({ title: "Key generated & details copied to clipboard" });
+         await navigator.clipboard.writeText(buildStructuredText(keys, meta));
+         toast({ title: keys.length > 1 ? `${keys.length} keys generated & details copied to clipboard` : "Key generated & details copied to clipboard" });
       } catch {
         toast({ title: "Key generated successfully" });
       }
@@ -187,39 +198,48 @@ export default function GeneratePage() {
       gameId: parseInt(selectedGameId),
       duration: parseInt(duration),
       maxDevices: devCount,
+      ...(canGenerateMultiple ? { quantity: keyCount } : {}),
       customInput,
       customLicense: customInput === "custom" ? customLicense : undefined,
     });
   };
 
   const handleCopy = () => {
-    if (!generatedKey || !genMeta) return;
-    navigator.clipboard.writeText(buildStructuredText(generatedKey, genMeta));
+    if (generatedKeys.length === 0 || !genMeta) return;
+    navigator.clipboard.writeText(buildStructuredText(generatedKeys, genMeta));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Key details copied to clipboard" });
     logActionMutation.mutate({
       action: "Key Copied",
-      keyIds: [generatedKey.id],
+       keyIds: generatedKeys.map(key => key.id),
     });
   };
 
+  const handleCopySingle = (key: any) => {
+    navigator.clipboard.writeText(key.userKey);
+    setCopiedKeyId(key.id);
+    setTimeout(() => setCopiedKeyId(null), 2000);
+    toast({ title: "Key copied to clipboard" });
+    logActionMutation.mutate({ action: "Key Copied", keyIds: [key.id] });
+  };
+
   const handleDownload = () => {
-    if (!generatedKey || !genMeta) return;
-    const content = [
+    if (generatedKeys.length === 0 || !genMeta) return;
+    const content = generatedKeys.map((key, index) => [
+      generatedKeys.length > 1 ? `Key ${index + 1}: ${key.userKey}` : `Key: ${key.userKey}`,
       `Game: ${genMeta.gameDisplay}`,
-      `Key: ${generatedKey.userKey}`,
       `Duration: ${formatDuration(genMeta.duration)}`,
       `Device: ${genMeta.maxDevices}`,
       `Created At: ${formatCreatedAtFile(genMeta.createdAt)}`,
       `Note: Key will start on first use`,
-    ].join("\n");
+    ].join("\n")).join("\n\n");
 
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${generatedKey.userKey}.txt`;
+     a.download = generatedKeys.length > 1 ? `keys-${generatedKeys.length}.txt` : `${generatedKeys[0].userKey}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -227,7 +247,7 @@ export default function GeneratePage() {
     toast({ title: "Key file downloaded" });
     logActionMutation.mutate({
       action: "Key Downloaded",
-      keyIds: [generatedKey.id],
+       keyIds: generatedKeys.map(key => key.id),
     });
   };
 
@@ -302,6 +322,31 @@ export default function GeneratePage() {
               </Select>
             </div>
 
+            {canGenerateMultiple && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Number of Keys</Label>
+                  <span className="text-[10px] text-muted-foreground font-mono">Limit: {multiKeysLimit}</span>
+                </div>
+                <Input
+                  type="number"
+                  min="1"
+                  max={multiKeysLimit}
+                  value={quantity}
+                  onChange={e => {
+                    const nextQuantity = Math.max(1, parseInt(e.target.value || "1") || 1);
+                    setQuantity(e.target.value);
+                    if (nextQuantity > 1 && customInput === "custom") {
+                      setCustomInput("random");
+                      setCustomLicense("");
+                    }
+                  }}
+                  className={`h-11 rounded-md bg-background dark:bg-muted/30 border-border/60 focus:border-primary/50 transition-colors font-mono ${quantityExceeded ? "border-destructive focus:border-destructive" : ""}`}
+                  data-testid="input-key-quantity"
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</Label>
               <Select value={duration} onValueChange={setDuration} disabled={!selectedGameId}>
@@ -360,7 +405,7 @@ export default function GeneratePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="random">Random Key</SelectItem>
-                    <SelectItem value="custom">Custom Key</SelectItem>
+                     <SelectItem value="custom" disabled={keyCount > 1}>Custom Key</SelectItem>
                   </SelectContent>
                 </Select>
                 {customInput === "custom" && (
@@ -377,13 +422,13 @@ export default function GeneratePage() {
               </div>
             )}
 
-            {(cost > 0 || (selectedGameId && duration)) && (
+             {(cost > 0 || (selectedGameId && duration)) && (
               <div className={`rounded-md border overflow-hidden ${validationError ? "border-destructive/40" : "border-border/50"}`}>
                 <div className={`px-4 py-3 space-y-2 ${validationError ? "bg-destructive/5" : "bg-muted/30 dark:bg-muted/20"}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Total Cost</span>
                     <span className="text-base font-bold font-mono text-primary" data-testid="text-cost">
-                      {isOwner ? "Free" : cost > 0 ? formatCurrency(cost) : "—"}
+                       {isOwner ? "Free" : cost > 0 ? formatCurrency(cost * keyCount) : "—"}
                     </span>
                   </div>
                   {!isOwner && cost > 0 && (
@@ -417,9 +462,9 @@ export default function GeneratePage() {
                   Generating...
                 </>
               ) : (
-                <>
+                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Key
+                   {canGenerateMultiple && keyCount > 1 ? "Generate Keys" : "Generate Key"}
                 </>
               )}
             </Button>
@@ -445,18 +490,35 @@ export default function GeneratePage() {
             </DialogHeader>
           </div>
 
-          {generatedKey && genMeta && (
+           {generatedKeys.length > 0 && genMeta && (
             <div className="bg-card">
               <div className="px-5 pt-4 pb-3">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">License Key</p>
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/40">
-                  <code
-                    className="text-sm font-mono font-bold text-foreground flex-1 break-all select-all leading-relaxed"
-                    data-testid="text-generated-key-0"
-                  >
-                    {generatedKey.userKey}
-                  </code>
-                </div>
+                 <div className="flex items-center justify-between mb-2">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">License {generatedKeys.length > 1 ? "Keys" : "Key"}</p>
+                   {generatedKeys.length > 1 && <span className="text-[10px] text-muted-foreground">{generatedKeys.length} generated</span>}
+                 </div>
+                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                   {generatedKeys.map((key, index) => (
+                     <div key={key.id} className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/40">
+                       <code
+                         className="text-sm font-mono font-bold text-foreground flex-1 break-all select-all leading-relaxed"
+                         data-testid={`text-generated-key-${index}`}
+                       >
+                         {key.userKey}
+                       </code>
+                       <Button
+                         onClick={() => handleCopySingle(key)}
+                         variant="ghost"
+                         size="sm"
+                         className="h-7 w-7 p-0 shrink-0"
+                         title="Copy this key"
+                         data-testid={`button-copy-generated-key-${index}`}
+                       >
+                         {copiedKeyId === key.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                       </Button>
+                     </div>
+                   ))}
+                 </div>
               </div>
 
               <div className="mx-5 border-t border-border/30" />
@@ -506,8 +568,8 @@ export default function GeneratePage() {
                   className="flex-1 h-9 text-xs font-medium gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-all"
                   data-testid="button-copy-key"
                 >
-                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copied!" : "Copy Details"}
+                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                   {copied ? "Copied!" : generatedKeys.length > 1 ? "Copy All Details" : "Copy Details"}
                 </Button>
                 <Button
                   onClick={handleDownload}

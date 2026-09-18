@@ -23,6 +23,12 @@ export interface IStorage {
   getAllKeys(): Promise<Key[]>;
   getKeysByRegistrator(registrator: string): Promise<Key[]>;
   createKey(data: Partial<Key>): Promise<Key>;
+  createKeysAndCharge(data: {
+    keys: Partial<Key>[];
+    userId: number;
+    charge: number;
+    currentBalance: number;
+  }): Promise<{ keys: Key[]; balanceAfter: number }>;
   updateKey(id: number, data: Partial<Key>): Promise<Key | undefined>;
   deleteKey(id: number): Promise<void>;
   deleteKeys(ids: number[]): Promise<void>;
@@ -188,6 +194,38 @@ export class DatabaseStorage implements IStorage {
   async createKey(data: Partial<Key>): Promise<Key> {
     const [key] = await db.insert(keysCode).values(data as any).returning();
     return key;
+  }
+
+  async createKeysAndCharge(data: {
+    keys: Partial<Key>[];
+    userId: number;
+    charge: number;
+    currentBalance: number;
+  }): Promise<{ keys: Key[]; balanceAfter: number }> {
+    return db.transaction(async (tx) => {
+      let balanceAfter = data.currentBalance;
+
+      if (data.charge > 0) {
+        const [updatedUser] = await tx.update(users)
+          .set({
+            saldo: sql`${users.saldo} - ${data.charge}`,
+            updatedAt: new Date(),
+          } as any)
+          .where(and(
+            eq(users.id, data.userId),
+            sql`${users.saldo} >= ${data.charge}`,
+          ))
+          .returning({ saldo: users.saldo });
+
+        if (!updatedUser) {
+          throw new Error("Insufficient balance for all requested keys.");
+        }
+        balanceAfter = updatedUser.saldo;
+      }
+
+      const keys = await tx.insert(keysCode).values(data.keys as any).returning();
+      return { keys, balanceAfter };
+    });
   }
 
   async updateKey(id: number, data: Partial<Key>): Promise<Key | undefined> {

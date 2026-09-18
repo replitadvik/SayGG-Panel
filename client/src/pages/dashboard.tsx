@@ -18,7 +18,7 @@ function useSessionCountdown(expiresAt: number | null) {
     if (!expiresAt) { setRemaining(null); return; }
 
     function compute() {
-      const diff = expiresAt - Date.now();
+      const diff = expiresAt! - Date.now();
       if (diff <= 0) { setRemaining(null); return; }
       const hours = Math.floor(diff / 3600000);
       const minutes = Math.floor((diff % 3600000) / 60000);

@@ -37,6 +37,8 @@ export const users = pgTable("users", {
   maxDevicesLimit: integer("max_devices_limit").default(1000).notNull(),
   maxKeyExtends: integer("max_key_extends").default(5).notNull(),
   maxKeyResets: integer("max_key_resets").default(3).notNull(),
+  multiKeysEnabled: integer("multi_keys_enabled").default(0).notNull(),
+  multiKeysLimit: integer("multi_keys_limit").default(5).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -107,6 +109,8 @@ export const referralCode = pgTable("referral_code", {
   maxDevicesLimit: integer("max_devices_limit").default(1000),
   maxKeyExtends: integer("max_key_extends").default(5),
   maxKeyResets: integer("max_key_resets").default(3),
+  multiKeysEnabled: integer("multi_keys_enabled").default(0),
+  multiKeysLimit: integer("multi_keys_limit").default(5),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -328,6 +332,7 @@ export const generateKeySchema = z.object({
   gameId: z.number().int().min(1),
   duration: z.number().int().min(1),
   maxDevices: z.number().int().min(1),
+  quantity: z.number().int().min(1).max(100).optional(),
   customInput: z.enum(["random", "custom"]).optional(),
   customLicense: z.string().min(4).max(19).optional(),
 });

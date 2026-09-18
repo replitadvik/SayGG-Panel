@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"max_devices_limit" integer DEFAULT 1000 NOT NULL,
 	"max_key_extends" integer DEFAULT 5 NOT NULL,
 	"max_key_resets" integer DEFAULT 3 NOT NULL,
+	"multi_keys_enabled" integer DEFAULT 0 NOT NULL,
+	"multi_keys_limit" integer DEFAULT 5 NOT NULL,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now(),
 	CONSTRAINT "users_username_unique" UNIQUE("username")
@@ -81,6 +83,8 @@ CREATE TABLE IF NOT EXISTS "referral_code" (
 	"max_devices_limit" integer DEFAULT 1000,
 	"max_key_extends" integer DEFAULT 5,
 	"max_key_resets" integer DEFAULT 3,
+	"multi_keys_enabled" integer DEFAULT 0,
+	"multi_keys_limit" integer DEFAULT 5,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
